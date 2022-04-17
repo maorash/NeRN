@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 
 class ModelBase(ABC, nn.Module):
     @abstractmethod
-    def get_weights(self):
+    def get_learnable_weights(self):
         raise NotImplementedError()
 
     @abstractmethod
@@ -21,7 +21,7 @@ class ReconstructedModel(ModelBase):
         pass
 
     @abstractmethod
-    def get_weights(self):
+    def get_learnable_weights(self):
         pass
 
     @abstractmethod
@@ -43,5 +43,5 @@ class OriginalModel(ModelBase):
         pass
 
     @abstractmethod
-    def get_weights(self):
+    def get_learnable_weights(self):
         pass

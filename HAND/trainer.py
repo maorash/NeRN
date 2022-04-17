@@ -1,3 +1,6 @@
+from torch import optim
+
+from logger import create_experiment_dir
 from predictor import HANDPredictorBase
 from loss import ReconstructionLoss, DistillationLoss
 from model import OriginalModel, ReconstructedModel
@@ -20,6 +23,8 @@ class Trainer:
         self.reconstructed_model = reconstructed_model
 
     def train(self):
+        exp_dir = create_experiment_dir(self.config.log_dir, self.config.exp_name)
+        optimizer = self._initialize_optimizer()
 
         # For a number of epochs
         indices, positional_embeddings = self.reconstructed_model.get_positional_embeddings()

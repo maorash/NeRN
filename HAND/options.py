@@ -49,14 +49,15 @@ class TrainConfig:
     # Epochs to decay learning rate by 10
     lr_steps: float = field(default=-1)
     # Beta for adam. default=0.5
-    beta: float = field(default=0.5)
+    betas: tuple = field(default=(0.5, 0.999))
     # Loss weight
     lw: float = field(default=1.0)
     # Using sigmoid for output prediction
     sigmoid: bool = field(default=True)
+    # optimizer to use
+    optimizer: str = field(default='AdamW')
 
 
 @pyrallis.wrap()
 def get_train_config(cfg: TrainConfig):
     return cfg
-
