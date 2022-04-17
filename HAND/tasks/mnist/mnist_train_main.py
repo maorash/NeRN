@@ -1,5 +1,7 @@
 from __future__ import print_function
 import argparse
+from typing import List
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -7,17 +9,26 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
 
+from HAND.model import OriginalModel
 
-class Net(nn.Module):
+
+class Net(OriginalModel):
     def __init__(self, num_hidden=32, num_layers=3):
         super(Net, self).__init__()
         self.layers_list = [nn.Conv2d(1, num_hidden, 3, 1)]
         self.layers_list.extend([nn.Conv2d(num_hidden, num_hidden, 3, 1) for _ in range(num_layers - 1)])
         self.convs = nn.ModuleList(self.layers_list)
         self.dropout1 = nn.Dropout(0.25)
-        self.dropout2 = nn.Dropout(0.5)
-        self.fc1 = nn.Linear(num_hidden * 11 * 11, 128)
-        self.fc2 = nn.Linear(128, 10)
+        self.fc = nn.Linear(num_hidden * 11 * 11, 10)
+
+    def get_feature_maps(self, batch: torch.TensorType) -> List[torch.TensorType]:
+        pass
+
+    def get_learnable_weights(self):
+        tensors = []
+        for conv in self.convs:
+            tensors.append(conv.weight)
+        return tensors
 
     def forward(self, x):
         for layer_idx in range(len(self.layers_list)):
@@ -26,10 +37,7 @@ class Net(nn.Module):
         x = F.max_pool2d(x, 2)
         x = self.dropout1(x)
         x = torch.flatten(x, 1)
-        x = self.fc1(x)
-        x = F.relu(x)
-        x = self.dropout2(x)
-        x = self.fc2(x)
+        x = self.fc(x)
         output = F.log_softmax(x, dim=1)
         return output
 

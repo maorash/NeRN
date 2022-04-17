@@ -26,6 +26,8 @@ class HANDConfig:
 class TrainConfig:
     # The experiment name
     exp_name: str = field(default='default_exp')
+    # Log dir
+    log_dir: str = field(default='outputs')
     # Embeddings config
     embeddings: EmbeddingsConfig = field(default_factory=EmbeddingsConfig)
     # HAND config

@@ -40,3 +40,9 @@ class Trainer:
                 1 - self.config.hand.reconstruction_factor) * distillation_loss
         loss.backward()
         optimizer.step()
+
+    def _initialize_optimizer(self):
+        optimizer_type = getattr(optim, self.config.optimizer)
+        optimizer = optimizer_type(self.predictor.parameters(),
+                                   betas=self.config.betas)
+        return optimizer
