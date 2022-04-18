@@ -1,45 +1,13 @@
 from __future__ import print_function
 import argparse
-from typing import List
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
 
-from HAND.model import OriginalModel
-
-
-class Net(OriginalModel):
-    def __init__(self, num_hidden=32, num_layers=3):
-        super(Net, self).__init__()
-        self.layers_list = [nn.Conv2d(1, num_hidden, 3, 1)]
-        self.layers_list.extend([nn.Conv2d(num_hidden, num_hidden, 3, 1) for _ in range(num_layers - 1)])
-        self.convs = nn.ModuleList(self.layers_list)
-        self.dropout1 = nn.Dropout(0.25)
-        self.fc = nn.Linear(num_hidden * 11 * 11, 10)
-
-    def get_feature_maps(self, batch: torch.TensorType) -> List[torch.TensorType]:
-        pass
-
-    def get_learnable_weights(self):
-        tensors = []
-        for conv in self.convs:
-            tensors.append(conv.weight)
-        return tensors
-
-    def forward(self, x):
-        for layer_idx in range(len(self.layers_list)):
-            x = self.layers_list[layer_idx](x)
-            x = F.relu(x)
-        x = F.max_pool2d(x, 2)
-        x = self.dropout1(x)
-        x = torch.flatten(x, 1)
-        x = self.fc(x)
-        output = F.log_softmax(x, dim=1)
-        return output
+from HAND.models.original_task_models.simple_model import SimpleNet
 
 
 def train(args, model, device, train_loader, optimizer, epoch):
@@ -128,7 +96,7 @@ def main():
     train_loader = torch.utils.data.DataLoader(dataset1, **train_kwargs)
     test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
 
-    model = Net().to(device)
+    model = SimpleNet().to(device)
     optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
 
     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
