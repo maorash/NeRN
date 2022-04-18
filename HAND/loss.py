@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Tuple
+from typing import Optional
 
 import torch
 
@@ -11,9 +11,9 @@ from HAND.model import ReconstructedModel, OriginalModel
 class LossBase(nn.Module, ABC):
     @abstractmethod
     def forward(self,
-                batch: torch.TensorType,
                 reconstructed_model: ReconstructedModel,
-                original_model: OriginalModel) \
+                original_model: OriginalModel,
+                batch: Optional[torch.TensorType]) \
             -> torch.FloatType:
         raise NotImplementedError()
 
@@ -25,12 +25,12 @@ class ReconstructionLoss(LossBase):
         self.loss_function = getattr(nn, loss_type)
 
     def forward(self,
-                batch: torch.TensorType,
                 reconstructed_model: ReconstructedModel,
-                original_model: OriginalModel) \
+                original_model: OriginalModel,
+                **kwargs) \
             -> torch.FloatType:
-        original_model_feature_maps = original_model.get_feature_maps(batch)
-        reconstructed_model_feature_maps = reconstructed_model.get_feature_maps(batch)
+        original_model_feature_maps = original_model.get_learnable_weights()
+        reconstructed_model_feature_maps = reconstructed_model.get_learnable_weights()
         return self.loss_function(original_model_feature_maps, reconstructed_model_feature_maps)
 
 
