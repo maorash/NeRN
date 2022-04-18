@@ -15,7 +15,7 @@ class HANDConfig:
     # Normalization layer
     norm_layer: str = field(default='bn')
     # Activation layer
-    act_layer: str = field(default='relu')
+    act_layer: str = field(default='ReLU')
     # Number of linear blocks
     num_blocks: int = field(default=3)
     # Reconstruction loss factor (distillation factor will be 1 - reconstruction_factor)
