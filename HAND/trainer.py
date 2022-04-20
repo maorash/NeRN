@@ -12,17 +12,21 @@ class Trainer:
                  config: TrainConfig,
                  predictor: HANDPredictorBase,
                  reconstruction_loss: ReconstructionLoss,
-                 distillation_loss: DistillationLoss,
+                 feature_maps_distillation_loss: FeatureMapsDistillationLoss,
+                 output_distillation_loss: OutputDistillationLoss,
                  original_model: OriginalModel,
                  reconstructed_model: ReconstructedModel):
         self.config = config
         self.predictor = predictor
         self.reconstruction_loss = reconstruction_loss
-        self.distillation_loss = distillation_loss
+        self.feature_maps_distillation_loss = feature_maps_distillation_loss
+        self.output_distillation_loss = output_distillation_loss
         self.original_model = original_model
         self.reconstructed_model = reconstructed_model
 
     def train(self):
+        self._set_grads_for_training()
+
         exp_dir = create_experiment_dir(self.config.log_dir, self.config.exp_name)
         optimizer = self._initialize_optimizer()
 

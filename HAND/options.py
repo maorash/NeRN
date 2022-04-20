@@ -66,7 +66,7 @@ class TrainConfig:
     lw: float = field(default=1.0)
     # Using sigmoid for output prediction
     sigmoid: bool = field(default=True)
-    # optimizer to use
+    # Optimizer to use, should be a member of `torch.optim`, default is `AdamW`
     optimizer: str = field(default='AdamW')
 
 
