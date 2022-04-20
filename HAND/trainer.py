@@ -1,9 +1,9 @@
 from torch import optim
 
+from HAND.predictors.predictor import HANDPredictorBase
 from logger import create_experiment_dir
-from predictor import HANDPredictorBase
-from loss import ReconstructionLoss, DistillationLoss
-from model import OriginalModel, ReconstructedModel
+from loss import ReconstructionLoss, FeatureMapsDistillationLoss, OutputDistillationLoss
+from HAND.models.model import OriginalModel, ReconstructedModel
 from options import TrainConfig
 
 
@@ -29,17 +29,33 @@ class Trainer:
         # For a number of epochs
         indices, positional_embeddings = self.reconstructed_model.get_positional_embeddings()
         for index, positional_embedding in zip(indices, positional_embeddings):
-            # Reconstruct all of the original model's weights using the predictor model
+            # Reconstruct all of the original model's weights using the predictors model
             reconstructed_weights = self.predictor(positional_embedding)
             self.reconstructed_model.update_weights(index, reconstructed_weights)
 
         # Now we can see how good our reconstructed model is
-        reconstruction_loss = self.reconstruction_loss(self.reconstructed_model, self.original_model)
-        distillation_loss = self.distillation_loss(self.reconstructed_model, self.original_model)
-        loss = self.config.hand.reconstruction_factor * reconstruction_loss + (
-                1 - self.config.hand.reconstruction_factor) * distillation_loss
+        reconstruction_term = self.config.hand.reconstruction_loss_weight * self.reconstruction_loss(
+            self.reconstructed_model, self.original_model)
+        feature_maps_term = self.config.hand.feature_maps_distillation_loss_weight * self.feature_maps_distillation_loss(
+            self.reconstructed_model, self.original_model)
+        outputs_term = self.config.hand.output_distillation_loss_weight * self.output_distillation_loss(
+            self.reconstructed_model, self.original_model)
+        loss = reconstruction_term + feature_maps_term + outputs_term
+
         loss.backward()
         optimizer.step()
+
+    def _set_grads_for_training(self):
+        self.original_model.eval()
+        self.reconstructed_model.eval()
+        for param in self.original_model.parameters():
+            param.requires_grad = False
+        for param in self.reconstructed_model.parameters():
+            param.requires_grad = False
+
+        self.predictor.train()
+        for param in self.predictor.parameters():
+            param.requires_grad = True
 
     def _initialize_optimizer(self):
         optimizer_type = getattr(optim, self.config.optimizer)

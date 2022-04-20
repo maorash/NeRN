@@ -10,7 +10,7 @@ class EmbeddingsConfig:
 
 @dataclass
 class HANDConfig:
-    # Prediction method
+    # Predictor type
     method: str = field(default='basic')
     # Normalization layer
     norm_layer: str = field(default='bn')
@@ -18,8 +18,18 @@ class HANDConfig:
     act_layer: str = field(default='ReLU')
     # Number of linear blocks
     num_blocks: int = field(default=3)
-    # Reconstruction loss factor (distillation factor will be 1 - reconstruction_factor)
-    reconstruction_factor: float = field(default=0.5)
+    # Reconstruction loss weight (distillation weight will be 1 - reconstruction_loss_weight)
+    reconstruction_loss_weight: float = field(default=0.333)
+    # Feature maps distillation loss weight (distillation weight will be 1 - reconstruction_loss_weight)
+    feature_maps_distillation_loss_weight: float = field(default=0.333)
+    # Output distillation loss weight (distillation weight will be 1 - reconstruction_loss_weight)
+    output_distillation_loss_weight: float = field(default=0.333)
+    # Reconstruction loss type, should be a member of `torch.nn`, default is `MSELoss`
+    reconstruction_loss_type: str = field(default='MSELoss')
+    # Feature maps distillation loss type, should be a member of `torch.nn`, default is `MSELoss`
+    feature_maps_distillation_loss_type: str = field(default='MSELoss')
+    # Output distillation loss type, should be a member of `torch.nn`, default is `KLDivLoss`
+    output_distillation_loss_type: str = field(default='KLDivLoss')
 
 
 @dataclass

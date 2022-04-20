@@ -6,6 +6,19 @@ from abc import ABC, abstractmethod
 from HAND.options import HANDConfig
 
 
+class HANDPredictorFactory:
+    def __init__(self, cfg: HANDConfig):
+        self.cfg = cfg
+
+    def get_predictor(self):
+        if self.cfg.method == 'basic':
+            return HANDBasicPredictor(self.cfg)
+        elif self.cfg.method == '3x3':
+            return HAND3x3Predictor(self.cfg)
+        else:
+            raise ValueError(f'Not recognized predictor type {self.cfg.method}')
+
+
 class HANDPredictorBase(nn.Module, ABC):
     def __init__(self, cfg: HANDConfig):
         super().__init__()

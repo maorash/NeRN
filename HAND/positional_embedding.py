@@ -17,12 +17,12 @@ def get_positional_encoding_embedder(multires, enable_encoding=True):
         'periodic_fns': [torch.sin, torch.cos]
     }
 
-    embedder_obj = PositionalEncoding(**embed_kwargs)
+    embedder_obj = PositionalEmbedding(**embed_kwargs)
     embed = lambda x, eo=embedder_obj: eo.embed(x)
     return embed, embedder_obj.output_dim
 
 
-class PositionalEncoding:
+class PositionalEmbedding:
     def __init__(self, **kwargs):
         self.kwargs = kwargs
         self.create_embedding_fn()

@@ -4,14 +4,14 @@ import torch
 from torch import nn as nn
 from torch.nn import functional as F
 
-from HAND.model import OriginalModel
+from HAND.models.model import OriginalModel
 
 
 class SimpleNet(OriginalModel):
     def __init__(self, num_hidden=32, num_layers=3):
         super(SimpleNet, self).__init__()
-        self.layers_list = [nn.Conv2d(1, num_hidden, 3, 1)]
-        self.layers_list.extend([nn.Conv2d(num_hidden, num_hidden, 3, 1) for _ in range(num_layers - 1)])
+        self.layers_list = [nn.Conv2d(1, num_hidden, (3, 3), (1, 1))]
+        self.layers_list.extend([nn.Conv2d(num_hidden, num_hidden, (3, 3), (1, 1)) for _ in range(num_layers - 1)])
         self.convs = nn.ModuleList(self.layers_list)
         self.dropout1 = nn.Dropout(0.25)
         self.fc = nn.Linear(num_hidden * 11 * 11, 10)
