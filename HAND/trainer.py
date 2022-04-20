@@ -31,23 +31,25 @@ class Trainer:
         optimizer = self._initialize_optimizer()
 
         # For a number of epochs
-        indices, positional_embeddings = self.reconstructed_model.get_positional_embeddings()
-        for index, positional_embedding in zip(indices, positional_embeddings):
-            # Reconstruct all of the original model's weights using the predictors model
-            reconstructed_weights = self.predictor(positional_embedding)
-            self.reconstructed_model.update_weights(index, reconstructed_weights)
+        for epoch in range(self.config.epochs):
 
-        # Now we can see how good our reconstructed model is
-        reconstruction_term = self.config.hand.reconstruction_loss_weight * self.reconstruction_loss(
-            self.reconstructed_model, self.original_model)
-        feature_maps_term = self.config.hand.feature_maps_distillation_loss_weight * self.feature_maps_distillation_loss(
-            self.reconstructed_model, self.original_model)
-        outputs_term = self.config.hand.output_distillation_loss_weight * self.output_distillation_loss(
-            self.reconstructed_model, self.original_model)
-        loss = reconstruction_term + feature_maps_term + outputs_term
+            indices, positional_embeddings = self.reconstructed_model.get_positional_embeddings()
+            for index, positional_embedding in zip(indices, positional_embeddings):
+                # Reconstruct all of the original model's weights using the predictors model
+                reconstructed_weights = self.predictor(positional_embedding)
+                self.reconstructed_model.update_weights(index, reconstructed_weights)
 
-        loss.backward()
-        optimizer.step()
+            # Now we can see how good our reconstructed model is
+            reconstruction_term = self.config.hand.reconstruction_loss_weight * self.reconstruction_loss(
+                self.reconstructed_model, self.original_model)
+            feature_maps_term = self.config.hand.feature_maps_distillation_loss_weight * self.feature_maps_distillation_loss(
+                self.reconstructed_model, self.original_model)
+            outputs_term = self.config.hand.output_distillation_loss_weight * self.output_distillation_loss(
+                self.reconstructed_model, self.original_model)
+            loss = reconstruction_term + feature_maps_term + outputs_term
+
+            loss.backward()
+            optimizer.step()
 
     def _set_grads_for_training(self):
         self.original_model.eval()
