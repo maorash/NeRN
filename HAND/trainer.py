@@ -42,12 +42,12 @@ class Trainer:
             # Now we can see how good our reconstructed model is
             reconstruction_term = self.config.hand.reconstruction_loss_weight * self.reconstruction_loss(
                 self.reconstructed_model, self.original_model)
-            feature_maps_term = self.config.hand.feature_maps_distillation_loss_weight * self.feature_maps_distillation_loss(
-                self.reconstructed_model, self.original_model)
-            outputs_term = self.config.hand.output_distillation_loss_weight * self.output_distillation_loss(
-                self.reconstructed_model, self.original_model)
-            loss = reconstruction_term + feature_maps_term + outputs_term
-
+            # feature_maps_term = self.config.hand.feature_maps_distillation_loss_weight * self.feature_maps_distillation_loss(
+            #     batch, self.reconstructed_model, self.original_model)  # TODO: where does the batch come from? which loop
+            # outputs_term = self.config.hand.output_distillation_loss_weight * self.output_distillation_loss(
+            #     self.reconstructed_model, self.original_model)# TODO: where does the batch come from? which loop
+            # loss = reconstruction_term + feature_maps_term + outputs_term
+            loss = reconstruction_term
             loss.backward()
             optimizer.step()
 

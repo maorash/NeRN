@@ -25,7 +25,7 @@ class HANDPredictorBase(nn.Module, ABC):
         self.cfg = cfg
 
     @abstractmethod
-    def forward(self, positional_embeddings: List[torch.TensorType]) -> List[torch.TensorType]:
+    def forward(self, positional_embedding: torch.TensorType) -> torch.TensorType:
         raise NotImplementedError()
 
 
@@ -39,15 +39,18 @@ class HAND3x3Predictor(HANDPredictorBase):
         self.layers = self._construct_layers()
 
     def _construct_layers(self):
-        input_dim = 21  # TODO: determine from config that also determines PEs (when we agree on an implementation)
+        input_dim = 80 * 3 * 2  # TODO: determine from config that also determines PEs (when we agree on an implementation)
         hidden_size = 30
         blocks = [nn.Linear(input_dim, hidden_size)]
         blocks.extend([nn.Linear(hidden_size, hidden_size) for _ in range(self.cfg.num_blocks - 2)])
         blocks.append(nn.Linear(hidden_size, 9))  # last layer predicts 3x3 output
         return nn.ModuleList(blocks)
 
-    def forward(self, positional_embeddings: List[torch.TensorType]) -> List[torch.TensorType]:
-        pass
+    def forward(self, positional_embedding: torch.TensorType) -> torch.TensorType:
+        x = positional_embedding
+        for layer in self.layers:
+            x = layer(x)
+        return x
 
 
 class HANDBasicPredictor(HANDPredictorBase):
@@ -55,5 +58,5 @@ class HANDBasicPredictor(HANDPredictorBase):
     Given 5 positional embeddings: (Layer, Filter, Channel, Height, Width) returns a single floating point
     """
 
-    def forward(self, positional_embeddings: List[torch.TensorType]) -> List[torch.TensorType]:
+    def forward(self, positional_embedding: List[torch.TensorType]) -> List[torch.TensorType]:
         pass

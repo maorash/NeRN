@@ -21,7 +21,7 @@ class LossBase(nn.Module, ABC):
 class ReconstructionLoss(LossBase):
     def __init__(self, loss_type: str = 'MSELoss'):
         super().__init__()
-        self.loss_function = getattr(nn, loss_type)
+        self.loss_function = getattr(nn, loss_type)()
 
     def forward(self,
                 reconstructed_model: ReconstructedModel,
@@ -30,13 +30,15 @@ class ReconstructionLoss(LossBase):
             -> torch.Tensor:
         original_weights = original_model.get_learnable_weights()
         reconstructed_weights = reconstructed_model.get_learnable_weights()
-        return self.loss_function(original_weights, reconstructed_weights)
+        return sum(
+            [self.loss_function(original_weight, reconstructed_weight) for original_weight, reconstructed_weight in
+             zip(original_weights, reconstructed_weights)])
 
 
 class FeatureMapsDistillationLoss(LossBase):
     def __init__(self, loss_type: str = 'MSELoss'):
         super().__init__()
-        self.loss_function = getattr(nn, loss_type)
+        self.loss_function = getattr(nn, loss_type)()
 
     def forward(self,
                 batch: torch.TensorType,
@@ -58,7 +60,7 @@ class FeatureMapsDistillationLoss(LossBase):
 class OutputDistillationLoss(LossBase):
     def __init__(self, loss_type: str = 'KLDivLoss'):
         super().__init__()
-        self.loss_function = getattr(nn, loss_type)
+        self.loss_function = getattr(nn, loss_type)()
 
     def forward(self,
                 batch: torch.TensorType,

@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 from torch import nn
 
@@ -53,3 +54,21 @@ class PositionalEmbedding:
 
     def embed(self, inputs):
         return torch.cat([fn(inputs) for fn in self.embedding_funcs], -1)
+
+
+class MyPositionalEncoding(nn.Module):
+    def __init__(self, enc_levels=80, base=1.25):
+        super(MyPositionalEncoding, self).__init__()
+        assert enc_levels >= 1
+        self.base = base
+        self.levels = enc_levels
+        self.enc_len = 2 * enc_levels
+
+    def forward(self, pos):
+        pe_list = []
+        # naive implementation using a simple concat
+        for p in range(len(pos)):
+            for i in range(self.levels):
+                temp_value = torch.tensor(p * (self.base ** i) * np.pi)
+                pe_list += [torch.sin(temp_value), torch.cos(temp_value)]
+        return torch.stack(pe_list, 0)

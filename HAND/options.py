@@ -11,7 +11,7 @@ class EmbeddingsConfig:
 @dataclass
 class HANDConfig:
     # Predictor type
-    method: str = field(default='basic')
+    method: str = field(default='3x3')
     # Normalization layer
     norm_layer: str = field(default='bn')
     # Activation layer

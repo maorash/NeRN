@@ -5,7 +5,7 @@ from torch import nn as nn
 from torch.nn import functional as F
 
 from HAND.models.model import OriginalModel, ReconstructedModel
-from HAND.positional_embedding import get_positional_encoding_embedder
+from HAND.positional_embedding import get_positional_encoding_embedder, MyPositionalEncoding
 
 
 class SimpleNet(OriginalModel):
@@ -45,9 +45,10 @@ class SimpleNet(OriginalModel):
 
 
 class ReconstructedSimpleNet3x3(ReconstructedModel):
-    def __init__(self, original_model: SimpleNet):
+    def __init__(self, original_model: SimpleNet, **positional_encoding_args):
         super().__init__(original_model)
-        self.positional_embeddings = self._calculate_positional_embeddings()
+        self.positional_encoder = MyPositionalEncoding(**positional_encoding_args)
+        self.positional_embeddings = self._calculate_position_embeddings()
 
     def get_positional_embeddings(self) -> Tuple[List[Tuple], List[torch.TensorType]]:
         return self.positional_embeddings
@@ -62,10 +63,11 @@ class ReconstructedSimpleNet3x3(ReconstructedModel):
                 for channel_idx in range(self.original_model.num_hidden):
                     indices.append((layer_idx, filter_idx, channel_idx))
 
-        pe_calculator, output_dim = get_positional_encoding_embedder(3)  # TODO implement pos_emb correctly
-        positional_embeddings = pe_calculator.embed(indices)
-
+        positional_embeddings = [self.positional_encoder(idx) for idx in
+                                 indices]  # TODO: is this best? does this even work?
         return indices, positional_embeddings
 
-    def update_weights(self, index: Tuple, weight: torch.TensorType):
-        pass
+    @torch.no_grad()
+    def update_weights(self, index: Tuple, weight: torch.TensorType):  # TODO: should move to base class?
+        i, j, k = index
+        self.reconstructed_model.get_learnable_weights()[i][j][k] = weight.reshape(3, 3)

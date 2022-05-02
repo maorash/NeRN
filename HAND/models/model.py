@@ -1,3 +1,5 @@
+import copy
+
 import torch
 from torch import nn
 from typing import List, Tuple
@@ -19,6 +21,7 @@ class ReconstructedModel(OriginalModel):
     def __init__(self, original_model: OriginalModel):
         super().__init__()
         self.original_model = original_model
+        self.reconstructed_model = copy.deepcopy(original_model)
 
     @abstractmethod
     def get_positional_embeddings(self) -> Tuple[List[Tuple], List[torch.TensorType]]:
