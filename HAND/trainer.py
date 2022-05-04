@@ -1,6 +1,8 @@
 from torch import optim
 
 from HAND.predictors.predictor import HANDPredictorBase
+from HAND.eval_func import EvalFunction
+from HAND.tasks.mnist.mnist_train_main import get_dataloaders
 from logger import create_experiment_dir
 from loss import ReconstructionLoss, FeatureMapsDistillationLoss, OutputDistillationLoss
 from HAND.models.model import OriginalModel, ReconstructedModel
@@ -16,7 +18,8 @@ class Trainer:
                  feature_maps_distillation_loss: FeatureMapsDistillationLoss,
                  output_distillation_loss: OutputDistillationLoss,
                  original_model: OriginalModel,
-                 reconstructed_model: ReconstructedModel):
+                 reconstructed_model: ReconstructedModel,
+                 original_task_eval_fn: EvalFunction):
         self.config = config
         self.predictor = predictor
         self.reconstruction_loss = reconstruction_loss
@@ -24,12 +27,17 @@ class Trainer:
         self.output_distillation_loss = output_distillation_loss
         self.original_model = original_model
         self.reconstructed_model = reconstructed_model
+        self.original_task_eval_fn = original_task_eval_fn
 
     def train(self):
         self._set_grads_for_training()
 
         exp_dir = create_experiment_dir(self.config.log_dir, self.config.exp_name)
         optimizer = self._initialize_optimizer()
+
+        data_kwargs = {'batch_size': self.config.batch_size}
+        test_dataloader, train_dataloader = get_dataloaders(test_kwargs=data_kwargs,
+                                                            train_kwargs=data_kwargs)
 
         # For a number of epochs
         for epoch in tqdm(range(self.config.epochs), desc='epochs'):
@@ -50,6 +58,8 @@ class Trainer:
             loss = reconstruction_term
             loss.backward()
             optimizer.step()
+            if epoch % self.config.eval_epochs_interval == 0:
+                self.original_task_eval_fn.eval(self.reconstructed_model, test_dataloader)
 
     def _set_grads_for_training(self):
         self.original_model.eval()

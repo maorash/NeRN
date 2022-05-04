@@ -68,6 +68,8 @@ class TrainConfig:
     sigmoid: bool = field(default=True)
     # Optimizer to use, should be a member of `torch.optim`, default is `AdamW`
     optimizer: str = field(default='AdamW')
+    # How often to test the reconstructed model on the original task
+    eval_epochs_interval: int = field(default=10)
 
 
 @pyrallis.wrap()
