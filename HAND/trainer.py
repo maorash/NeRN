@@ -5,6 +5,7 @@ from logger import create_experiment_dir
 from loss import ReconstructionLoss, FeatureMapsDistillationLoss, OutputDistillationLoss
 from HAND.models.model import OriginalModel, ReconstructedModel
 from options import TrainConfig
+from tqdm import tqdm
 
 
 class Trainer:
@@ -31,8 +32,7 @@ class Trainer:
         optimizer = self._initialize_optimizer()
 
         # For a number of epochs
-        for epoch in range(self.config.epochs):
-
+        for epoch in tqdm(range(self.config.epochs), desc='epochs'):
             indices, positional_embeddings = self.reconstructed_model.get_positional_embeddings()
             for index, positional_embedding in zip(indices, positional_embeddings):
                 # Reconstruct all of the original model's weights using the predictors model

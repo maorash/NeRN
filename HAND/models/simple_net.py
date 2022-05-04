@@ -63,11 +63,17 @@ class ReconstructedSimpleNet3x3(ReconstructedModel):
                 for channel_idx in range(self.original_model.num_hidden):
                     indices.append((layer_idx, filter_idx, channel_idx))
 
-        positional_embeddings = [self.positional_encoder(idx) for idx in
-                                 indices]  # TODO: is this best? does this even work?
+        # TODO: is this best? does this even work?
+        positional_embeddings = [self.positional_encoder(idx) for idx in indices]
         return indices, positional_embeddings
 
-    @torch.no_grad()
+    # I don't use @torch.no_grad() here.
+    # when updating weights in training need to retain grad, otherwise discard it
+    # anyway there's something peculiar with the grad functions.
+    # `weight` grad_fn=<AddBackward0> but weight.reshape(3,3) grad_fn=<ViewBackward>.
+    # when assigning it to the reconstruction model it becomes grad_fn=<SelectBackward>.
+    # I feel like this isn't something that would cause a bug but something to notice.
+    # I leave this for future speculation.
     def update_weights(self, index: Tuple, weight: torch.TensorType):  # TODO: should move to base class?
         i, j, k = index
         self.reconstructed_model.get_learnable_weights()[i][j][k] = weight.reshape(3, 3)

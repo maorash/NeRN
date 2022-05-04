@@ -30,9 +30,10 @@ class ReconstructionLoss(LossBase):
             -> torch.Tensor:
         original_weights = original_model.get_learnable_weights()
         reconstructed_weights = reconstructed_model.get_learnable_weights()
-        return sum(
-            [self.loss_function(original_weight, reconstructed_weight) for original_weight, reconstructed_weight in
-             zip(original_weights, reconstructed_weights)])
+        loss = 0
+        for original_weight, reconstructed_weight in zip(original_weights, reconstructed_weights):
+            loss += self.loss_function(original_weight, reconstructed_weight)
+        return loss
 
 
 class FeatureMapsDistillationLoss(LossBase):

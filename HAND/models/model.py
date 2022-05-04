@@ -35,7 +35,11 @@ class ReconstructedModel(OriginalModel):
         return self.original_model.get_feature_maps(batch)
 
     def get_learnable_weights(self):
-        return self.original_model.get_learnable_weights()
+        weights = self.original_model.get_learnable_weights()
+        # for loss function
+        for weight in weights:
+            weight.requires_grad = True
+        return weights
 
-    def forward(self, input):
-        return self.original_model(input)
+    def forward(self, x):
+        return self.original_model(x)
