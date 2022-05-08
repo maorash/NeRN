@@ -1,7 +1,6 @@
 from __future__ import print_function
 
 import argparse
-from typing import Tuple
 
 import torch
 import torch.nn.functional as F
@@ -10,28 +9,21 @@ from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
-from HAND.models.model import ReconstructedModel
 from HAND.models.simple_net import SimpleNet
-from HAND.eval_func import EvalFunction
 
 
-class MNISTEvalFunction(EvalFunction):
-    @staticmethod
-    def _eval_model(reconstructed_model: ReconstructedModel, dataloader: DataLoader) -> Tuple[float, float]:
-        reconstructed_model.eval()
-        device = next(reconstructed_model.parameters()).device  # assuming all parameters are on the same device.
-        test_loss = 0
-        correct = 0
-        with torch.no_grad():
-            for data, target in dataloader:
-                data, target = data.to(device), target.to(device)
-                output = reconstructed_model(data)
-                test_loss += F.nll_loss(output, target, reduction='sum').item()  # sum up batch loss
-                pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
-                correct += pred.eq(target.view_as(pred)).sum().item()
-
-        test_loss /= len(dataloader.dataset)
-        return test_loss, correct
+def get_dataloaders(test_kwargs, train_kwargs):
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.1307,), (0.3081,))
+    ])
+    dataset1 = datasets.MNIST('../data', train=True, download=True,
+                              transform=transform)
+    dataset2 = datasets.MNIST('../data', train=False,
+                              transform=transform)
+    train_loader = torch.utils.data.DataLoader(dataset1, **train_kwargs)
+    test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
+    return test_loader, train_loader
 
 
 def train(args, model, device, train_loader, optimizer, epoch):
@@ -122,20 +114,6 @@ def main():
 
     if args.save_model:
         torch.save(model.state_dict(), "../../../mnist_cnn.pt")
-
-
-def get_dataloaders(test_kwargs, train_kwargs):
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
-    ])
-    dataset1 = datasets.MNIST('../data', train=True, download=True,
-                              transform=transform)
-    dataset2 = datasets.MNIST('../data', train=False,
-                              transform=transform)
-    train_loader = torch.utils.data.DataLoader(dataset1, **train_kwargs)
-    test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
-    return test_loader, train_loader
 
 
 if __name__ == '__main__':
