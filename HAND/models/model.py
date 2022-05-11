@@ -42,4 +42,4 @@ class ReconstructedModel(OriginalModel):
         return weights
 
     def forward(self, x):
-        return self.original_model(x)
+        return self.reconstructed_model(x)

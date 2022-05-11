@@ -1,10 +1,7 @@
-from abc import ABC, abstractmethod
-from typing import Callable, Tuple
-
+from typing import Tuple
 import torch
-from torch.autograd.grad_mode import F
+from torch.nn.functional import nll_loss
 from torch.utils.data import DataLoader
-
 from HAND.models.model import ReconstructedModel
 
 
@@ -25,7 +22,7 @@ class EvalFunction:
             for data, target in dataloader:
                 data, target = data.to(device), target.to(device)
                 output = reconstructed_model(data)
-                test_loss += F.nll_loss(output, target, reduction='sum').item()  # sum up batch loss
+                test_loss += nll_loss(output, target, reduction='sum').item()  # sum up batch loss
                 pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
                 correct += pred.eq(target.view_as(pred)).sum().item()
 
