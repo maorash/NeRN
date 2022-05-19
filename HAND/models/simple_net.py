@@ -5,7 +5,7 @@ from torch import nn as nn
 from torch.nn import functional as F
 
 from HAND.models.model import OriginalModel, ReconstructedModel
-from HAND.positional_embedding import get_positional_encoding_embedder, MyPositionalEncoding
+from HAND.positional_embedding import MyPositionalEncoding
 
 
 class SimpleNet(OriginalModel):
@@ -24,7 +24,7 @@ class SimpleNet(OriginalModel):
         self.forward(batch, extract_feature_maps=True)
         return self.feature_maps
 
-    def get_learnable_weights(self):
+    def get_learnable_weights(self):  # TODO: implement index accessing
         tensors = []
         for conv in self.convs:
             tensors.append(conv.weight)
@@ -76,4 +76,5 @@ class ReconstructedSimpleNet3x3(ReconstructedModel):
     # I leave this for future speculation.
     def update_weights(self, index: Tuple, weight: torch.TensorType):  # TODO: should move to base class?
         i, j, k = index
-        self.reconstructed_model.get_learnable_weights()[i][j][k] = weight.reshape(3, 3)
+        self.reconstructed_model.get_learnable_weights()[i][j][k] = weight.reshape(3,
+                                                                                   3)  # TODO: implement index accessing
