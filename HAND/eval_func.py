@@ -7,6 +7,7 @@ from HAND.models.model import ReconstructedModel
 
 class EvalFunction:
     def eval(self, reconstructed_model: ReconstructedModel, dataloader: DataLoader):
+        print('\n Starting eval on test set.')
         test_loss, correct = self._eval_model(reconstructed_model, dataloader)
         print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
             test_loss, correct, len(dataloader.dataset),
