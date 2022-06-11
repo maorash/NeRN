@@ -67,8 +67,8 @@ class MyPositionalEncoding(nn.Module):
     def forward(self, pos):
         pe_list = []
         # naive implementation using a simple concat
-        for p in range(len(pos)):
-            for i in range(self.levels):
-                temp_value = torch.tensor(p * (self.base ** i) * np.pi)
+        for p in pos:
+            for lvl in range(self.levels):
+                temp_value = torch.tensor(p * (self.base ** lvl) * np.pi)
                 pe_list += [torch.sin(temp_value), torch.cos(temp_value)]
         return torch.stack(pe_list, 0)

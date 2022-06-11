@@ -1,5 +1,6 @@
+import os
+import torch
 from torch import optim
-
 from HAND.predictors.predictor import HANDPredictorBase
 from HAND.eval_func import EvalFunction
 from HAND.tasks.mnist.mnist_train_main import get_dataloaders
@@ -41,25 +42,39 @@ class Trainer:
 
         # For a number of epochs
         for epoch in tqdm(range(self.config.epochs), desc='epochs'):
-            indices, positional_embeddings = self.reconstructed_model.get_positional_embeddings()
+            indices, positional_embeddings = self.reconstructed_model.get_indices_and_positional_embeddings()
+            predicted_weights = []
             for index, positional_embedding in zip(indices, positional_embeddings):
                 # Reconstruct all of the original model's weights using the predictors model
                 reconstructed_weights = self.predictor(positional_embedding)
-                self.reconstructed_model.update_weights(index, reconstructed_weights)
+                predicted_weights.append(reconstructed_weights)
+
+            new_weights = self.reconstructed_model.aggregate_predicted_weights(predicted_weights)
+            self.reconstructed_model.update_whole_weights(new_weights)
 
             # Now we can see how good our reconstructed model is
+            original_weights = self.original_model.get_learnable_weights()
             reconstruction_term = self.config.hand.reconstruction_loss_weight * self.reconstruction_loss(
-                self.reconstructed_model, self.original_model)
+                new_weights, original_weights)
+
+            feature_maps_term = 0.
             # feature_maps_term = self.config.hand.feature_maps_distillation_loss_weight * self.feature_maps_distillation_loss(
             #     batch, self.reconstructed_model, self.original_model)  # TODO: where does the batch come from? which loop
+
+            outputs_term = 0.
             # outputs_term = self.config.hand.output_distillation_loss_weight * self.output_distillation_loss(
             #     self.reconstructed_model, self.original_model)# TODO: where does the batch come from? which loop
-            # loss = reconstruction_term + feature_maps_term + outputs_term
-            loss = reconstruction_term
+
+            loss = reconstruction_term + feature_maps_term + outputs_term
+            print(f'\nTraining loss is: {loss}')
             loss.backward()
             optimizer.step()
+
             if epoch % self.config.eval_epochs_interval == 0:
                 self.original_task_eval_fn.eval(self.reconstructed_model, test_dataloader)
+
+            if epoch % self.config.save_epoch_interval == 0:
+                torch.save(self.predictor, os.path.join(exp_dir, f'hand_{epoch}.pth'))
 
     def _set_grads_for_training(self):
         self.original_model.eval()

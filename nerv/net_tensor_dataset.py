@@ -3,7 +3,7 @@ from torch.utils.data import Dataset
 from torch.utils.data.dataset import T_co
 from typing import List
 
-tensor_list = List[torch.TensorType]
+tensor_list = List[torch.Tensor]
 
 
 class NetTensorDataset(Dataset):

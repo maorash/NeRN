@@ -70,6 +70,8 @@ class TrainConfig:
     optimizer: str = field(default='AdamW')
     # How often to test the reconstructed model on the original task
     eval_epochs_interval: int = field(default=10)
+    # How often to save the learned model
+    save_epoch_interval: int = field(default=20)
 
 
 @pyrallis.wrap()

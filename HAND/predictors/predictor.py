@@ -25,7 +25,7 @@ class HANDPredictorBase(nn.Module, ABC):
         self.cfg = cfg
 
     @abstractmethod
-    def forward(self, positional_embedding: torch.TensorType) -> torch.TensorType:
+    def forward(self, positional_embedding: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError()
 
 
@@ -46,7 +46,7 @@ class HAND3x3Predictor(HANDPredictorBase):
         blocks.append(nn.Linear(hidden_size, 9))  # last layer predicts 3x3 output
         return nn.ModuleList(blocks)
 
-    def forward(self, positional_embedding: torch.TensorType) -> torch.TensorType:
+    def forward(self, positional_embedding: torch.Tensor) -> torch.Tensor:
         x = positional_embedding
         for layer in self.layers:
             x = layer(x)
@@ -58,5 +58,5 @@ class HANDBasicPredictor(HANDPredictorBase):
     Given 5 positional embeddings: (Layer, Filter, Channel, Height, Width) returns a single floating point
     """
 
-    def forward(self, positional_embedding: List[torch.TensorType]) -> List[torch.TensorType]:
+    def forward(self, positional_embedding: List[torch.Tensor]) -> List[torch.Tensor]:
         pass

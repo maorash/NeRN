@@ -9,7 +9,7 @@ from abc import abstractmethod
 
 class OriginalModel(nn.Module):
     @abstractmethod
-    def get_feature_maps(self, batch: torch.TensorType) -> List[torch.TensorType]:
+    def get_feature_maps(self, batch: torch.Tensor) -> List[torch.Tensor]:
         pass
 
     @abstractmethod
@@ -24,22 +24,24 @@ class ReconstructedModel(OriginalModel):
         self.reconstructed_model = copy.deepcopy(original_model)
 
     @abstractmethod
-    def get_positional_embeddings(self) -> Tuple[List[Tuple], List[torch.TensorType]]:
+    def get_indices_and_positional_embeddings(self) -> Tuple[List[Tuple], List[torch.Tensor]]:
         pass
 
     @abstractmethod
-    def update_weights(self, index: Tuple, weight: torch.TensorType):
+    def aggregate_predicted_weights(self, predicted_weights_raw: List[torch.Tensor]) -> List[torch.Tensor]:
         pass
 
-    def get_feature_maps(self, batch: torch.TensorType) -> List[torch.TensorType]:
-        return self.original_model.get_feature_maps(batch)
+    def get_feature_maps(self, batch: torch.Tensor) -> List[torch.Tensor]:
+        return self.reconstructed_model.get_feature_maps(batch)
 
     def get_learnable_weights(self):
-        weights = self.original_model.get_learnable_weights()
-        # for loss function
-        for weight in weights:
-            weight.requires_grad = True
+        weights = self.reconstructed_model.get_learnable_weights()
         return weights
+
+    def update_whole_weights(self, aggregated_weights: List[torch.Tensor]):
+        for i, aggregated_weight in enumerate(aggregated_weights):
+            self.reconstructed_model.get_learnable_weights()[i].data = \
+                self.reconstructed_model.get_learnable_weights()[i] * 0. + aggregated_weight
 
     def forward(self, x):
         return self.reconstructed_model(x)

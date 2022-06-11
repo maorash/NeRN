@@ -19,7 +19,7 @@ class SimpleNet(OriginalModel):
         self.fc = nn.Linear(num_hidden * 11 * 11, 10)
         self.feature_maps = []
 
-    def get_feature_maps(self, batch: torch.TensorType) -> List[torch.TensorType]:
+    def get_feature_maps(self, batch: torch.Tensor) -> List[torch.Tensor]:
         self.feature_maps = []
         self.forward(batch, extract_feature_maps=True)
         return self.feature_maps
@@ -47,13 +47,11 @@ class SimpleNet(OriginalModel):
 class ReconstructedSimpleNet3x3(ReconstructedModel):
     def __init__(self, original_model: SimpleNet, **positional_encoding_args):
         super().__init__(original_model)
+        self.indices = self._get_tensor_indices()
         self.positional_encoder = MyPositionalEncoding(**positional_encoding_args)
         self.positional_embeddings = self._calculate_position_embeddings()
 
-    def get_positional_embeddings(self) -> Tuple[List[Tuple], List[torch.TensorType]]:
-        return self.positional_embeddings
-
-    def _calculate_position_embeddings(self) -> Tuple[List[Tuple], List[torch.TensorType]]:
+    def _get_tensor_indices(self) -> List[Tuple]:
         indices = []
         for filter_idx in range(self.original_model.num_hidden):
             indices.append((0, filter_idx, 0))  # Layer 0, Filter i, Channel 0 (in_channels=1)
@@ -62,19 +60,19 @@ class ReconstructedSimpleNet3x3(ReconstructedModel):
             for filter_idx in range(self.original_model.num_hidden):
                 for channel_idx in range(self.original_model.num_hidden):
                     indices.append((layer_idx, filter_idx, channel_idx))
+        return indices
 
-        # TODO: is this best? does this even work?
-        positional_embeddings = [self.positional_encoder(idx) for idx in indices]
-        return indices, positional_embeddings
+    def _calculate_position_embeddings(self) -> List[torch.Tensor]:
+        # TODO: is this best?
+        positional_embeddings = [self.positional_encoder(idx) for idx in self.indices]
+        return positional_embeddings
 
-    # I don't use @torch.no_grad() here.
-    # when updating weights in training need to retain grad, otherwise discard it
-    # anyway there's something peculiar with the grad functions.
-    # `weight` grad_fn=<AddBackward0> but weight.reshape(3,3) grad_fn=<ViewBackward>.
-    # when assigning it to the reconstruction model it becomes grad_fn=<SelectBackward>.
-    # I feel like this isn't something that would cause a bug but something to notice.
-    # I leave this for future speculation.
-    def update_weights(self, index: Tuple, weight: torch.TensorType):  # TODO: should move to base class?
-        i, j, k = index
-        self.reconstructed_model.get_learnable_weights()[i][j][k] = weight.reshape(3,
-                                                                                   3)  # TODO: implement index accessing
+    def get_indices_and_positional_embeddings(self) -> Tuple[List[Tuple], List[torch.Tensor]]:
+        return self.indices, self.positional_embeddings
+
+    def aggregate_predicted_weights(self, predicted_weights_raw: List[torch.Tensor]) -> List[torch.Tensor]:
+        new_weights = [torch.zeros_like(conv.weight) for conv in self.original_model.convs]
+        for idx, weight in zip(self.indices, predicted_weights_raw):
+            i, j, k = idx
+            new_weights[i][j, k] = weight.reshape(3, 3)
+        return new_weights

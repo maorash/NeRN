@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, List
 
 import torch
 
@@ -13,7 +13,7 @@ class LossBase(nn.Module, ABC):
     def forward(self,
                 reconstructed_model: ReconstructedModel,
                 original_model: OriginalModel,
-                batch: Optional[torch.TensorType]) \
+                batch: Optional[torch.Tensor]) \
             -> torch.Tensor:
         raise NotImplementedError()
 
@@ -24,13 +24,11 @@ class ReconstructionLoss(LossBase):
         self.loss_function = getattr(nn, loss_type)()
 
     def forward(self,
-                reconstructed_model: ReconstructedModel,
-                original_model: OriginalModel,
+                reconstructed_weights: List[torch.Tensor],
+                original_weights: List[torch.Tensor],
                 **kwargs) \
             -> torch.Tensor:
-        original_weights = original_model.get_learnable_weights()
-        reconstructed_weights = reconstructed_model.get_learnable_weights()
-        loss = 0
+        loss = torch.tensor(0.)
         for original_weight, reconstructed_weight in zip(original_weights, reconstructed_weights):
             loss += self.loss_function(original_weight, reconstructed_weight)
         return loss
@@ -42,7 +40,7 @@ class FeatureMapsDistillationLoss(LossBase):
         self.loss_function = getattr(nn, loss_type)()
 
     def forward(self,
-                batch: torch.TensorType,
+                batch: torch.Tensor,
                 reconstructed_model: ReconstructedModel,
                 original_model: OriginalModel) \
             -> torch.Tensor:
@@ -64,7 +62,7 @@ class OutputDistillationLoss(LossBase):
         self.loss_function = getattr(nn, loss_type)()
 
     def forward(self,
-                batch: torch.TensorType,
+                batch: torch.Tensor,
                 reconstructed_model: ReconstructedModel,
                 original_model: OriginalModel) \
             -> torch.Tensor:
