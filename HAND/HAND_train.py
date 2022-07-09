@@ -9,7 +9,6 @@ from HAND.predictors.predictor import HANDPredictorFactory
 from HAND.trainer import Trainer
 
 
-
 @pyrallis.wrap()
 def main(cfg: TrainConfig):
     original_model = SimpleNet()  # TODO: factory and get this from config
