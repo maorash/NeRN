@@ -4,10 +4,10 @@ import torch
 from HAND.eval_func import EvalFunction
 from HAND.loss import ReconstructionLoss, FeatureMapsDistillationLoss, OutputDistillationLoss
 from HAND.models.simple_net import SimpleNet, ReconstructedSimpleNet3x3
-from HAND.models.vgg import OriginalVGG
 from HAND.options import TrainConfig
 from HAND.predictors.predictor import HANDPredictorFactory
 from HAND.trainer import Trainer
+
 
 
 @pyrallis.wrap()
@@ -18,8 +18,8 @@ def main(cfg: TrainConfig):
     reconstructed_model = ReconstructedSimpleNet3x3(original_model)
 
     predictor = HANDPredictorFactory(cfg.hand).get_predictor()
-    trainer = Trainer(config=cfg,
-                      predictor=predictor,
+
+    trainer = Trainer(config=cfg, predictor=predictor,
                       reconstruction_loss=ReconstructionLoss(cfg.hand.reconstruction_loss_type),
                       feature_maps_distillation_loss=FeatureMapsDistillationLoss(
                           cfg.hand.feature_maps_distillation_loss_type),

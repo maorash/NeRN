@@ -4,7 +4,7 @@ from torch import optim
 from HAND.predictors.predictor import HANDPredictorBase
 from HAND.eval_func import EvalFunction
 from HAND.tasks.mnist.mnist_train_main import get_dataloaders
-from logger import create_experiment_dir
+from logger import create_experiment_dir, get_clearml_logger
 from loss import ReconstructionLoss, FeatureMapsDistillationLoss, OutputDistillationLoss
 from HAND.models.model import OriginalModel, ReconstructedModel
 from options import TrainConfig
@@ -32,6 +32,7 @@ class Trainer:
 
     def train(self):
         self._set_grads_for_training()
+        logger = get_clearml_logger()
 
         exp_dir = create_experiment_dir(self.config.log_dir, self.config.exp_name)
         optimizer = self._initialize_optimizer()
@@ -66,13 +67,13 @@ class Trainer:
 
             loss = reconstruction_term + feature_maps_term + outputs_term
             if epoch % self.config.log_interval == 0:
+                logger.report_scalar('training_loss', 'training_loss', loss, epoch)
                 print(f'\nTraining loss is: {loss}')
-
             loss.backward()
             optimizer.step()
 
             if epoch % self.config.eval_epochs_interval == 0:
-                self.original_task_eval_fn.eval(self.reconstructed_model, test_dataloader)
+                self.original_task_eval_fn.eval(self.reconstructed_model, test_dataloader, epoch)
 
             if epoch % self.config.save_epoch_interval == 0:
                 torch.save(self.predictor, os.path.join(exp_dir, f'hand_{epoch}.pth'))
