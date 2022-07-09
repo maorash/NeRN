@@ -41,7 +41,7 @@ class Trainer:
                                                             train_kwargs=data_kwargs)
 
         # For a number of epochs
-        for epoch in tqdm(range(self.config.epochs), desc='epochs'):
+        for epoch in range(self.config.epochs):
             indices, positional_embeddings = self.reconstructed_model.get_indices_and_positional_embeddings()
             predicted_weights = []
             for index, positional_embedding in zip(indices, positional_embeddings):
@@ -56,7 +56,6 @@ class Trainer:
             original_weights = self.original_model.get_learnable_weights()
             reconstruction_term = self.config.hand.reconstruction_loss_weight * self.reconstruction_loss(
                 new_weights, original_weights)
-
             feature_maps_term = 0.
             # feature_maps_term = self.config.hand.feature_maps_distillation_loss_weight * self.feature_maps_distillation_loss(
             #     batch, self.reconstructed_model, self.original_model)  # TODO: where does the batch come from? which loop
@@ -66,7 +65,9 @@ class Trainer:
             #     self.reconstructed_model, self.original_model)# TODO: where does the batch come from? which loop
 
             loss = reconstruction_term + feature_maps_term + outputs_term
-            print(f'\nTraining loss is: {loss}')
+            if epoch % self.config.log_interval == 0:
+                print(f'\nTraining loss is: {loss}')
+
             loss.backward()
             optimizer.step()
 
@@ -90,6 +91,9 @@ class Trainer:
 
     def _initialize_optimizer(self):
         optimizer_type = getattr(optim, self.config.optimizer)
-        optimizer = optimizer_type(self.predictor.parameters(),
-                                   betas=self.config.betas)
+        if self.config.optimizer != "SGD":
+            optimizer = optimizer_type(self.predictor.parameters(),
+                                       betas=self.config.betas, lr=self.config.lr)
+        else:
+            optimizer = optimizer_type(self.predictor.parameters(), lr=self.config.lr)
         return optimizer
