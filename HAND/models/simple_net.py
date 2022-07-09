@@ -9,14 +9,14 @@ from HAND.positional_embedding import MyPositionalEncoding
 
 
 class SimpleNet(OriginalModel):
-    def __init__(self, num_hidden=3, num_layers=1):
+    def __init__(self, num_hidden=32, num_layers=3):
         super(SimpleNet, self).__init__()
         self.num_hidden = num_hidden
         self.layers_list = [nn.Conv2d(1, num_hidden, (3, 3), (1, 1))]
         self.layers_list.extend([nn.Conv2d(num_hidden, num_hidden, (3, 3), (1, 1)) for _ in range(num_layers - 1)])
         self.convs = nn.ModuleList(self.layers_list)
         self.dropout1 = nn.Dropout(0.25)
-        self.fc = nn.Linear(num_hidden * 13 * 13, 10)
+        self.fc = nn.Linear(num_hidden * 11 * 11, 10)
         self.feature_maps = []
 
     def get_feature_maps(self, batch: torch.Tensor) -> List[torch.Tensor]:
@@ -71,7 +71,7 @@ class ReconstructedSimpleNet3x3(ReconstructedModel):
         return self.indices, self.positional_embeddings
 
     def aggregate_predicted_weights(self, predicted_weights_raw: List[torch.Tensor]) -> List[torch.Tensor]:
-        new_weights = [torch.zeros_like(conv.weight) for conv in self.original_model.convs]
+        new_weights = [torch.zeros_like(conv.weight).to(predicted_weights_raw[0].device) for conv in self.original_model.convs]
         for idx, weight in zip(self.indices, predicted_weights_raw):
             i, j, k = idx
             new_weights[i][j, k] = weight.reshape(3, 3)
