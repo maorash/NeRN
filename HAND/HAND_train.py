@@ -12,14 +12,16 @@ from HAND.trainer import Trainer
 
 @pyrallis.wrap()
 def main(cfg: TrainConfig):
-    original_model = SimpleNet()  # TODO: factory and get this from config
+    use_cuda = not cfg.no_cuda and torch.cuda.is_available()
+    device = torch.device("cuda" if use_cuda else "cpu")
+    original_model = SimpleNet().to(device)  # TODO: factory and get this from config
     original_model.load_state_dict(torch.load('trained_models/original_tasks/mnist/mnist_cnn.pt'))
 
-    reconstructed_model = ReconstructedSimpleNet3x3(original_model)
+    reconstructed_model = ReconstructedSimpleNet3x3(original_model).to(device)
 
-    predictor = HANDPredictorFactory(cfg.hand).get_predictor()
+    predictor = HANDPredictorFactory(cfg.hand).get_predictor().to(device)
 
-    trainer = Trainer(config=cfg, predictor=predictor,
+    trainer = Trainer(device=device, config=cfg, predictor=predictor,
                       reconstruction_loss=ReconstructionLoss(cfg.hand.reconstruction_loss_type),
                       feature_maps_distillation_loss=FeatureMapsDistillationLoss(
                           cfg.hand.feature_maps_distillation_loss_type),

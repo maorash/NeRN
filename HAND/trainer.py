@@ -8,11 +8,11 @@ from logger import create_experiment_dir, get_clearml_logger
 from loss import ReconstructionLoss, FeatureMapsDistillationLoss, OutputDistillationLoss
 from HAND.models.model import OriginalModel, ReconstructedModel
 from options import TrainConfig
-from tqdm import tqdm
 
 
 class Trainer:
     def __init__(self,
+                 device,
                  config: TrainConfig,
                  predictor: HANDPredictorBase,
                  reconstruction_loss: ReconstructionLoss,
@@ -29,6 +29,7 @@ class Trainer:
         self.original_model = original_model
         self.reconstructed_model = reconstructed_model
         self.original_task_eval_fn = original_task_eval_fn
+        self.device = device
 
     def train(self):
         self._set_grads_for_training()
@@ -47,10 +48,10 @@ class Trainer:
             predicted_weights = []
             for index, positional_embedding in zip(indices, positional_embeddings):
                 # Reconstruct all of the original model's weights using the predictors model
-                reconstructed_weights = self.predictor(positional_embedding)
+                reconstructed_weights = self.predictor(positional_embedding.to(self.device))  # TODO: clean this up
                 predicted_weights.append(reconstructed_weights)
 
-            new_weights = self.reconstructed_model.aggregate_predicted_weights(predicted_weights)
+            new_weights = self.reconstructed_model.aggregate_predicted_weights(predicted_weights).to(device)
             self.reconstructed_model.update_whole_weights(new_weights)
 
             # Now we can see how good our reconstructed model is

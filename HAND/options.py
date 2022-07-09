@@ -73,8 +73,9 @@ class TrainConfig:
     # How often to save the learned model
     save_epoch_interval: int = field(default=10000)
     # How often to log metrics
-    log_interval: int = field(default=2000)
-
+    log_interval: int = field(default=100)
+    # Use cpu instead of cuda
+    no_cuda: bool = field(default=False)
 
 @pyrallis.wrap()
 def get_train_config(cfg: TrainConfig):
