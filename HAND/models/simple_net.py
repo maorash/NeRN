@@ -9,14 +9,14 @@ from HAND.positional_embedding import MyPositionalEncoding
 
 
 class SimpleNet(OriginalModel):
-    def __init__(self, num_hidden=32, num_layers=3):
+    def __init__(self, num_hidden=3, num_layers=1):
         super(SimpleNet, self).__init__()
         self.num_hidden = num_hidden
         self.layers_list = [nn.Conv2d(1, num_hidden, (3, 3), (1, 1))]
         self.layers_list.extend([nn.Conv2d(num_hidden, num_hidden, (3, 3), (1, 1)) for _ in range(num_layers - 1)])
         self.convs = nn.ModuleList(self.layers_list)
         self.dropout1 = nn.Dropout(0.25)
-        self.fc = nn.Linear(num_hidden * 11 * 11, 10)
+        self.fc = nn.Linear(num_hidden * 13 * 13, 10)
         self.feature_maps = []
 
     def get_feature_maps(self, batch: torch.Tensor) -> List[torch.Tensor]:
