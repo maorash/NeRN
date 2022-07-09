@@ -67,7 +67,7 @@ class Trainer:
             #     self.reconstructed_model, self.original_model)# TODO: where does the batch come from? which loop
 
             loss = reconstruction_term + feature_maps_term + outputs_term
-            logger.report_scalar('HAND_train', 'training_loss', loss, epoch)
+            logger.report_scalar('training_loss', 'training_loss', loss, epoch)
 
             print(f'\nTraining loss is: {loss}')
             loss.backward()

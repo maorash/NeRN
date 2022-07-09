@@ -13,8 +13,8 @@ class EvalFunction:
         logger = get_clearml_logger()
         test_loss, correct = self._eval_model(reconstructed_model, dataloader)
         accuracy = 100. * correct / len(dataloader.dataset)
-        logger.report_scalar('HAND_eval', 'eval_loss', test_loss, epoch)
-        logger.report_scalar('HAND_eval', 'eval_accuracy', accuracy, epoch)
+        logger.report_scalar('eval_loss', 'eval_loss', test_loss, epoch)
+        logger.report_scalar('eval_accuracy', 'eval_accuracy', accuracy, epoch)
         print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
             test_loss, correct, len(dataloader.dataset),
             accuracy))
