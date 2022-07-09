@@ -9,7 +9,6 @@ from HAND.predictors.predictor import HANDPredictorFactory
 from HAND.trainer import Trainer
 
 
-
 @pyrallis.wrap()
 def main(cfg: TrainConfig):
     use_cuda = not cfg.no_cuda and torch.cuda.is_available()
