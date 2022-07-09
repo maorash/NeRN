@@ -28,7 +28,7 @@ class ReconstructionLoss(LossBase):
                 original_weights: List[torch.Tensor],
                 **kwargs) \
             -> torch.Tensor:
-        loss = torch.tensor(0.)
+        loss = torch.tensor(0.).to(reconstructed_weights[0].device)
         for original_weight, reconstructed_weight in zip(original_weights, reconstructed_weights):
             loss += self.loss_function(original_weight, reconstructed_weight)
         return loss

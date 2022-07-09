@@ -51,7 +51,7 @@ class Trainer:
                 reconstructed_weights = self.predictor(positional_embedding.to(self.device))  # TODO: clean this up
                 predicted_weights.append(reconstructed_weights)
 
-            new_weights = self.reconstructed_model.aggregate_predicted_weights(predicted_weights).to(device)
+            new_weights = self.reconstructed_model.aggregate_predicted_weights(predicted_weights)
             self.reconstructed_model.update_whole_weights(new_weights)
 
             # Now we can see how good our reconstructed model is
