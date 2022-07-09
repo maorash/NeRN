@@ -13,7 +13,7 @@ from HAND.trainer import Trainer
 @pyrallis.wrap()
 def main(cfg: TrainConfig):
     original_model = SimpleNet()  # TODO: factory and get this from config
-    original_model.load_state_dict(torch.load('mnist_cnn.pt'))
+    original_model.load_state_dict(torch.load('trained_models/original_tasks/mnist/mnist_cnn.pt'))
 
     reconstructed_model = ReconstructedSimpleNet3x3(original_model)
 
