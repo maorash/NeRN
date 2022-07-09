@@ -49,13 +49,13 @@ class TrainConfig:
     # Resuming start_epoch from checkpoint
     not_resume_epoch: bool = field(default=True)
     # Number of epochs to train for
-    epochs: int = field(default=150)
-    # Epoch cycles for training
+    epochs: int = field(default=100000)
+    # Epoch cycles for trainings
     cycles: int = field(default=1)
     # Number of warmup epochs
     warmup: int = field(default=5)
     # Learning rate
-    lr: float = field(default=0.001)
+    lr: float = field(default=0.00001)
     # Learning rate type
     lr_type: str = field(default='cosine')
     # Epochs to decay learning rate by 10
@@ -69,9 +69,11 @@ class TrainConfig:
     # Optimizer to use, should be a member of `torch.optim`, default is `AdamW`
     optimizer: str = field(default='AdamW')
     # How often to test the reconstructed model on the original task
-    eval_epochs_interval: int = field(default=10)
+    eval_epochs_interval: int = field(default=10000)
     # How often to save the learned model
-    save_epoch_interval: int = field(default=20)
+    save_epoch_interval: int = field(default=10000)
+    # How often to log metrics
+    log_interval: int = field(default=2000)
 
 
 @pyrallis.wrap()
