@@ -35,7 +35,7 @@ class HANDConfig:
 @dataclass
 class LogConfig:
     # Task name
-    task_name: str = field(default='debug')
+    task_name: str = field(default='HAND_Train')
     # How often to log metrics
     log_interval: int = field(default=20)
     # Log dir
