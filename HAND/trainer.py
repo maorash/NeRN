@@ -5,10 +5,11 @@ from clearml import Logger
 from torch import optim
 
 from HAND.eval_func import EvalFunction
+from HAND.logger import set_grads_for_logging
 from HAND.models.model import OriginalModel, ReconstructedModel
 from HAND.predictors.predictor import HANDPredictorBase
 from HAND.tasks.mnist.mnist_train_main import get_dataloaders
-from logger import create_experiment_dir
+from logger import create_experiment_dir, log_scalar_list, compute_grad_norms
 from loss import ReconstructionLoss, FeatureMapsDistillationLoss, OutputDistillationLoss
 from options import TrainConfig
 
@@ -55,12 +56,15 @@ class Trainer:
                 predicted_weights.append(reconstructed_weights)
 
             new_weights = self.reconstructed_model.aggregate_predicted_weights(predicted_weights)
+            set_grads_for_logging(new_weights)
+
             self.reconstructed_model.update_whole_weights(new_weights)
 
             # Now we can see how good our reconstructed model is
             original_weights = self.original_model.get_learnable_weights()
             reconstruction_term = self.config.hand.reconstruction_loss_weight * self.reconstruction_loss(
                 new_weights, original_weights)
+
             feature_maps_term = 0.
             # feature_maps_term = self.config.hand.feature_maps_distillation_loss_weight * self.feature_maps_distillation_loss(
             #     batch, self.reconstructed_model, self.original_model)  # TODO: where does the batch come from? which loop
@@ -70,10 +74,12 @@ class Trainer:
             #     self.reconstructed_model, self.original_model)# TODO: where does the batch come from? which loop
 
             loss = reconstruction_term + feature_maps_term + outputs_term
-            if epoch % self.config.logging.log_interval == 0:
-                self.logger.report_scalar('training_loss', 'training_loss', loss, epoch)
-                print(f'\nTraining loss is: {loss}')
+
             loss.backward()
+
+            if epoch % self.config.logging.log_interval == 0:
+                self._log_training(epoch, new_weights, loss)
+
             optimizer.step()
 
             if epoch % self.config.eval_epochs_interval == 0:
@@ -81,6 +87,29 @@ class Trainer:
 
             if epoch % self.config.save_epoch_interval == 0:
                 torch.save(self.predictor, os.path.join(exp_dir, f'hand_{epoch}.pth'))
+
+    def _log_training(self, epoch, new_weights, loss):
+        self.logger.report_scalar('training_loss', 'training_loss', loss, epoch)
+        print(f'\nTraining loss is: {loss}')
+        # logging norms
+        original_weights_norms = self.original_model.get_learnable_weights_norms()
+        log_scalar_list(original_weights_norms,
+                        title='original_weights_norm',
+                        series_name='layer',
+                        iteration=epoch,
+                        logger=self.logger)
+        reconstructed_weights_norms = self.reconstructed_model.get_learnable_weights_norms()
+        log_scalar_list(reconstructed_weights_norms,
+                        title='reconstructed_weights_norms',
+                        series_name='layer',
+                        iteration=epoch,
+                        logger=self.logger)
+        reconstructed_weights_grad_norms = compute_grad_norms(new_weights)
+        log_scalar_list(reconstructed_weights_grad_norms,
+                        title='reconstructed_weights_grad_norms',
+                        series_name='layer',
+                        iteration=epoch,
+                        logger=self.logger)
 
     def _set_grads_for_training(self):
         self.original_model.eval()

@@ -71,7 +71,8 @@ class ReconstructedSimpleNet3x3(ReconstructedModel):
         return self.indices, self.positional_embeddings
 
     def aggregate_predicted_weights(self, predicted_weights_raw: List[torch.Tensor]) -> List[torch.Tensor]:
-        new_weights = [torch.zeros_like(conv.weight).to(predicted_weights_raw[0].device) for conv in self.original_model.convs]
+        new_weights = [torch.zeros_like(conv.weight).to(predicted_weights_raw[0].device) for conv in
+                       self.original_model.convs]
         for idx, weight in zip(self.indices, predicted_weights_raw):
             i, j, k = idx
             new_weights[i][j, k] = weight.reshape(3, 3)

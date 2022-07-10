@@ -16,6 +16,11 @@ class OriginalModel(nn.Module):
     def get_learnable_weights(self):
         pass
 
+    def get_learnable_weights_norms(self):
+        learnable_weights = self.get_learnable_weights()
+        norms = [weight.norm() for weight in learnable_weights]
+        return norms
+
 
 class ReconstructedModel(OriginalModel):
     def __init__(self, original_model: OriginalModel):
