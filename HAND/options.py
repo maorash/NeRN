@@ -69,11 +69,11 @@ class TrainConfig:
     # Optimizer to use, should be a member of `torch.optim`, default is `AdamW`
     optimizer: str = field(default='AdamW')
     # How often to test the reconstructed model on the original task
-    eval_epochs_interval: int = field(default=10000)
+    eval_epochs_interval: int = field(default=500)
     # How often to save the learned model
-    save_epoch_interval: int = field(default=10000)
+    save_epoch_interval: int = field(default=1000)
     # How often to log metrics
-    log_interval: int = field(default=100)
+    log_interval: int = field(default=20)
     # Use cpu instead of cuda
     no_cuda: bool = field(default=False)
 
