@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import argparse
+import os
 
 import torch
 import torch.nn.functional as F
@@ -115,7 +116,9 @@ def main():
         scheduler.step()
 
     if args.save_model:
-        torch.save(model.state_dict(), "../../../mnist_cnn.pt")
+        save_dir = '../../trained_models/original_tasks/mnist'
+        os.makedirs(save_dir, exist_ok=True)
+        torch.save(model.state_dict(), save_dir + "/" + args.exp_name + ".pt")
 
 
 if __name__ == '__main__':
