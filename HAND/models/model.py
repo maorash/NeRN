@@ -22,6 +22,7 @@ class ReconstructedModel(OriginalModel):
         super().__init__()
         self.original_model = original_model
         self.reconstructed_model = copy.deepcopy(original_model)
+        self.reinitialize_learnable_weights()
 
     @abstractmethod
     def get_indices_and_positional_embeddings(self) -> Tuple[List[Tuple], List[torch.Tensor]]:
@@ -37,6 +38,10 @@ class ReconstructedModel(OriginalModel):
     def get_learnable_weights(self):
         weights = self.reconstructed_model.get_learnable_weights()
         return weights
+
+    def reinitialize_learnable_weights(self):
+        for weight in self.reconstructed_model.get_learnable_weights():
+            nn.init.xavier_normal_(weight)
 
     def update_whole_weights(self, aggregated_weights: List[torch.Tensor]):
         for i, aggregated_weight in enumerate(aggregated_weights):
