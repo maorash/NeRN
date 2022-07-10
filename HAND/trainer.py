@@ -5,7 +5,7 @@ from clearml import Logger
 from torch import optim
 
 from HAND.eval_func import EvalFunction
-from HAND.logger import set_grads_for_logging
+from HAND.logger import set_grads_for_logging, log_scalar_dict
 from HAND.models.model import OriginalModel, ReconstructedModel
 from HAND.predictors.predictor import HANDPredictorBase
 from HAND.tasks.mnist.mnist_train_main import get_dataloaders
@@ -78,7 +78,11 @@ class Trainer:
             loss.backward()
 
             if epoch % self.config.logging.log_interval == 0:
-                self._log_training(epoch, new_weights, loss)
+                loss_dict = dict(loss=loss,
+                                 reconstruction_term=reconstruction_term,
+                                 feature_maps_term=feature_maps_term,
+                                 outputs_term=outputs_term)
+                self._log_training(epoch, new_weights, loss_dict)
 
             optimizer.step()
 
@@ -88,22 +92,28 @@ class Trainer:
             if epoch % self.config.save_epoch_interval == 0:
                 torch.save(self.predictor, os.path.join(exp_dir, f'hand_{epoch}.pth'))
 
-    def _log_training(self, epoch, new_weights, loss):
-        self.logger.report_scalar('training_loss', 'training_loss', loss, epoch)
-        print(f'\nTraining loss is: {loss}')
+    def _log_training(self, epoch, new_weights, loss_dict: dict):
+        log_scalar_dict(loss_dict,
+                        title='trainin_loss',
+                        iteration=epoch,
+                        logger=self.logger)
+        print(f'\nTraining loss is: {loss_dict["loss"]}')
+
         # logging norms
         original_weights_norms = self.original_model.get_learnable_weights_norms()
         log_scalar_list(original_weights_norms,
-                        title='original_weights_norm',
-                        series_name='layer',
+                        title='weight_norms',
+                        series_name='original',
                         iteration=epoch,
                         logger=self.logger)
+
         reconstructed_weights_norms = self.reconstructed_model.get_learnable_weights_norms()
         log_scalar_list(reconstructed_weights_norms,
-                        title='reconstructed_weights_norms',
-                        series_name='layer',
+                        title='weight_norms',
+                        series_name='reconstructed',
                         iteration=epoch,
                         logger=self.logger)
+
         reconstructed_weights_grad_norms = compute_grad_norms(new_weights)
         log_scalar_list(reconstructed_weights_grad_norms,
                         title='reconstructed_weights_grad_norms',

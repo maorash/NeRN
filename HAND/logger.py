@@ -23,6 +23,11 @@ def log_scalar_list(scalar_list: list, title: str, series_name: str, iteration: 
         logger.report_scalar(title=title, series=f'{series_name}_{i}', value=scalar, iteration=iteration)
 
 
+def log_scalar_dict(scalar_dict: dict, title: str, iteration: int, logger: Logger):
+    for key, value in scalar_dict.items():
+        logger.report_scalar(title=title, series=key, value=value, iteration=iteration)
+
+
 def compute_grad_norms(weights: List[Tensor]):
     return [weight.grad.norm() for weight in weights]
 
