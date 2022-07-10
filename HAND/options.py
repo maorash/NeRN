@@ -33,11 +33,19 @@ class HANDConfig:
 
 
 @dataclass
+class LogConfig:
+    # Task name
+    task_name: str = field(default='debug')
+    # How often to log metrics
+    log_interval: int = field(default=20)
+    # Log dir
+    log_dir: str = field(default='outputs')
+
+
+@dataclass
 class TrainConfig:
     # The experiment name
     exp_name: str = field(default='default_exp')
-    # Log dir
-    log_dir: str = field(default='outputs')
     # Embeddings config
     embeddings: EmbeddingsConfig = field(default_factory=EmbeddingsConfig)
     # HAND config
@@ -72,10 +80,11 @@ class TrainConfig:
     eval_epochs_interval: int = field(default=500)
     # How often to save the learned model
     save_epoch_interval: int = field(default=1000)
-    # How often to log metrics
-    log_interval: int = field(default=20)
     # Use cpu instead of cuda
     no_cuda: bool = field(default=False)
+    # Log config
+    logging: LogConfig = field(default_factory=LogConfig)
+
 
 @pyrallis.wrap()
 def get_train_config(cfg: TrainConfig):
