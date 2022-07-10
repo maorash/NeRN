@@ -1,20 +1,22 @@
 from typing import Tuple
 import torch
+from clearml import Logger
 from torch.nn.functional import nll_loss
 from torch.utils.data import DataLoader
 
-from HAND.logger import get_clearml_logger
 from HAND.models.model import ReconstructedModel
 
 
 class EvalFunction:
-    def eval(self, reconstructed_model: ReconstructedModel, dataloader: DataLoader, epoch: int, exp_name: str) -> float:
+    def eval(self, reconstructed_model: ReconstructedModel,
+             dataloader: DataLoader,
+             epoch: int,
+             clearml_logger: Logger) -> float:
         print('\n Starting eval on test set.')
-        logger = get_clearml_logger(exp_name)
         test_loss, correct = self._eval_model(reconstructed_model, dataloader)
         accuracy = 100. * correct / len(dataloader.dataset)
-        logger.report_scalar('eval_loss', 'eval_loss', test_loss, epoch)
-        logger.report_scalar('eval_accuracy', 'eval_accuracy', accuracy, epoch)
+        clearml_logger.report_scalar('eval_loss', 'eval_loss', test_loss, epoch)
+        clearml_logger.report_scalar('eval_accuracy', 'eval_accuracy', accuracy, epoch)
         print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
             test_loss, correct, len(dataloader.dataset),
             accuracy))

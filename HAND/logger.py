@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 
-from clearml import Task, Logger
+from clearml import Task
 
 
 def create_experiment_dir(log_dir: str, exp_name: str):
@@ -12,6 +12,5 @@ def create_experiment_dir(log_dir: str, exp_name: str):
     return dir_path
 
 
-def get_clearml_logger(exp_name: str) -> Logger:
-    clearml_task = Task.init(project_name='HAND_compression', task_name=exp_name)
-    return clearml_task.get_logger()
+def initialize_clearml_task(task_name: str) -> Task:
+    return Task.init(project_name='HAND_compression', task_name=task_name, deferred_init=True)

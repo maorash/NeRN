@@ -1,26 +1,29 @@
 import os
+
 import torch
+from clearml import Logger
 from torch import optim
-from HAND.predictors.predictor import HANDPredictorBase
+
 from HAND.eval_func import EvalFunction
-from HAND.tasks.mnist.mnist_train_main import get_dataloaders
-from logger import create_experiment_dir, get_clearml_logger
-from loss import ReconstructionLoss, FeatureMapsDistillationLoss, OutputDistillationLoss
 from HAND.models.model import OriginalModel, ReconstructedModel
+from HAND.predictors.predictor import HANDPredictorBase
+from HAND.tasks.mnist.mnist_train_main import get_dataloaders
+from logger import create_experiment_dir
+from loss import ReconstructionLoss, FeatureMapsDistillationLoss, OutputDistillationLoss
 from options import TrainConfig
 
 
 class Trainer:
-    def __init__(self,
-                 device,
-                 config: TrainConfig,
+    def __init__(self, config: TrainConfig,
                  predictor: HANDPredictorBase,
                  reconstruction_loss: ReconstructionLoss,
                  feature_maps_distillation_loss: FeatureMapsDistillationLoss,
                  output_distillation_loss: OutputDistillationLoss,
                  original_model: OriginalModel,
                  reconstructed_model: ReconstructedModel,
-                 original_task_eval_fn: EvalFunction):
+                 original_task_eval_fn: EvalFunction,
+                 logger: Logger,
+                 device):
         self.config = config
         self.predictor = predictor
         self.reconstruction_loss = reconstruction_loss
@@ -30,12 +33,12 @@ class Trainer:
         self.reconstructed_model = reconstructed_model
         self.original_task_eval_fn = original_task_eval_fn
         self.device = device
+        self.logger = logger
 
     def train(self):
         self._set_grads_for_training()
-        logger = get_clearml_logger(self.config.exp_name)
 
-        exp_dir = create_experiment_dir(self.config.log_dir, self.config.exp_name)
+        exp_dir = create_experiment_dir(self.config.logging.log_dir, self.config.exp_name)
         optimizer = self._initialize_optimizer()
 
         data_kwargs = {'batch_size': self.config.batch_size}
@@ -67,14 +70,14 @@ class Trainer:
             #     self.reconstructed_model, self.original_model)# TODO: where does the batch come from? which loop
 
             loss = reconstruction_term + feature_maps_term + outputs_term
-            if epoch % self.config.log_interval == 0:
-                logger.report_scalar('training_loss', 'training_loss', loss, epoch)
+            if epoch % self.config.logging.log_interval == 0:
+                self.logger.report_scalar('training_loss', 'training_loss', loss, epoch)
                 print(f'\nTraining loss is: {loss}')
             loss.backward()
             optimizer.step()
 
             if epoch % self.config.eval_epochs_interval == 0:
-                self.original_task_eval_fn.eval(self.reconstructed_model, test_dataloader, epoch, self.config.exp_name)
+                self.original_task_eval_fn.eval(self.reconstructed_model, test_dataloader, epoch, self.logger)
 
             if epoch % self.config.save_epoch_interval == 0:
                 torch.save(self.predictor, os.path.join(exp_dir, f'hand_{epoch}.pth'))
