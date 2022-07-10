@@ -8,9 +8,9 @@ from HAND.models.model import ReconstructedModel
 
 
 class EvalFunction:
-    def eval(self, reconstructed_model: ReconstructedModel, dataloader: DataLoader, epoch: int) -> float:
+    def eval(self, reconstructed_model: ReconstructedModel, dataloader: DataLoader, epoch: int, exp_name: str) -> float:
         print('\n Starting eval on test set.')
-        logger = get_clearml_logger()
+        logger = get_clearml_logger(exp_name)
         test_loss, correct = self._eval_model(reconstructed_model, dataloader)
         accuracy = 100. * correct / len(dataloader.dataset)
         logger.report_scalar('eval_loss', 'eval_loss', test_loss, epoch)

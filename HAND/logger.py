@@ -3,8 +3,6 @@ from datetime import datetime
 
 from clearml import Task, Logger
 
-clearml_task = Task.init(project_name='HAND_compression', task_name='HAND_train')
-
 
 def create_experiment_dir(log_dir: str, exp_name: str):
     # Code to acquire resource, e.g.:
@@ -14,5 +12,6 @@ def create_experiment_dir(log_dir: str, exp_name: str):
     return dir_path
 
 
-def get_clearml_logger() -> Logger:
+def get_clearml_logger(exp_name: str) -> Logger:
+    clearml_task = Task.init(project_name='HAND_compression', task_name=exp_name)
     return clearml_task.get_logger()

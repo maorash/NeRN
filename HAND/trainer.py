@@ -33,7 +33,7 @@ class Trainer:
 
     def train(self):
         self._set_grads_for_training()
-        logger = get_clearml_logger()
+        logger = get_clearml_logger(self.config.exp_name)
 
         exp_dir = create_experiment_dir(self.config.log_dir, self.config.exp_name)
         optimizer = self._initialize_optimizer()
@@ -74,7 +74,7 @@ class Trainer:
             optimizer.step()
 
             if epoch % self.config.eval_epochs_interval == 0:
-                self.original_task_eval_fn.eval(self.reconstructed_model, test_dataloader, epoch)
+                self.original_task_eval_fn.eval(self.reconstructed_model, test_dataloader, epoch, self.config.exp_name)
 
             if epoch % self.config.save_epoch_interval == 0:
                 torch.save(self.predictor, os.path.join(exp_dir, f'hand_{epoch}.pth'))
