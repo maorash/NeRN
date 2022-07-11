@@ -4,6 +4,7 @@ from typing import Optional, List
 import torch
 
 from torch import nn
+import torch.nn.functional as F
 
 from HAND.models.model import ReconstructedModel, OriginalModel
 
@@ -16,6 +17,18 @@ class LossBase(nn.Module, ABC):
                 batch: Optional[torch.Tensor]) \
             -> torch.Tensor:
         raise NotImplementedError()
+
+
+class TaskLoss(LossBase):
+    def __init__(self, loss_type: str = 'nll_loss'):
+        super().__init__()
+        self.loss_function = getattr(F, loss_type)
+
+    def forward(self,
+                prediction,
+                target,
+                **kwargs):
+        return self.loss_function(prediction, target)
 
 
 class ReconstructionLoss(LossBase):
