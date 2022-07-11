@@ -39,7 +39,6 @@ class Trainer:
     def train(self):
         self._set_grads_for_training()
 
-        exp_dir = create_experiment_dir(self.config.logging.log_dir, self.config.exp_name)
         optimizer = self._initialize_optimizer()
 
         data_kwargs = {'batch_size': self.config.batch_size}
@@ -66,7 +65,7 @@ class Trainer:
                 new_weights, original_weights)
 
             feature_maps_term = 0.
-            # feature_maps_term = self.config.hand.feature_maps_distillation_loss_weight * self.feature_maps_distillation_loss(
+            # feature_maps  _term = self.config.hand.feature_maps_distillation_loss_weight * self.feature_maps_distillation_loss(
             #     batch, self.reconstructed_model, self.original_model)  # TODO: where does the batch come from? which loop
 
             outputs_term = 0.
@@ -77,7 +76,7 @@ class Trainer:
 
             loss.backward()
 
-            if epoch % self.config.logging.log_interval == 0:
+            if epoch % self.config.logging.log_interval == 0 and not self.config.logging.disable_logging:
                 loss_dict = dict(loss=loss,
                                  reconstruction_term=reconstruction_term,
                                  feature_maps_term=feature_maps_term,
@@ -90,6 +89,7 @@ class Trainer:
                 self.original_task_eval_fn.eval(self.reconstructed_model, test_dataloader, epoch, self.logger)
 
             if epoch % self.config.save_epoch_interval == 0:
+                exp_dir = create_experiment_dir(self.config.logging.log_dir, self.config.exp_name)
                 torch.save(self.predictor, os.path.join(exp_dir, f'hand_{epoch}.pth'))
 
     def _log_training(self, epoch, new_weights, loss_dict: dict):

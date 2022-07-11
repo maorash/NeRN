@@ -21,8 +21,12 @@ def main(cfg: TrainConfig):
 
     predictor = HANDPredictorFactory(cfg.hand).get_predictor().to(device)
 
-    clearml_task = initialize_clearml_task(cfg.logging.task_name)
-    clearml_logger = clearml_task.get_logger()
+    if not cfg.logging.disable_logging:
+        clearml_task = initialize_clearml_task(cfg.logging.task_name)
+        clearml_logger = clearml_task.get_logger()
+    else:
+        clearml_task = None
+        clearml_logger = None
 
     trainer = Trainer(config=cfg,
                       predictor=predictor,

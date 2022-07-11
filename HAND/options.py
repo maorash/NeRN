@@ -40,6 +40,8 @@ class LogConfig:
     log_interval: int = field(default=20)
     # Log dir
     log_dir: str = field(default='outputs')
+    # Disable logging for faster development
+    disable_logging: bool = field(default=False)
 
 
 @dataclass
