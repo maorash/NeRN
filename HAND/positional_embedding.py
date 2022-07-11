@@ -2,9 +2,9 @@ import numpy as np
 import torch
 from torch import nn
 
+from HAND.options import EmbeddingsConfig
 
-# TODO: configure this in options and figure out what happens here...specifically `input_dims` that's 3 but can act
-#  on a higher dimensional input?
+
 def get_positional_encoding_embedder(multires, enable_encoding=True):
     if enable_encoding is False:
         return nn.Identity(), 3
@@ -57,18 +57,35 @@ class PositionalEmbedding:
 
 
 class MyPositionalEncoding(nn.Module):
-    def __init__(self, enc_levels=80, base=1.25):
+    def __init__(self, config: EmbeddingsConfig):
         super(MyPositionalEncoding, self).__init__()
-        assert enc_levels >= 1
-        self.base = base
-        self.levels = enc_levels
-        self.enc_len = 2 * enc_levels
+        self.embedding_fusion_mode = config.embedding_fusion_mode
+        self.num_idxs = config.num_idxs
+        assert self.embedding_fusion_mode in ['concat', 'sum']
+        assert config.enc_levels >= 1
+        self.base = config.base
+        self.levels = config.enc_levels
+        self.output_size = self._calculate_output_size()
+
+    def _calculate_output_size(self):
+        if self.embedding_fusion_mode == 'concat':
+            return self.levels * 2 * self.num_idxs
+        elif self.embedding_fusion_mode == 'sum':
+            return self.levels * 2
 
     def forward(self, pos):
         pe_list = []
         # naive implementation using a simple concat
         for p in pos:
+            pe_level_list = []
             for lvl in range(self.levels):
                 temp_value = torch.tensor(p * (self.base ** lvl) * np.pi)
-                pe_list += [torch.sin(temp_value), torch.cos(temp_value)]
-        return torch.stack(pe_list, 0)
+                pe_level_list += [torch.sin(temp_value), torch.cos(temp_value)]
+            pe_list.append(torch.hstack(pe_level_list))
+        if self.embedding_fusion_mode == 'concat':
+            final_embeddings = torch.hstack(pe_list)
+        elif self.embedding_fusion_mode == 'sum':
+            final_embeddings = torch.vstack(pe_list).sum(dim=0)
+        else:
+            raise NotImplementedError(f'Unsupported embedding fusion mode {self.embedding_fusion_mode}.')
+        return final_embeddings

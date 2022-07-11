@@ -5,6 +5,7 @@ from torch import nn as nn
 from torch.nn import functional as F
 
 from HAND.models.model import OriginalModel, ReconstructedModel
+from HAND.options import EmbeddingsConfig
 from HAND.positional_embedding import MyPositionalEncoding
 
 
@@ -47,10 +48,10 @@ class SimpleNet(OriginalModel):
 
 
 class ReconstructedSimpleNet3x3(ReconstructedModel):
-    def __init__(self, original_model: SimpleNet, **positional_encoding_args):
+    def __init__(self, original_model: SimpleNet, embeddings_cfg: EmbeddingsConfig):
         super().__init__(original_model)
         self.indices = self._get_tensor_indices()
-        self.positional_encoder = MyPositionalEncoding(**positional_encoding_args)
+        self.positional_encoder = MyPositionalEncoding(embeddings_cfg)
         self.positional_embeddings = self._calculate_position_embeddings()
 
     def _get_tensor_indices(self) -> List[Tuple]:
