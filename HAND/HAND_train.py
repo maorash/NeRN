@@ -1,3 +1,6 @@
+import json
+import os
+
 import pyrallis
 import torch
 
@@ -10,12 +13,25 @@ from HAND.predictors.predictor import HANDPredictorFactory
 from HAND.trainer import Trainer
 
 
+def load_original_model(cfg, device):
+
+    model_kwargs_path = cfg.original_model_path.replace('pt', 'json')
+    if os.path.exists(model_kwargs_path):
+        with open(model_kwargs_path) as f:
+            model_kwargs = json.load(f)
+    else:
+        model_kwargs = dict()
+    original_model = SimpleNet(**model_kwargs).to(device)  # TODO: factory and get this from config
+    original_model.load_state_dict(torch.load(cfg.original_model_path))
+    return original_model
+
+
 @pyrallis.wrap()
 def main(cfg: TrainConfig):
     use_cuda = not cfg.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
-    original_model = SimpleNet(input_size=28).to(device)  # TODO: factory and get this from config, input size for MNIST
-    original_model.load_state_dict(torch.load(cfg.original_model_path))
+
+    original_model = load_original_model(cfg, device)
 
     reconstructed_model = ReconstructedSimpleNet3x3(original_model).to(device)
 
