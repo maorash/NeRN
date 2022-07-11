@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import argparse
+import json
 import os
 
 import torch
@@ -74,6 +75,10 @@ def main():
                         help='input batch size for testing (default: 1000)')
     parser.add_argument('--epochs', type=int, default=1, metavar='N',
                         help='number of epochs to train (default: 14)')
+    parser.add_argument('--num-hidden', type=int, default=32, metavar='N',
+                        help='number of hidden channels in SimpleNet')
+    parser.add_argument('--num-layers', type=int, default=1, metavar='N',
+                        help='number of layers in SimpleNet')
     parser.add_argument('--lr', type=float, default=1.0, metavar='LR',
                         help='learning rate (default: 1.0)')
     parser.add_argument('--gamma', type=float, default=0.7, metavar='M',
@@ -105,8 +110,8 @@ def main():
         test_kwargs.update(cuda_kwargs)
 
     test_loader, train_loader = get_dataloaders(test_kwargs, train_kwargs)
-
-    model = SimpleNet().to(device)
+    model_kwargs = dict(input_size=28, num_hidden=args.num_hidden, num_layers=args.num_layers)
+    model = SimpleNet(**model_kwargs).to(device)
     optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
 
     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
@@ -119,6 +124,8 @@ def main():
         save_dir = '../../trained_models/original_tasks/mnist'
         os.makedirs(save_dir, exist_ok=True)
         torch.save(model.state_dict(), save_dir + "/" + args.exp_name + ".pt")
+        with open(save_dir + '/' + args.exp_name + '.json', 'w') as model_save_path:
+            json.dump(model_kwargs, model_save_path)
 
 
 if __name__ == '__main__':

@@ -41,7 +41,6 @@ class Trainer:
     def train(self):
         self._set_grads_for_training()
 
-        exp_dir = create_experiment_dir(self.config.logging.log_dir, self.config.exp_name)
         optimizer = self._initialize_optimizer()
 
         data_kwargs = {'batch_size': self.config.batch_size}
@@ -87,11 +86,7 @@ class Trainer:
                 loss = original_task_term + reconstruction_term + feature_maps_term + outputs_term
                 loss.backward()
 
-                # if batch_idx % self.config.logging.log_interval == 0:
-                #     print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                #         epoch, batch_idx * len(data), len(train_dataloader.dataset),
-                #                100. * batch_idx / len(train_dataloader), original_task_term.item()))
-                if batch_idx % self.config.logging.log_interval == 0:
+                if batch_idx % self.config.logging.log_interval == 0 and not self.config.logging.disable_logging:
                     loss_dict = dict(loss=loss,
                                      original_task_term=original_task_term,
                                      reconstruction_term=reconstruction_term,
@@ -106,6 +101,7 @@ class Trainer:
                 self.original_task_eval_fn.eval(self.reconstructed_model, test_dataloader, epoch, self.logger)
 
             if epoch % self.config.save_epoch_interval == 0:
+                exp_dir = create_experiment_dir(self.config.logging.log_dir, self.config.exp_name)
                 torch.save(self.predictor, os.path.join(exp_dir, f'hand_{epoch}.pth'))
 
     def _log_training(self, epoch, new_weights, loss_dict: dict):
