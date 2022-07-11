@@ -13,7 +13,7 @@ class OriginalModel(nn.Module):
         pass
 
     @abstractmethod
-    def get_learnable_weights(self):
+    def get_learnable_weights(self) -> List[torch.Tensor]:
         pass
 
     def get_learnable_weights_norms(self):
@@ -40,7 +40,7 @@ class ReconstructedModel(OriginalModel):
     def get_feature_maps(self, batch: torch.Tensor) -> List[torch.Tensor]:
         return self.reconstructed_model.get_feature_maps(batch)
 
-    def get_learnable_weights(self):
+    def get_learnable_weights(self) -> List[torch.Tensor]:
         weights = self.reconstructed_model.get_learnable_weights()
         return weights
 
