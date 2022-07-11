@@ -15,8 +15,9 @@ class EvalFunction:
         print('\n Starting eval on test set.')
         test_loss, correct = self._eval_model(reconstructed_model, dataloader)
         accuracy = 100. * correct / len(dataloader.dataset)
-        clearml_logger.report_scalar('eval_loss', 'eval_loss', test_loss, epoch)
-        clearml_logger.report_scalar('eval_accuracy', 'eval_accuracy', accuracy, epoch)
+        if clearml_logger is not None:
+            clearml_logger.report_scalar('eval_loss', 'eval_loss', test_loss, epoch)
+            clearml_logger.report_scalar('eval_accuracy', 'eval_accuracy', accuracy, epoch)
         print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
             test_loss, correct, len(dataloader.dataset),
             accuracy))
