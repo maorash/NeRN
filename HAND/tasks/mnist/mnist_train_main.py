@@ -11,6 +11,7 @@ from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
 from HAND.models.simple_net import SimpleNet
+from HAND.models.regularization import CosineSmoothness, L2Smoothness
 
 
 def get_dataloaders(test_kwargs, train_kwargs):
@@ -27,19 +28,26 @@ def get_dataloaders(test_kwargs, train_kwargs):
     return test_loader, train_loader
 
 
-def train(args, model, device, train_loader, optimizer, epoch):
+def train(args, model, device, train_loader, optimizer, epoch, smoothness):
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
         output = model(data)
-        loss = F.nll_loss(output, target)
+        if smoothness is None:
+            smoothness_loss = 0
+        else:
+            smoothness_loss = - smoothness(model)
+
+        classification_loss = F.nll_loss(output, target)
+        loss = classification_loss + args.smoothness_factor * smoothness_loss
         loss.backward()
         optimizer.step()
         if batch_idx % args.log_interval == 0:
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                epoch, batch_idx * len(data), len(train_loader.dataset),
-                       100. * batch_idx / len(train_loader), loss.item()))
+            print(
+                'Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tClassification Loss: {:.6f}\tSmoothness: {:.6f}'.format(
+                    epoch, batch_idx * len(data), len(train_loader.dataset), 100. * batch_idx / len(train_loader),
+                    loss.item(), classification_loss.item(), smoothness_loss.item()))
             if args.dry_run:
                 break
 
@@ -88,6 +96,11 @@ def main():
                         help='how many batches to wait before logging training status')
     parser.add_argument('--save-model', action='store_true', default=False,
                         help='For Saving the current Model')
+    parser.add_argument('--smoothness-type', type=str, default=None,
+                        help='Smoothness regularization, can be Cosine/L2')
+    parser.add_argument('--smoothness-factor', type=float, default=1e-4,
+                        help='Factor for the smoothness regularization term')
+
     args = parser.parse_args()
     use_cuda = not args.no_cuda and torch.cuda.is_available()
 
@@ -110,8 +123,17 @@ def main():
     optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
 
     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
+    if args.smoothness_type is None:
+        smoothness = None
+    elif args.smoothness_type == "Cosine":
+        smoothness = CosineSmoothness()
+    elif args.smoothness_type == "L2":
+        smoothness = L2Smoothness()
+    else:
+        raise ValueError("Unexpected smoothness type")
+
     for epoch in range(1, args.epochs + 1):
-        train(args, model, device, train_loader, optimizer, epoch)
+        train(args, model, device, train_loader, optimizer, epoch, smoothness)
         test(model, device, test_loader)
         scheduler.step()
 
