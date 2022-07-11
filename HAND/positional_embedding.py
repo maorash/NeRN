@@ -59,7 +59,7 @@ class PositionalEmbedding:
 class MyPositionalEncoding(nn.Module):
     def __init__(self, config: EmbeddingsConfig):
         super(MyPositionalEncoding, self).__init__()
-        self.embedding_fusion_mode = config.embedding_fusion_mode
+        self.embedding_fusion_mode = config.fusion_mode
         self.num_idxs = config.num_idxs
         assert self.embedding_fusion_mode in ['concat', 'sum']
         assert config.enc_levels >= 1

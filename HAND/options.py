@@ -11,7 +11,7 @@ class EmbeddingsConfig:
     # Base num
     base: float = field(default=1.25)
     # Embedding fusion mode
-    embedding_fusion_mode: str = field(default='concat')
+    fusion_mode: str = field(default='concat')
 
 
 @dataclass
@@ -24,6 +24,8 @@ class HANDConfig:
     act_layer: str = field(default='ReLU')
     # Number of linear blocks
     num_blocks: int = field(default=3)
+    # Positional embeddings config
+    embeddings: EmbeddingsConfig = field(default_factory=EmbeddingsConfig)
     # Task loss weight (distillation weight will be 1 - reconstruction_loss_weight)
     task_loss_weight: float = field(default=0.25)
     # Reconstruction loss weight (distillation weight will be 1 - reconstruction_loss_weight)
