@@ -14,8 +14,8 @@ from HAND.trainer import Trainer
 def main(cfg: TrainConfig):
     use_cuda = not cfg.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
-    original_model = SimpleNet().to(device)  # TODO: factory and get this from config
-    original_model.load_state_dict(torch.load('trained_models/original_tasks/mnist/mnist_cnn.pt'))
+    original_model = SimpleNet(input_size=28).to(device)  # TODO: factory and get this from config, input size for MNIST
+    original_model.load_state_dict(torch.load(cfg.original_model_path))
 
     reconstructed_model = ReconstructedSimpleNet3x3(original_model).to(device)
 

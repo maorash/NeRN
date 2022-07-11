@@ -50,6 +50,8 @@ class TrainConfig:
     exp_name: str = field(default='default_exp')
     # Embeddings config
     embeddings: EmbeddingsConfig = field(default_factory=EmbeddingsConfig)
+    # Path to the original model file
+    original_model_path: str = field(default='trained_models/original_tasks/mnist/mnist_cnn.pt')
     # HAND config
     hand: HANDConfig = field(default_factory=HANDConfig)
     # Number of data loading workers
