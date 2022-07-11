@@ -10,13 +10,14 @@ from HAND.models.model import OriginalModel, ReconstructedModel
 from HAND.predictors.predictor import HANDPredictorBase
 from HAND.tasks.mnist.mnist_train_main import get_dataloaders
 from logger import create_experiment_dir, log_scalar_list, compute_grad_norms
-from loss import ReconstructionLoss, FeatureMapsDistillationLoss, OutputDistillationLoss
+from loss import TaskLoss, ReconstructionLoss, FeatureMapsDistillationLoss, OutputDistillationLoss
 from options import TrainConfig
 
 
 class Trainer:
     def __init__(self, config: TrainConfig,
                  predictor: HANDPredictorBase,
+                 task_loss: TaskLoss,
                  reconstruction_loss: ReconstructionLoss,
                  feature_maps_distillation_loss: FeatureMapsDistillationLoss,
                  output_distillation_loss: OutputDistillationLoss,
@@ -27,6 +28,7 @@ class Trainer:
                  device):
         self.config = config
         self.predictor = predictor
+        self.taskLoss = task_loss
         self.reconstruction_loss = reconstruction_loss
         self.feature_maps_distillation_loss = feature_maps_distillation_loss
         self.output_distillation_loss = output_distillation_loss
@@ -46,44 +48,54 @@ class Trainer:
                                                             train_kwargs=data_kwargs)
 
         # For a number of epochs
+        training_step = 0
         for epoch in range(self.config.epochs):
-            indices, positional_embeddings = self.reconstructed_model.get_indices_and_positional_embeddings()
-            predicted_weights = []
-            for index, positional_embedding in zip(indices, positional_embeddings):
-                # Reconstruct all of the original model's weights using the predictors model
-                reconstructed_weights = self.predictor(positional_embedding.to(self.device))  # TODO: clean this up
-                predicted_weights.append(reconstructed_weights)
+            for batch_idx, (data, target) in enumerate(train_dataloader):
+                data, target = data.to(self.device), target.to(self.device)
+                optimizer.zero_grad()
+                output = self.reconstructed_model.reconstructed_model(data)
+                # calculate the batch classification loss of the reconstructed model
+                original_task_term = self.config.hand.task_loss_weight * self.taskLoss(output, target)
 
-            new_weights = self.reconstructed_model.aggregate_predicted_weights(predicted_weights)
-            set_grads_for_logging(new_weights)
+                # calculate the reconstruction loss
+                indices, positional_embeddings = self.reconstructed_model.get_indices_and_positional_embeddings()
+                predicted_weights = []
+                for index, positional_embedding in zip(indices, positional_embeddings):
+                    # Reconstruct all of the original model's weights using the predictors model
+                    reconstructed_weights = self.predictor(positional_embedding.to(self.device))  # TODO: clean this up
+                    predicted_weights.append(reconstructed_weights)
 
-            self.reconstructed_model.update_whole_weights(new_weights)
+                new_weights = self.reconstructed_model.aggregate_predicted_weights(predicted_weights)
+                set_grads_for_logging(new_weights)
 
-            # Now we can see how good our reconstructed model is
-            original_weights = self.original_model.get_learnable_weights()
-            reconstruction_term = self.config.hand.reconstruction_loss_weight * self.reconstruction_loss(
-                new_weights, original_weights)
+                self.reconstructed_model.update_whole_weights(new_weights)
 
-            feature_maps_term = 0.
-            # feature_maps_term = self.config.hand.feature_maps_distillation_loss_weight * self.feature_maps_distillation_loss(
-            #     batch, self.reconstructed_model, self.original_model)  # TODO: where does the batch come from? which loop
+                # Now we can see how good our reconstructed model is
+                original_weights = self.original_model.get_learnable_weights()
+                reconstruction_term = self.config.hand.reconstruction_loss_weight * self.reconstruction_loss(
+                    new_weights, original_weights)
 
-            outputs_term = 0.
-            # outputs_term = self.config.hand.output_distillation_loss_weight * self.output_distillation_loss(
-            #     self.reconstructed_model, self.original_model)# TODO: where does the batch come from? which loop
+                feature_maps_term = 0.
+                # feature_maps_term = self.config.hand.feature_maps_distillation_loss_weight * self.feature_maps_distillation_loss(
+                #     batch, self.reconstructed_model, self.original_model)  # TODO: where does the batch come from? which loop
 
-            loss = reconstruction_term + feature_maps_term + outputs_term
+                outputs_term = 0.
+                # outputs_term = self.config.hand.output_distillation_loss_weight * self.output_distillation_loss(
+                #     self.reconstructed_model, self.original_model)# TODO: where does the batch come from? which loop
 
-            loss.backward()
+                loss = original_task_term + reconstruction_term + feature_maps_term + outputs_term
+                loss.backward()
 
-            if epoch % self.config.logging.log_interval == 0:
-                loss_dict = dict(loss=loss,
-                                 reconstruction_term=reconstruction_term,
-                                 feature_maps_term=feature_maps_term,
-                                 outputs_term=outputs_term)
-                self._log_training(epoch, new_weights, loss_dict)
+                if batch_idx % self.config.logging.log_interval == 0 and not self.config.logging.disable_logging:
+                    loss_dict = dict(loss=loss,
+                                     original_task_term=original_task_term,
+                                     reconstruction_term=reconstruction_term,
+                                     feature_maps_term=feature_maps_term,
+                                     outputs_term=outputs_term)
+                    self._log_training(training_step, new_weights, loss_dict)
 
-            optimizer.step()
+                optimizer.step()
+                training_step += 1
 
             if epoch % self.config.eval_epochs_interval == 0:
                 self.original_task_eval_fn.eval(self.reconstructed_model, test_dataloader, epoch, self.logger)

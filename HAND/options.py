@@ -24,14 +24,16 @@ class HANDConfig:
     act_layer: str = field(default='ReLU')
     # Number of linear blocks
     num_blocks: int = field(default=3)
-    # Positional embeddings config
-    embeddings: EmbeddingsConfig = field(default_factory=EmbeddingsConfig)
+    # Task loss weight (distillation weight will be 1 - reconstruction_loss_weight)
+    task_loss_weight: float = field(default=0.25)
     # Reconstruction loss weight (distillation weight will be 1 - reconstruction_loss_weight)
-    reconstruction_loss_weight: float = field(default=0.333)
+    reconstruction_loss_weight: float = field(default=0.25)
     # Feature maps distillation loss weight (distillation weight will be 1 - reconstruction_loss_weight)
-    feature_maps_distillation_loss_weight: float = field(default=0.333)
+    feature_maps_distillation_loss_weight: float = field(default=0.25)
     # Output distillation loss weight (distillation weight will be 1 - reconstruction_loss_weight)
-    output_distillation_loss_weight: float = field(default=0.333)
+    output_distillation_loss_weight: float = field(default=0.25)
+    # Task loss type, should be a member of `torch.nn.functional`, default is `nll_loss`
+    task_loss_type: str = field(default='nll_loss')
     # Reconstruction loss type, should be a member of `torch.nn`, default is `MSELoss`
     reconstruction_loss_type: str = field(default='MSELoss')
     # Feature maps distillation loss type, should be a member of `torch.nn`, default is `MSELoss`
@@ -63,7 +65,7 @@ class TrainConfig:
     # Number of data loading workers
     workers: int = field(default=4)
     # Input batch size
-    batch_size: int = field(default=1)
+    batch_size: int = field(default=100)
     # Resuming start_epoch from checkpoint
     not_resume_epoch: bool = field(default=True)
     # Number of epochs to train for
@@ -86,8 +88,8 @@ class TrainConfig:
     sigmoid: bool = field(default=True)
     # Optimizer to use, should be a member of `torch.optim`, default is `AdamW`
     optimizer: str = field(default='AdamW')
-    # How often to test the reconstructed model on the original task
-    eval_epochs_interval: int = field(default=500)
+    # How often to test the reconstrcuted model on the original task
+    eval_epochs_interval: int = field(default=1)
     # How often to save the learned model
     save_epoch_interval: int = field(default=1000)
     # Use cpu instead of cuda

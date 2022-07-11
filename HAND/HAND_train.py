@@ -6,7 +6,7 @@ import torch
 
 from HAND.eval_func import EvalFunction
 from HAND.logger import initialize_clearml_task
-from HAND.loss import ReconstructionLoss, FeatureMapsDistillationLoss, OutputDistillationLoss
+from HAND.loss import TaskLoss, ReconstructionLoss, FeatureMapsDistillationLoss, OutputDistillationLoss
 from HAND.models.simple_net import SimpleNet, ReconstructedSimpleNet3x3
 from HAND.options import TrainConfig
 from HAND.predictors.predictor import HANDPredictorFactory
@@ -47,6 +47,7 @@ def main(cfg: TrainConfig):
 
     trainer = Trainer(config=cfg,
                       predictor=predictor,
+                      task_loss=TaskLoss(cfg.hand.task_loss_type),
                       reconstruction_loss=ReconstructionLoss(cfg.hand.reconstruction_loss_type),
                       feature_maps_distillation_loss=FeatureMapsDistillationLoss(
                           cfg.hand.feature_maps_distillation_loss_type),
