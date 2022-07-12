@@ -31,17 +31,17 @@ class HANDConfig:
     # Reconstruction loss weight (distillation weight will be 1 - reconstruction_loss_weight)
     reconstruction_loss_weight: float = field(default=0.25)
     # Feature maps distillation loss weight (distillation weight will be 1 - reconstruction_loss_weight)
-    feature_maps_distillation_loss_weight: float = field(default=0.25)
+    attention_loss_weight: float = field(default=0.25)
     # Output distillation loss weight (distillation weight will be 1 - reconstruction_loss_weight)
-    output_distillation_loss_weight: float = field(default=0.25)
+    distillation_loss_weight: float = field(default=0.25)
     # Task loss type, should be a member of `torch.nn.functional`, default is `nll_loss`
-    task_loss_type: str = field(default='nll_loss')
+    task_loss_type: str = field(default='NLLLoss')
     # Reconstruction loss type, should be a member of `torch.nn`, default is `MSELoss`
     reconstruction_loss_type: str = field(default='MSELoss')
     # Feature maps distillation loss type, should be a member of `torch.nn`, default is `MSELoss`
-    feature_maps_distillation_loss_type: str = field(default='MSELoss')
+    attention_loss_type: str = field(default='L2')
     # Output distillation loss type, should be a member of `torch.nn`, default is `KLDivLoss`
-    output_distillation_loss_type: str = field(default='KLDivLoss')
+    distillation_loss_type: str = field(default='KLDivLoss')
 
 
 @dataclass

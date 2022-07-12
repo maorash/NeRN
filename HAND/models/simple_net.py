@@ -10,16 +10,16 @@ from HAND.positional_embedding import MyPositionalEncoding
 
 
 class SimpleNet(OriginalModel):
-    def __init__(self, num_hidden=None, num_layers=3, input_size=28):
+    def __init__(self, num_hidden=None, num_layers=3, input_size=28, **kwargs):
         super(SimpleNet, self).__init__()
         self.num_hidden = num_hidden if num_hidden is not None else [32]*num_layers
         self.input_size = input_size
-        self.layers_list = [nn.Conv2d(1, num_hidden[0], (3, 3), (1, 1), padding='same')]
+        self.layers_list = [nn.Conv2d(1, self.num_hidden[0], (3, 3), (1, 1), padding='same')]
         self.layers_list.extend(
-            [nn.Conv2d(num_hidden[i], num_hidden[i+1], (3, 3), (1, 1), padding='same') for i in range(num_layers - 1)])
+            [nn.Conv2d(self.num_hidden[i], self.num_hidden[i+1], (3, 3), (1, 1), padding='same') for i in range(num_layers - 1)])
         self.convs = nn.ModuleList(self.layers_list)
         self.dropout1 = nn.Dropout(0.25)
-        self.fc = nn.Linear(num_hidden[-1] * input_size // 2 * input_size // 2, 10)
+        self.fc = nn.Linear(self.num_hidden[-1] * input_size // 2 * input_size // 2, 10)
         self.feature_maps = []
 
     def get_feature_maps(self, batch: torch.Tensor) -> List[torch.Tensor]:

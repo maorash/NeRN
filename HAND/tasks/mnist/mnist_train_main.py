@@ -133,6 +133,10 @@ def main():
 
     test_loader, train_loader = get_dataloaders(test_kwargs, train_kwargs)
     model_kwargs = dict(input_size=28, num_hidden=args.num_hidden, num_layers=args.num_layers)
+    model_kwargs.update({
+        "smoothness_type": args.smoothness_type,
+        "smoothness_factor": args.smoothness_factor
+    })
     model = SimpleNet(**model_kwargs).to(device)
     optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
 
