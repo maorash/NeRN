@@ -41,6 +41,16 @@ def main(cfg: TrainConfig):
     pos_embedding = reconstructed_model.positional_encoder.output_size
     predictor = HANDPredictorFactory(cfg.hand, input_size=pos_embedding).get_predictor().to(device)
 
+    num_predictor_params = sum([p.numel() for p in predictor.parameters()])
+    print(f"Predictor:"
+          f"\t-> Number of parameters: {num_predictor_params/1000}K"
+          f"\t-> Size: {num_predictor_params*4/1024/1024:.2f}Mb")
+
+    num_predicted_params = sum([p.numel() for p in original_model.get_learnable_weights()])
+    print(f"\nOriginal Model:"
+          f"\t-> Number of parameters: {num_predicted_params/1000}K"
+          f"\t-> Size: {num_predicted_params*4/1024/1024:.2f}Mb")
+
     if not cfg.logging.disable_logging:
         clearml_task = initialize_clearml_task(cfg.logging.task_name)
         clearml_logger = clearml_task.get_logger()

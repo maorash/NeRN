@@ -39,13 +39,13 @@ class HAND3x3Predictor(HANDPredictorBase):
 
     def __init__(self, cfg: HANDConfig, input_size: int):
         super().__init__(cfg, input_size)
-        hidden_size = 30
-        self.layers = self._construct_layers(hidden_size)
-        self.final_linear_layer = nn.Linear(hidden_size, 9)
+        self.hidden_size = cfg.hidden_layer_size
+        self.layers = self._construct_layers()
+        self.final_linear_layer = nn.Linear(self.hidden_size, 9)
 
-    def _construct_layers(self, hidden_size):
-        blocks = [nn.Linear(self.input_size, hidden_size)]
-        blocks.extend([nn.Linear(hidden_size, hidden_size) for _ in range(self.cfg.num_blocks - 2)])
+    def _construct_layers(self):
+        blocks = [nn.Linear(self.input_size, self.hidden_size)]
+        blocks.extend([nn.Linear(self.hidden_size, self.hidden_size) for _ in range(self.cfg.num_blocks - 2)])
         return nn.ModuleList(blocks)
 
     def forward(self, positional_embedding: torch.Tensor) -> torch.Tensor:

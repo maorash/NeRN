@@ -24,20 +24,22 @@ class HANDConfig:
     act_layer: str = field(default='ReLU')
     # Number of linear blocks
     num_blocks: int = field(default=3)
+    # Number of linear blocks
+    hidden_layer_size: int = field(default=30)
     # Positional embeddings config
     embeddings: EmbeddingsConfig = field(default_factory=EmbeddingsConfig)
-    # Task loss weight (distillation weight will be 1 - reconstruction_loss_weight)
+    # Task loss weight
     task_loss_weight: float = field(default=0.25)
-    # Reconstruction loss weight (distillation weight will be 1 - reconstruction_loss_weight)
+    # Reconstruction loss weight
     reconstruction_loss_weight: float = field(default=0.25)
-    # Feature maps distillation loss weight (distillation weight will be 1 - reconstruction_loss_weight)
+    # Feature maps distillation loss weight
     attention_loss_weight: float = field(default=0.25)
-    # Output distillation loss weight (distillation weight will be 1 - reconstruction_loss_weight)
+    # Output distillation loss weight
     distillation_loss_weight: float = field(default=0.25)
     # Task loss type, should be a member of `torch.nn.functional`, default is `nll_loss`
     task_loss_type: str = field(default='NLLLoss')
     # Reconstruction loss type, should be a member of `torch.nn`, default is `MSELoss`
-    reconstruction_loss_type: str = field(default='MSELoss')
+    reconstruction_loss_type: str = field(default='L2')
     # Feature maps distillation loss type, should be a member of `torch.nn`, default is `MSELoss`
     attention_loss_type: str = field(default='L2')
     # Output distillation loss type, should be a member of `torch.nn`, default is `KLDivLoss`
@@ -71,13 +73,13 @@ class TrainConfig:
     # Resuming start_epoch from checkpoint
     not_resume_epoch: bool = field(default=True)
     # Number of epochs to train for
-    epochs: int = field(default=100000)
+    epochs: int = field(default=1000)
     # Epoch cycles for trainings
     cycles: int = field(default=1)
     # Number of warmup epochs
     warmup: int = field(default=5)
     # Learning rate
-    lr: float = field(default=0.00001)
+    lr: float = field(default=1e-4)
     # Learning rate type
     lr_type: str = field(default='cosine')
     # Epochs to decay learning rate by 10
@@ -90,7 +92,7 @@ class TrainConfig:
     sigmoid: bool = field(default=True)
     # Optimizer to use, should be a member of `torch.optim`, default is `AdamW`
     optimizer: str = field(default='AdamW')
-    # How often to test the reconstrcuted model on the original task
+    # How often to test the reconstructed model on the original task
     eval_epochs_interval: int = field(default=1)
     # How often to save the learned model
     save_epoch_interval: int = field(default=1000)
@@ -100,6 +102,7 @@ class TrainConfig:
     learn_fc_layer: bool = field(default=False)
     # Log config
     logging: LogConfig = field(default_factory=LogConfig)
+
 
 @pyrallis.wrap()
 def get_train_config(cfg: TrainConfig):
