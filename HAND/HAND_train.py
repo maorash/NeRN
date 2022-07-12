@@ -6,7 +6,10 @@ import torch
 
 from HAND.eval_func import EvalFunction
 from HAND.logger import initialize_clearml_task
-from HAND.loss import TaskLoss, ReconstructionLoss, FeatureMapsDistillationLoss, OutputDistillationLoss
+from loss.attention_loss import AttentionLossFactory
+from loss.reconstruction_loss import ReconstructionLossFactory
+from loss.distillation_loss import DistillationLossFactory
+from loss.task_loss import TaskLossFactory
 from HAND.models.simple_net import SimpleNet, ReconstructedSimpleNet3x3
 from HAND.options import TrainConfig
 from HAND.predictors.predictor import HANDPredictorFactory
@@ -42,16 +45,14 @@ def main(cfg: TrainConfig):
         clearml_task = initialize_clearml_task(cfg.logging.task_name)
         clearml_logger = clearml_task.get_logger()
     else:
-        clearml_task = None
         clearml_logger = None
 
     trainer = Trainer(config=cfg,
                       predictor=predictor,
-                      task_loss=TaskLoss(cfg.hand.task_loss_type),
-                      reconstruction_loss=ReconstructionLoss(cfg.hand.reconstruction_loss_type),
-                      feature_maps_distillation_loss=FeatureMapsDistillationLoss(
-                          cfg.hand.feature_maps_distillation_loss_type),
-                      output_distillation_loss=OutputDistillationLoss(cfg.hand.output_distillation_loss_type),
+                      task_loss=TaskLossFactory.get(cfg.hand.task_loss_type),
+                      reconstruction_loss=ReconstructionLossFactory.get(cfg.hand.reconstruction_loss_type),
+                      attention_loss=AttentionLossFactory.get(cfg.hand.attention_loss_type),
+                      distillation_loss=DistillationLossFactory.get(cfg.hand.distillation_loss_type),
                       original_model=original_model,
                       reconstructed_model=reconstructed_model,
                       original_task_eval_fn=EvalFunction(),

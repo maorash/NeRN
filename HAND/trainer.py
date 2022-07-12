@@ -1,4 +1,6 @@
+import math
 import os
+import time
 
 import torch
 from clearml import Logger
@@ -10,17 +12,20 @@ from HAND.models.model import OriginalModel, ReconstructedModel
 from HAND.predictors.predictor import HANDPredictorBase
 from HAND.tasks.mnist.mnist_train_main import get_dataloaders
 from logger import create_experiment_dir, log_scalar_list, compute_grad_norms
-from loss import TaskLoss, ReconstructionLoss, FeatureMapsDistillationLoss, OutputDistillationLoss
+from loss.attention_loss import AttentionLossBase
+from loss.reconstruction_loss import ReconstructionLossBase
+from loss.distillation_loss import DistillationLossBase
+from loss.task_loss import TaskLossBase
 from options import TrainConfig
 
 
 class Trainer:
     def __init__(self, config: TrainConfig,
                  predictor: HANDPredictorBase,
-                 task_loss: TaskLoss,
-                 reconstruction_loss: ReconstructionLoss,
-                 feature_maps_distillation_loss: FeatureMapsDistillationLoss,
-                 output_distillation_loss: OutputDistillationLoss,
+                 task_loss: TaskLossBase,
+                 reconstruction_loss: ReconstructionLossBase,
+                 attention_loss: AttentionLossBase,
+                 distillation_loss: DistillationLossBase,
                  original_model: OriginalModel,
                  reconstructed_model: ReconstructedModel,
                  original_task_eval_fn: EvalFunction,
@@ -28,10 +33,10 @@ class Trainer:
                  device):
         self.config = config
         self.predictor = predictor
-        self.taskLoss = task_loss
+        self.task_loss = task_loss
         self.reconstruction_loss = reconstruction_loss
-        self.feature_maps_distillation_loss = feature_maps_distillation_loss
-        self.output_distillation_loss = output_distillation_loss
+        self.attention_loss = attention_loss
+        self.distillation_loss = distillation_loss
         self.original_model = original_model
         self.reconstructed_model = reconstructed_model
         self.original_task_eval_fn = original_task_eval_fn
@@ -47,52 +52,54 @@ class Trainer:
         test_dataloader, train_dataloader = get_dataloaders(test_kwargs=data_kwargs,
                                                             train_kwargs=data_kwargs)
 
-        # For a number of epochs
+        learnable_weights_shapes = [weights.shape for weights in self.reconstructed_model.get_learnable_weights()]
+        indices, positional_embeddings = self.reconstructed_model.get_indices_and_positional_embeddings()
+        positional_embeddings = [torch.stack(layer_emb).to(self.device) for layer_emb in positional_embeddings]
+
         training_step = 0
         for epoch in range(self.config.epochs):
-            for batch_idx, (data, target) in enumerate(train_dataloader):
-                data, target = data.to(self.device), target.to(self.device)
+            for batch_idx, (batch, ground_truth) in enumerate(train_dataloader):
+                batch, ground_truth = batch.to(self.device), ground_truth.to(self.device)
                 optimizer.zero_grad()
-                output = self.reconstructed_model.reconstructed_model(data)
-                # calculate the batch classification loss of the reconstructed model
-                original_task_term = self.config.hand.task_loss_weight * self.taskLoss(output, target)
 
-                # calculate the reconstruction loss
-                indices, positional_embeddings = self.reconstructed_model.get_indices_and_positional_embeddings()
-                predicted_weights = []
-                for index, positional_embedding in zip(indices, positional_embeddings):
-                    # Reconstruct all of the original model's weights using the predictors model
-                    reconstructed_weights = self.predictor(positional_embedding.to(self.device))  # TODO: clean this up
-                    predicted_weights.append(reconstructed_weights)
+                reconstructed_weights = []
+                # Each forward pass of the prediction model predicts an entire layer's weights
+                for layer_positional_embeddings, layer_shape in zip(positional_embeddings, learnable_weights_shapes):
+                    layer_reconstructed_weights = self.predictor(layer_positional_embeddings).reshape(layer_shape)
+                    layer_reconstructed_weights.retain_grad()
+                    reconstructed_weights.append(layer_reconstructed_weights)
 
-                new_weights = self.reconstructed_model.aggregate_predicted_weights(predicted_weights)
-                set_grads_for_logging(new_weights)
+                self.reconstructed_model.update_weights(reconstructed_weights)
 
-                self.reconstructed_model.update_whole_weights(new_weights)
+                original_outputs, original_feature_maps = self.original_model.get_feature_maps(batch)
+                reconstructed_outputs, reconstructed_feature_maps = self.reconstructed_model.get_feature_maps(batch)
 
-                # Now we can see how good our reconstructed model is
+                # Compute reconstruction loss
                 original_weights = self.original_model.get_learnable_weights()
                 reconstruction_term = self.config.hand.reconstruction_loss_weight * self.reconstruction_loss(
-                    new_weights, original_weights)
+                    reconstructed_weights, original_weights)
 
-                feature_maps_term = 0.
-                # feature_maps_term = self.config.hand.feature_maps_distillation_loss_weight * self.feature_maps_distillation_loss(
-                #     batch, self.reconstructed_model, self.original_model)  # TODO: where does the batch come from? which loop
+                # Compute task loss
+                task_term = self.config.hand.task_loss_weight * self.task_loss(reconstructed_outputs, ground_truth)
 
-                outputs_term = 0.
-                # outputs_term = self.config.hand.output_distillation_loss_weight * self.output_distillation_loss(
-                #     self.reconstructed_model, self.original_model)# TODO: where does the batch come from? which loop
+                # Compute attention loss
+                attention_term = self.config.hand.attention_loss_weight * self.attention_loss(
+                    reconstructed_feature_maps, original_feature_maps)
 
-                loss = original_task_term + reconstruction_term + feature_maps_term + outputs_term
+                # Compute distillation loss
+                distillation_term = self.config.hand.distillation_loss_weight * self.distillation_loss(
+                    reconstructed_outputs, original_outputs)
+
+                loss = task_term + reconstruction_term + attention_term + distillation_term
                 loss.backward()
 
                 if batch_idx % self.config.logging.log_interval == 0 and not self.config.logging.disable_logging:
                     loss_dict = dict(loss=loss,
-                                     original_task_term=original_task_term,
-                                     reconstruction_term=reconstruction_term,
-                                     feature_maps_term=feature_maps_term,
-                                     outputs_term=outputs_term)
-                    self._log_training(training_step, new_weights, loss_dict)
+                                     original_task_loss=task_term,
+                                     reconstruction_loss=reconstruction_term,
+                                     attention_loss=attention_term,
+                                     distillation_loss=distillation_term)
+                    self._log_training(training_step, reconstructed_weights, loss_dict)
 
                 optimizer.step()
                 training_step += 1
@@ -104,7 +111,7 @@ class Trainer:
                 exp_dir = create_experiment_dir(self.config.logging.log_dir, self.config.exp_name)
                 torch.save(self.predictor, os.path.join(exp_dir, f'hand_{epoch}.pth'))
 
-    def _log_training(self, epoch, new_weights, loss_dict: dict):
+    def _log_training(self, epoch, reconstructed_weights, loss_dict: dict):
         log_scalar_dict(loss_dict,
                         title='training_loss',
                         iteration=epoch,
@@ -126,7 +133,7 @@ class Trainer:
                         iteration=epoch,
                         logger=self.logger)
 
-        reconstructed_weights_grad_norms = compute_grad_norms(new_weights)
+        reconstructed_weights_grad_norms = compute_grad_norms(reconstructed_weights)
         log_scalar_list(reconstructed_weights_grad_norms,
                         title='reconstructed_weights_grad_norms',
                         series_name='layer',
