@@ -2,14 +2,12 @@ import torch
 from torch import nn
 
 from HAND.loss.loss import LossBase
-from HAND.models.model import ReconstructedModel, OriginalModel
 
 
 class DistillationLossBase(LossBase):
     def forward(self,
-                batch: torch.Tensor,
-                reconstructed_model: ReconstructedModel,
-                original_model: OriginalModel) \
+                reconstructed_outputs: torch.Tensor,
+                original_outputs: torch.Tensor) \
             -> torch.Tensor:
         raise NotImplementedError()
 
@@ -19,13 +17,10 @@ class KLDistillationLoss(DistillationLossBase):
         super().__init__()
 
     def forward(self,
-                batch: torch.Tensor,
-                reconstructed_model: ReconstructedModel,
-                original_model: OriginalModel) \
+                reconstructed_outputs: torch.Tensor,
+                original_outputs: torch.Tensor) \
             -> torch.Tensor:
-        original_model_output = original_model(batch)
-        reconstructed_model_output = reconstructed_model(batch)
-        return nn.KLDivLoss(log_target=True, reduction="batchmean")(original_model_output, reconstructed_model_output)
+        return nn.KLDivLoss(log_target=True, reduction="batchmean")(original_outputs, reconstructed_outputs)
 
 
 class DistillationLossFactory:
