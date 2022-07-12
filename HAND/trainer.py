@@ -147,9 +147,13 @@ class Trainer:
 
     def _initialize_optimizer(self):
         optimizer_type = getattr(optim, self.config.optimizer)
+        parameters_for_optimizer = list(self.predictor.parameters())
+        if self.config.learn_fc_layer is True:
+            parameters_for_optimizer.append(self.reconstructed_model.get_fully_connected_weights())
         if self.config.optimizer != "SGD":
-            optimizer = optimizer_type(self.predictor.parameters(),
+            optimizer = optimizer_type(parameters_for_optimizer,
                                        betas=self.config.betas, lr=self.config.lr)
         else:
             optimizer = optimizer_type(self.predictor.parameters(), lr=self.config.lr)
+
         return optimizer

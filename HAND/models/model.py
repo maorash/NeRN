@@ -21,6 +21,10 @@ class OriginalModel(nn.Module):
         norms = [weight.norm() for weight in learnable_weights]
         return norms
 
+    @abstractmethod
+    def get_fully_connected_weights(self) -> torch.Tensor:
+        pass
+
 
 class ReconstructedModel(OriginalModel):
     def __init__(self, original_model: OriginalModel):
@@ -44,9 +48,13 @@ class ReconstructedModel(OriginalModel):
         weights = self.reconstructed_model.get_learnable_weights()
         return weights
 
+    def get_fully_connected_weights(self) -> torch.Tensor:
+        return self.reconstructed_model.get_fully_connected_weights()
+
     def reinitialize_learnable_weights(self):
         for weight in self.reconstructed_model.get_learnable_weights():
             nn.init.xavier_normal_(weight)
+
 
     def update_whole_weights(self, aggregated_weights: List[torch.Tensor]):
         for i, aggregated_weight in enumerate(aggregated_weights):

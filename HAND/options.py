@@ -96,9 +96,10 @@ class TrainConfig:
     save_epoch_interval: int = field(default=1000)
     # Use cpu instead of cuda
     no_cuda: bool = field(default=False)
+    # Learn the fully connected layer of the reconstructed model
+    learn_fc_layer: bool = field(default=False)
     # Log config
     logging: LogConfig = field(default_factory=LogConfig)
-
 
 @pyrallis.wrap()
 def get_train_config(cfg: TrainConfig):

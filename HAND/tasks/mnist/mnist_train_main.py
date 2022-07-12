@@ -45,10 +45,16 @@ def train(args, model, device, train_loader, optimizer, epoch, smoothness):
         loss.backward()
         optimizer.step()
         if batch_idx % args.log_interval == 0:
-            print(
-                'Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tClassification Loss: {:.6f}\tSmoothness: {:.6f}'.format(
-                    epoch, batch_idx * len(data), len(train_loader.dataset), 100. * batch_idx / len(train_loader),
-                    loss.item(), classification_loss.item(), smoothness_loss.item()))
+            if smoothness is None:
+                print(
+                    'Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                        epoch, batch_idx * len(data), len(train_loader.dataset), 100. * batch_idx / len(train_loader),
+                        loss.item()))
+            else:
+                print(
+                    'Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tClassification Loss: {:.6f}\tSmoothness: {:.6f}'.format(
+                        epoch, batch_idx * len(data), len(train_loader.dataset), 100. * batch_idx / len(train_loader),
+                        loss.item(), classification_loss.item(), smoothness_loss.item()))
             if args.dry_run:
                 break
 
@@ -83,9 +89,9 @@ def main():
                         help='input batch size for testing (default: 1000)')
     parser.add_argument('--epochs', type=int, default=1, metavar='N',
                         help='number of epochs to train (default: 14)')
-    parser.add_argument('--num-hidden', type=int, default=32, metavar='N',
-                        help='number of hidden channels in SimpleNet')
-    parser.add_argument('--num-layers', type=int, default=1, metavar='N',
+    parser.add_argument('--num-hidden', type=int, default=None, metavar='N', nargs='+',
+                        help='List of hidden channels sizes in SimpleNet')
+    parser.add_argument('--num-layers', type=int, default=3, metavar='N',
                         help='number of layers in SimpleNet')
     parser.add_argument('--lr', type=float, default=1.0, metavar='LR',
                         help='learning rate (default: 1.0)')
@@ -107,6 +113,9 @@ def main():
                         help='Factor for the smoothness regularization term')
 
     args = parser.parse_args()
+    if args.num_hidden is not None and len(args.num_hidden) != args.num_layers:
+        raise ValueError(f"Got num layers = {args.num_layers}, but {len(args.num_hiddens)} hidden sizes")
+
     use_cuda = not args.no_cuda and torch.cuda.is_available()
 
     torch.manual_seed(args.seed)
