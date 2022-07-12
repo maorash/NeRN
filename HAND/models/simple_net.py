@@ -10,16 +10,16 @@ from HAND.positional_embedding import MyPositionalEncoding
 
 
 class SimpleNet(OriginalModel):
-    def __init__(self, num_hidden=32, num_layers=3, input_size=28):
+    def __init__(self, num_hidden=None, num_layers=3, input_size=28):
         super(SimpleNet, self).__init__()
-        self.num_hidden = num_hidden
+        self.num_hidden = num_hidden if num_hidden is not None else [32]*num_layers
         self.input_size = input_size
-        self.layers_list = [nn.Conv2d(1, num_hidden, (3, 3), (1, 1), padding='same')]
+        self.layers_list = [nn.Conv2d(1, num_hidden[0], (3, 3), (1, 1), padding='same')]
         self.layers_list.extend(
-            [nn.Conv2d(num_hidden, num_hidden, (3, 3), (1, 1), padding='same') for _ in range(num_layers - 1)])
+            [nn.Conv2d(num_hidden[i], num_hidden[i+1], (3, 3), (1, 1), padding='same') for i in range(num_layers - 1)])
         self.convs = nn.ModuleList(self.layers_list)
         self.dropout1 = nn.Dropout(0.25)
-        self.fc = nn.Linear(num_hidden * input_size // 2 * input_size // 2, 10)
+        self.fc = nn.Linear(num_hidden[-1] * input_size // 2 * input_size // 2, 10)
         self.feature_maps = []
 
     def get_feature_maps(self, batch: torch.Tensor) -> List[torch.Tensor]:
@@ -32,6 +32,9 @@ class SimpleNet(OriginalModel):
         for conv in self.convs:
             tensors.append(conv.weight)
         return tensors
+
+    def get_fully_connected_weights(self) -> torch.Tensor:
+        return self.fc.weight
 
     def forward(self, x, extract_feature_maps=False):
         for layer_idx in range(len(self.convs)):
@@ -56,12 +59,12 @@ class ReconstructedSimpleNet3x3(ReconstructedModel):
 
     def _get_tensor_indices(self) -> List[Tuple]:
         indices = []
-        for filter_idx in range(self.original_model.num_hidden):
+        for filter_idx in range(self.original_model.num_hidden[0]):
             indices.append((0, filter_idx, 0))  # Layer 0, Filter i, Channel 0 (in_channels=1)
 
         for layer_idx in range(1, len(self.original_model.get_learnable_weights())):
-            for filter_idx in range(self.original_model.num_hidden):
-                for channel_idx in range(self.original_model.num_hidden):
+            for filter_idx in range(self.original_model.num_hidden[layer_idx]):
+                for channel_idx in range(self.original_model.num_hidden[layer_idx-1]):
                     indices.append((layer_idx, filter_idx, channel_idx))
         return indices
 
