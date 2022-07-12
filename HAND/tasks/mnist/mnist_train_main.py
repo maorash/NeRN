@@ -142,12 +142,12 @@ def main():
         test(model, device, test_loader)
         scheduler.step()
 
-    if args.save_model:
-        save_dir = '../../trained_models/original_tasks/mnist'
-        os.makedirs(save_dir, exist_ok=True)
-        torch.save(model.state_dict(), save_dir + "/" + args.exp_name + ".pt")
-        with open(save_dir + '/' + args.exp_name + '.json', 'w') as model_save_path:
-            json.dump(model_kwargs, model_save_path)
+        if args.save_model:
+            save_dir = '../../trained_models/original_tasks/mnist'
+            os.makedirs(save_dir, exist_ok=True)
+            torch.save(model.state_dict(), save_dir + "/" + args.exp_name + ".pt")
+            with open(save_dir + '/' + args.exp_name + '.json', 'w') as model_save_path:
+                json.dump(model_kwargs, model_save_path)
 
 
 if __name__ == '__main__':

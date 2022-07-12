@@ -4,8 +4,14 @@ from dataclasses import dataclass, field
 
 @dataclass
 class EmbeddingsConfig:
-    # Base value/embed length for position encoding
-    embed: str = field(default='1.25_80')
+    # Number of indices to encode
+    num_idxs: int = field(default=3)
+    # Encoding levels
+    enc_levels: int = field(default=80)
+    # Base num
+    base: float = field(default=1.25)
+    # Embedding fusion mode
+    fusion_mode: str = field(default='concat')
 
 
 @dataclass
@@ -18,6 +24,8 @@ class HANDConfig:
     act_layer: str = field(default='ReLU')
     # Number of linear blocks
     num_blocks: int = field(default=3)
+    # Positional embeddings config
+    embeddings: EmbeddingsConfig = field(default_factory=EmbeddingsConfig)
     # Task loss weight (distillation weight will be 1 - reconstruction_loss_weight)
     task_loss_weight: float = field(default=0.25)
     # Reconstruction loss weight (distillation weight will be 1 - reconstruction_loss_weight)
@@ -52,8 +60,6 @@ class LogConfig:
 class TrainConfig:
     # The experiment name
     exp_name: str = field(default='default_exp')
-    # Embeddings config
-    embeddings: EmbeddingsConfig = field(default_factory=EmbeddingsConfig)
     # Path to the original model file
     original_model_path: str = field(default='trained_models/original_tasks/mnist/mnist_cnn.pt')
     # HAND config
