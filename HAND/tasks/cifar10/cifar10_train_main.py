@@ -5,7 +5,6 @@ import json
 import os
 
 import torch
-import torch.nn.functional as F
 import torch.optim as optim
 import torch.nn as nn
 from torch.optim.lr_scheduler import StepLR
@@ -118,6 +117,9 @@ def main():
                         help='Smoothness regularization, can be Cosine/L2')
     parser.add_argument('--smoothness-factor', type=float, default=1e-4,
                         help='Factor for the smoothness regularization term')
+    parser.add_argument('--model_arch', type=str, default="VGG8",
+                        help='The model architecture, can be Simple/VGG8')
+
 
     args = parser.parse_args()
     if args.num_hidden is not None and len(args.num_hidden) != args.num_layers:
@@ -139,22 +141,28 @@ def main():
         test_kwargs.update(cuda_kwargs)
 
     test_loader, train_loader = get_dataloaders(test_kwargs, train_kwargs)
-    # model_kwargs = dict(input_size=32, num_hidden=args.num_hidden, num_layers=args.num_layers,
-    #                     input_channels=3)
-    # model_kwargs.update({
-    #     "smoothness_type": args.smoothness_type,
-    #     "smoothness_factor": args.smoothness_factor
-    # })
-    model_kwargs = dict(input_size=32, is_rgb=True)
-    # model_kwargs.update({
-    #     "smoothness_type": args.smoothness_type,
-    #     "smoothness_factor": args.smoothness_factor
-    # })
-    # model = SimpleNet(**model_kwargs).to(device)
-    model = VGG8(**model_kwargs).to(device)
-    optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
 
+    if args.model_arch == "SimpleNet":
+        model_kwargs = dict(input_size=32, num_hidden=args.num_hidden, input_channels=3, num_layers=args.num_layers,
+                            num_classes=10)
+        model = SimpleNet(**model_kwargs).to(device)
+    elif args.model_arch == "VGG8":
+        model_kwargs = dict(input_size=32, input_channels=3, num_classes=10)
+        model = VGG8(**model_kwargs).to(device)
+    else:
+        raise ValueError(f"Unknown model architecture {args.model_arch}")
+    model_kwargs.update({
+        "smoothness_type": args.smoothness_type,
+        "smoothness_factor": args.smoothness_factor
+    })
+
+    for p in model.parameters():
+        if len(p.shape) >= 2:
+            torch.nn.init.xavier_normal_(p)
+
+    optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
+
     if args.smoothness_type is None:
         smoothness = None
     elif args.smoothness_type == "Cosine":

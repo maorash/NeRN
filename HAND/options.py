@@ -29,13 +29,13 @@ class HANDConfig:
     # Positional embeddings config
     embeddings: EmbeddingsConfig = field(default_factory=EmbeddingsConfig)
     # Task loss weight
-    task_loss_weight: float = field(default=0.25)
+    task_loss_weight: float = field(default=1)
     # Reconstruction loss weight
-    reconstruction_loss_weight: float = field(default=0.25)
+    reconstruction_loss_weight: float = field(default=1)
     # Feature maps distillation loss weight
-    attention_loss_weight: float = field(default=0.25)
+    attention_loss_weight: float = field(default=1)
     # Output distillation loss weight
-    distillation_loss_weight: float = field(default=0.25)
+    distillation_loss_weight: float = field(default=1)
     # Task loss type, should be a member of `torch.nn.functional`, default is `nll_loss`
     task_loss_type: str = field(default='NLLLoss')
     # Reconstruction loss type, should be a member of `torch.nn`, default is `MSELoss`

@@ -1,0 +1,12 @@
+logging:
+  exp_name: cifar10_simplenet_32_64_128_128_predictor80_high_recon
+original_model_path: trained_models/original_tasks/mnist/cifar10_simple_net_32_64_128_128.pt
+hand:
+  hidden_layer_size: 80
+  task_loss_type: CELoss
+  reconstruction_loss_weight: 10
+  task_loss_weight: 1
+  attention_loss_weight: 1
+  distillation_loss_weight: 1
+task:
+  task_name: cifar10

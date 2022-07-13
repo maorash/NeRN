@@ -4,8 +4,8 @@ import torch
 from torch import nn as nn
 from torch.nn import functional as F
 
-from HAND.models.model import OriginalModel, ReconstructedModel
 from HAND.options import EmbeddingsConfig
+from HAND.models.model import OriginalModel, ReconstructedModel
 from HAND.positional_embedding import MyPositionalEncoding
 
 

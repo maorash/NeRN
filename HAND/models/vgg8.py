@@ -10,12 +10,12 @@ from HAND.positional_embedding import MyPositionalEncoding
 
 
 class VGG8(OriginalModel):
-    def __init__(self, input_size: int, is_rgb: bool = True, num_classes: int = 10):
+    def __init__(self, input_size=28, input_channels=3, num_classes: int = 10):
         super(VGG8, self).__init__()
 
         self.input_size = input_size
         self.num_classes = num_classes
-        self.input_channels = 3 if is_rgb else 1
+        self.input_channels = input_channels
         self.conv_layer_channels = [self.input_channels, 6, 16, 32, 64, 64]
         self.num_hidden = [6, 16, 32, 64, 64]
         self.num_conv_layers = len(self.conv_layer_channels)
