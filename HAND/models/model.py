@@ -33,7 +33,6 @@ class ReconstructedModel(OriginalModel):
         self.reconstructed_model = copy.deepcopy(original_model)
         self.reinitialize_learnable_weights()
 
-
     def get_feature_maps(self, batch: torch.Tensor) -> Tuple[torch.Tensor, List[torch.Tensor]]:
         return self.reconstructed_model.get_feature_maps(batch)
 

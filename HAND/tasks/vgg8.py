@@ -10,14 +10,14 @@ from HAND.positional_embedding import MyPositionalEncoding
 
 
 class VGG8(OriginalModel):
-    def __init__(self, input_size=28, input_channels=3, num_classes: int = 10):
+    def __init__(self, input_size=28, input_channels=3, num_classes: int = 10, **kwargs):
         super(VGG8, self).__init__()
 
         self.input_size = input_size
         self.num_classes = num_classes
         self.input_channels = input_channels
-        self.conv_layer_channels = [self.input_channels, 6, 16, 32, 64, 64]
         self.num_hidden = [6, 16, 32, 64, 64]
+        self.conv_layer_channels = [self.input_channels] + self.num_hidden
         self.num_conv_layers = len(self.conv_layer_channels)
         self.pooling_factor = 2 ** (self.num_conv_layers-1)
         self.fc_layer_channels = [(self.input_size // self.pooling_factor) ** 2 * self.conv_layer_channels[-1], 128,
@@ -73,15 +73,10 @@ class ReconstructedVGG83x3(ReconstructedModel):
 
     def _get_tensor_indices(self) -> List[List[Tuple]]:
         indices = []
-        curr_layer_indices = []
-        for filter_idx in range(self.original_model.num_hidden[0]):
-            curr_layer_indices.append((0, filter_idx, 0))  # Layer 0, Filter i, Channel 0 (in_channels=1)
-        indices.append(curr_layer_indices)
-
-        for layer_idx in range(1, len(self.original_model.get_learnable_weights())):
+        for layer_idx in range(0, len(self.original_model.get_learnable_weights())):
             curr_layer_indices = []
             for filter_idx in range(self.original_model.num_hidden[layer_idx]):
-                for channel_idx in range(self.original_model.num_hidden[layer_idx - 1]):
+                for channel_idx in range(self.original_model.conv_layer_channels[layer_idx]):
                     curr_layer_indices.append((layer_idx, filter_idx, channel_idx))
             indices.append(curr_layer_indices)
 
