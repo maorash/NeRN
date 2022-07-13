@@ -64,7 +64,7 @@ class VGG8(OriginalModel):
         return output
 
 
-class ReconstructedVGG3x3(ReconstructedModel):
+class ReconstructedVGG83x3(ReconstructedModel):
     def __init__(self, original_model: VGG8, embeddings_cfg: EmbeddingsConfig):
         super().__init__(original_model)
         self.indices = self._get_tensor_indices()
@@ -86,11 +86,3 @@ class ReconstructedVGG3x3(ReconstructedModel):
             indices.append(curr_layer_indices)
 
         return indices
-
-    def _calculate_position_embeddings(self) -> List[List[torch.Tensor]]:
-        positional_embeddings = [[self.positional_encoder(idx) for idx in layer_indices] for layer_indices in
-                                 self.indices]
-        return positional_embeddings
-
-    def get_indices_and_positional_embeddings(self) -> Tuple[List[List[Tuple]], List[List[torch.Tensor]]]:
-        return self.indices, self.positional_embeddings

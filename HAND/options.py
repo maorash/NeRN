@@ -62,6 +62,8 @@ class LogConfig:
 class TaskConfig:
     # Task name
     task_name: str = field(default='mnist')
+    # Original network type
+    original_model_name: str = field(default='SimpleNet')
 
 
 @dataclass

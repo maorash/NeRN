@@ -10,3 +10,4 @@ hand:
   distillation_loss_weight: 1
 task:
   task_name: cifar10
+  original_model_name: SimpleNet

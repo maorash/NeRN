@@ -11,9 +11,9 @@ from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
-from HAND.models.simple_net import SimpleNet
+from HAND.tasks.simple_net import SimpleNet
 from HAND.models.regularization import CosineSmoothness, L2Smoothness
-from HAND.models.vgg8 import VGG8
+from HAND.tasks.vgg8 import VGG8
 
 
 def get_dataloaders(test_kwargs, train_kwargs):
