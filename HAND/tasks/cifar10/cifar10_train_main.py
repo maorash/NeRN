@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader
 import torchvision
 from torchvision import transforms
 
+from HAND.models.resnet18 import ResNet18
 from HAND.models.simple_net import SimpleNet
 from HAND.models.regularization import CosineSmoothness, L2Smoothness
 from HAND.models.vgg8 import VGG8
@@ -118,7 +119,7 @@ def main():
     parser.add_argument('--smoothness-factor', type=float, default=1e-4,
                         help='Factor for the smoothness regularization term')
     parser.add_argument('--model_arch', type=str, default="VGG8",
-                        help='The model architecture, can be Simple/VGG8')
+                        help='The model architecture, can be Simple/VGG8/ResNet18')
 
 
     args = parser.parse_args()
@@ -149,6 +150,9 @@ def main():
     elif args.model_arch == "VGG8":
         model_kwargs = dict(input_size=32, input_channels=3, num_classes=10)
         model = VGG8(**model_kwargs).to(device)
+    elif args.model_arch == "ResNet18":
+        model_kwargs = dict(num_classes=10)
+        model = ResNet18(**model_kwargs).to(device)
     else:
         raise ValueError(f"Unknown model architecture {args.model_arch}")
     model_kwargs.update({
