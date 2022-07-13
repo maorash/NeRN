@@ -89,11 +89,11 @@ def main():
     parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Example')
     parser.add_argument('--exp-name', type=str, required=True,
                         help='Name of the experiment. Will be the name of output model file.')
-    parser.add_argument('--batch-size', type=int, default=64, metavar='N',
+    parser.add_argument('--batch-size', type=int, default=200, metavar='N',
                         help='input batch size for training (default: 64)')
     parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
                         help='input batch size for testing (default: 1000)')
-    parser.add_argument('--epochs', type=int, default=3, metavar='N',
+    parser.add_argument('--epochs', type=int, default=10, metavar='N',
                         help='number of epochs to train (default: 14)')
     parser.add_argument('--num-hidden', type=int, default=None, metavar='N', nargs='+',
                         help='List of hidden channels sizes in SimpleNet')

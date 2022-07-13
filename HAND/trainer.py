@@ -92,7 +92,7 @@ class Trainer:
                 loss = task_term + reconstruction_term + attention_term + distillation_term
                 loss.backward()
 
-                if batch_idx % self.config.logging.log_interval == 0 and not self.config.logging.disable_logging:
+                if batch_idx % self.config.logging.log_interval == 0 and not self.config.logging.disable_logging and epoch > 0:
                     loss_dict = dict(loss=loss,
                                      original_task_loss=task_term,
                                      reconstruction_loss=reconstruction_term,
@@ -103,10 +103,10 @@ class Trainer:
                 optimizer.step()
                 training_step += 1
 
-            if epoch % self.config.eval_epochs_interval == 0 and epoch > 0:
+            if epoch % self.config.eval_epochs_interval == 0:
                 self.original_task_eval_fn.eval(self.reconstructed_model, test_dataloader, epoch, self.logger)
 
-            if epoch % self.config.save_epoch_interval == 0 and epoch > 0:
+            if epoch % self.config.save_epoch_interval == 0:
                 exp_dir = create_experiment_dir(self.config.logging.log_dir, self.config.exp_name)
                 torch.save(self.predictor, os.path.join(exp_dir, f'hand_{epoch}.pth'))
 

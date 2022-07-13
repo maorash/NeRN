@@ -23,9 +23,21 @@ class NLLTaskLoss(TaskLossBase):
         return nn.functional.nll_loss(prediction, target)
 
 
+class CELoss(TaskLossBase):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self,
+                prediction: torch.Tensor,
+                target: torch.Tensor,
+                **kwargs) -> torch.Tensor:
+        return nn.CrossEntropyLoss()(prediction, target)
+
+
 class TaskLossFactory:
     losses = {
-        "NLLLoss": NLLTaskLoss
+        "NLLLoss": NLLTaskLoss,
+        "CELoss": CELoss
     }
 
     @staticmethod
