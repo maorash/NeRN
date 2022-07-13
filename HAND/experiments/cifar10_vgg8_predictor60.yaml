@@ -1,9 +1,11 @@
 logging:
-  exp_name: vgg8_cifar10_predictor40
+  exp_name: vgg8_cifar10_predictor60
 original_model_path: trained_models/original_tasks/mnist/vgg8_cifar10.pt
 hand:
-  hidden_layer_size: 40
+  hidden_layer_size: 60
   task_loss_type: CELoss
+  task_loss_weight: 1
+  distillation_loss_weight: 1
 task:
   task_name: cifar10
   original_model_name: VGG8
