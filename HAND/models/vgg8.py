@@ -17,8 +17,9 @@ class VGG8(OriginalModel):
         self.num_classes = num_classes
         self.input_channels = 3 if is_rgb else 1
         self.conv_layer_channels = [self.input_channels, 6, 16, 32, 64, 64]
+        self.num_hidden = [6, 16, 32, 64, 64]
         self.num_conv_layers = len(self.conv_layer_channels)
-        self.pooling_factor = 2 ** self.num_conv_layers
+        self.pooling_factor = 2 ** (self.num_conv_layers-1)
         self.fc_layer_channels = [(self.input_size // self.pooling_factor) ** 2 * self.conv_layer_channels[-1], 128,
                                   128, self.num_classes]
         self.num_fc_layers = len(self.fc_layer_channels)
@@ -55,7 +56,7 @@ class VGG8(OriginalModel):
             if extract_feature_maps:
                 self.feature_maps.append(x)
             x = F.relu(x)
-            # x = F.max_pool2d(x, 2)
+            x = F.max_pool2d(x, 2)
         x = torch.flatten(x, 1)
         for fc_layer in self.fc_layers:
             x = fc_layer(x)
@@ -63,7 +64,7 @@ class VGG8(OriginalModel):
         return output
 
 
-class ReconstructedSimpleNet3x3(ReconstructedModel):
+class ReconstructedVGG3x3(ReconstructedModel):
     def __init__(self, original_model: VGG8, embeddings_cfg: EmbeddingsConfig):
         super().__init__(original_model)
         self.indices = self._get_tensor_indices()

@@ -15,6 +15,7 @@ from torchvision import transforms
 
 from HAND.models.simple_net import SimpleNet
 from HAND.models.regularization import CosineSmoothness, L2Smoothness
+from HAND.models.vgg8 import VGG8
 
 
 def get_dataloaders(test_kwargs, train_kwargs):
@@ -99,8 +100,6 @@ def main():
                         help='List of hidden channels sizes in SimpleNet')
     parser.add_argument('--num-layers', type=int, default=3, metavar='N',
                         help='number of layers in SimpleNet')
-    parser.add_argument('--input_channels', type=int, default=3,
-                        help='number of input channels for SimpleNet')
     parser.add_argument('--lr', type=float, default=1.0, metavar='LR',
                         help='learning rate (default: 1.0)')
     parser.add_argument('--gamma', type=float, default=0.7, metavar='M',
@@ -140,13 +139,19 @@ def main():
         test_kwargs.update(cuda_kwargs)
 
     test_loader, train_loader = get_dataloaders(test_kwargs, train_kwargs)
-    model_kwargs = dict(input_size=32, num_hidden=args.num_hidden, num_layers=args.num_layers,
-                        input_channels=args.input_channels)
-    model_kwargs.update({
-        "smoothness_type": args.smoothness_type,
-        "smoothness_factor": args.smoothness_factor
-    })
-    model = SimpleNet(**model_kwargs).to(device)
+    # model_kwargs = dict(input_size=32, num_hidden=args.num_hidden, num_layers=args.num_layers,
+    #                     input_channels=3)
+    # model_kwargs.update({
+    #     "smoothness_type": args.smoothness_type,
+    #     "smoothness_factor": args.smoothness_factor
+    # })
+    model_kwargs = dict(input_size=32, is_rgb=True)
+    # model_kwargs.update({
+    #     "smoothness_type": args.smoothness_type,
+    #     "smoothness_factor": args.smoothness_factor
+    # })
+    # model = SimpleNet(**model_kwargs).to(device)
+    model = VGG8(**model_kwargs).to(device)
     optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
 
     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)

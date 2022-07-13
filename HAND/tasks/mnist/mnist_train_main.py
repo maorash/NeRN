@@ -13,6 +13,7 @@ from torchvision import datasets, transforms
 
 from HAND.models.simple_net import SimpleNet
 from HAND.models.regularization import CosineSmoothness, L2Smoothness
+from HAND.models.vgg8 import VGG8
 
 
 def get_dataloaders(test_kwargs, train_kwargs):
@@ -93,8 +94,6 @@ def main():
                         help='List of hidden channels sizes in SimpleNet')
     parser.add_argument('--num-layers', type=int, default=3, metavar='N',
                         help='number of layers in SimpleNet')
-    parser.add_argument('--input_channels', type=int, default=1,
-                        help='number of input channels for SimpleNet')
     parser.add_argument('--lr', type=float, default=1.0, metavar='LR',
                         help='learning rate (default: 1.0)')
     parser.add_argument('--gamma', type=float, default=0.7, metavar='M',
@@ -113,6 +112,8 @@ def main():
                         help='Smoothness regularization, can be Cosine/L2')
     parser.add_argument('--smoothness-factor', type=float, default=1e-4,
                         help='Factor for the smoothness regularization term')
+    parser.add_argument('--model_arch', type=str, default="VGG8",
+                        help='The model architecture, can be Simple/VGG8')
 
     args = parser.parse_args()
     if args.num_hidden is not None and len(args.num_hidden) != args.num_layers:
@@ -134,6 +135,19 @@ def main():
         test_kwargs.update(cuda_kwargs)
 
     test_loader, train_loader = get_dataloaders(test_kwargs, train_kwargs)
+
+    if args.model_arch == "Simple":
+        model_kwargs = dict(input_size=28, num_hidden=args.num_hidden, num_layers=args.num_layers)
+        model_kwargs.update({
+            "smoothness_type": args.smoothness_type,
+            "smoothness_factor": args.smoothness_factor
+        })
+        model = SimpleNet(**model_kwargs).to(device)
+    elif args.model_arch == "VGG8":
+        model_kwargs = dict(input_size=28, is_rgb=False)
+        model = VGG8(**model_kwargs).to(device)
+    else:
+        raise ValueError(f"Unknown model architecture {args.model_arch}")
     model_kwargs = dict(input_size=28, num_hidden=args.num_hidden, num_layers=args.num_layers,
                         input_channels=args.input_channels)
     model_kwargs.update({
