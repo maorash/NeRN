@@ -1,16 +1,15 @@
-import math
+from typing import Tuple
 import os
-import time
 
 import torch
 from clearml import Logger
 from torch import optim
+from torch.utils.data import DataLoader
 
 from HAND.eval_func import EvalFunction
-from HAND.logger import set_grads_for_logging, log_scalar_dict
+from HAND.logger import log_scalar_dict
 from HAND.models.model import OriginalModel, ReconstructedModel
 from HAND.predictors.predictor import HANDPredictorBase
-from HAND.tasks.mnist.mnist_train_main import get_dataloaders
 from logger import create_experiment_dir, log_scalar_list, compute_grad_norms
 from loss.attention_loss import AttentionLossBase
 from loss.reconstruction_loss import ReconstructionLossBase
@@ -30,6 +29,7 @@ class Trainer:
                  reconstructed_model: ReconstructedModel,
                  original_task_eval_fn: EvalFunction,
                  logger: Logger,
+                 task_dataloaders: Tuple[DataLoader, DataLoader],
                  device):
         self.config = config
         self.predictor = predictor
@@ -41,6 +41,7 @@ class Trainer:
         self.reconstructed_model = reconstructed_model
         self.original_task_eval_fn = original_task_eval_fn
         self.device = device
+        self.task_dataloaders = task_dataloaders
         self.logger = logger
 
     def train(self):
@@ -48,9 +49,7 @@ class Trainer:
 
         optimizer = self._initialize_optimizer()
 
-        data_kwargs = {'batch_size': self.config.batch_size}
-        test_dataloader, train_dataloader = get_dataloaders(test_kwargs=data_kwargs,
-                                                            train_kwargs=data_kwargs)
+        test_dataloader, train_dataloader = self.task_dataloaders
 
         learnable_weights_shapes = [weights.shape for weights in self.reconstructed_model.get_learnable_weights()]
         indices, positional_embeddings = self.reconstructed_model.get_indices_and_positional_embeddings()
@@ -104,10 +103,10 @@ class Trainer:
                 optimizer.step()
                 training_step += 1
 
-            if epoch % self.config.eval_epochs_interval == 0:
+            if epoch % self.config.eval_epochs_interval == 0 and epoch > 0:
                 self.original_task_eval_fn.eval(self.reconstructed_model, test_dataloader, epoch, self.logger)
 
-            if epoch % self.config.save_epoch_interval == 0:
+            if epoch % self.config.save_epoch_interval == 0 and epoch > 0:
                 exp_dir = create_experiment_dir(self.config.logging.log_dir, self.config.exp_name)
                 torch.save(self.predictor, os.path.join(exp_dir, f'hand_{epoch}.pth'))
 

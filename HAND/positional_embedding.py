@@ -75,13 +75,10 @@ class MyPositionalEncoding(nn.Module):
 
     def forward(self, pos):
         pe_list = []
-        # naive implementation using a simple concat
         for p in pos:
-            pe_level_list = []
-            for lvl in range(self.levels):
-                temp_value = torch.tensor(p * (self.base ** lvl) * np.pi)
-                pe_level_list += [torch.sin(temp_value), torch.cos(temp_value)]
-            pe_list.append(torch.hstack(pe_level_list))
+            pe_levels = p * (self.base ** torch.arange(self.levels)) * np.pi
+            # Interleaving sin and cos on pe_levels
+            pe_list.append(torch.dstack([torch.sin(pe_levels), torch.cos(pe_levels)]).flatten())
         if self.embedding_fusion_mode == 'concat':
             final_embeddings = torch.hstack(pe_list)
         elif self.embedding_fusion_mode == 'sum':

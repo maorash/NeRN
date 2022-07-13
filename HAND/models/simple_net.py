@@ -10,11 +10,12 @@ from HAND.positional_embedding import MyPositionalEncoding
 
 
 class SimpleNet(OriginalModel):
-    def __init__(self, num_hidden=None, num_layers=3, input_size=28, **kwargs):
+    def __init__(self, num_hidden=None, num_layers=3, input_size=28, input_channels=3, **kwargs):
         super(SimpleNet, self).__init__()
+        self.input_channels = input_channels
         self.num_hidden = num_hidden if num_hidden is not None else [32] * num_layers
         self.input_size = input_size
-        self.layers_list = [nn.Conv2d(1, self.num_hidden[0], (3, 3), (1, 1), padding='same')]
+        self.layers_list = [nn.Conv2d(self.input_channels, self.num_hidden[0], (3, 3), (1, 1), padding='same')]
         self.layers_list.extend(
             [nn.Conv2d(self.num_hidden[i], self.num_hidden[i + 1], (3, 3), (1, 1), padding='same') for i in
              range(num_layers - 1)])
@@ -60,15 +61,12 @@ class ReconstructedSimpleNet3x3(ReconstructedModel):
 
     def _get_tensor_indices(self) -> List[List[Tuple]]:
         indices = []
-        curr_layer_indices = []
-        for filter_idx in range(self.original_model.num_hidden[0]):
-            curr_layer_indices.append((0, filter_idx, 0))  # Layer 0, Filter i, Channel 0 (in_channels=1)
-        indices.append(curr_layer_indices)
+        num_channels_in_layers = [self.original_model.input_channels] + self.original_model.num_hidden
 
-        for layer_idx in range(1, len(self.original_model.get_learnable_weights())):
+        for layer_idx in range(len(self.original_model.get_learnable_weights())):
             curr_layer_indices = []
             for filter_idx in range(self.original_model.num_hidden[layer_idx]):
-                for channel_idx in range(self.original_model.num_hidden[layer_idx - 1]):
+                for channel_idx in range(num_channels_in_layers[layer_idx]):
                     curr_layer_indices.append((layer_idx, filter_idx, channel_idx))
             indices.append(curr_layer_indices)
 

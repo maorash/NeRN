@@ -14,6 +14,7 @@ from HAND.models.simple_net import SimpleNet, ReconstructedSimpleNet3x3
 from HAND.options import TrainConfig
 from HAND.predictors.predictor import HANDPredictorFactory
 from HAND.trainer import Trainer
+from HAND.tasks.dataloader_factory import DataloaderFactory
 
 
 def load_original_model(cfg, device):
@@ -52,10 +53,12 @@ def main(cfg: TrainConfig):
           f"\t-> Size: {num_predicted_params*4/1024/1024:.2f}Mb")
 
     if not cfg.logging.disable_logging:
-        clearml_task = initialize_clearml_task(cfg.logging.task_name)
+        clearml_task = initialize_clearml_task(cfg.logging.exp_name)
         clearml_logger = clearml_task.get_logger()
     else:
         clearml_logger = None
+
+    dataloaders = DataloaderFactory.get(cfg.task.task_name, **{'batch_size': cfg.batch_size})
 
     trainer = Trainer(config=cfg,
                       predictor=predictor,
@@ -67,6 +70,7 @@ def main(cfg: TrainConfig):
                       reconstructed_model=reconstructed_model,
                       original_task_eval_fn=EvalFunction(),
                       logger=clearml_logger,
+                      task_dataloaders=dataloaders,
                       device=device)
     trainer.train()
 

@@ -30,8 +30,3 @@ def log_scalar_dict(scalar_dict: dict, title: str, iteration: int, logger: Logge
 
 def compute_grad_norms(weights: List[Tensor]):
     return [weight.grad.norm() for weight in weights]
-
-
-def set_grads_for_logging(weights):
-    for weight in weights:  # for gradient logging
-        weight.retain_grad()

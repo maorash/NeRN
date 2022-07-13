@@ -49,13 +49,19 @@ class HANDConfig:
 @dataclass
 class LogConfig:
     # Task name
-    task_name: str = field(default='HAND_Train')
+    exp_name: str = field(default='HAND_Train')
     # How often to log metrics
     log_interval: int = field(default=20)
     # Log dir
     log_dir: str = field(default='outputs')
     # Disable logging for faster development
     disable_logging: bool = field(default=False)
+
+
+@dataclass
+class TaskConfig:
+    # Task name
+    task_name: str = field(default='mnist')
 
 
 @dataclass
@@ -102,6 +108,8 @@ class TrainConfig:
     learn_fc_layer: bool = field(default=False)
     # Log config
     logging: LogConfig = field(default_factory=LogConfig)
+    # Task config
+    task: TaskConfig = field(default_factory=TaskConfig)
 
 
 @pyrallis.wrap()
