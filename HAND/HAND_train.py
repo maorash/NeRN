@@ -6,16 +6,16 @@ import torch
 
 from HAND.eval_func import EvalFunction
 from HAND.logger import initialize_clearml_task
-from HAND.models.vgg8 import ReconstructedVGG3x3, VGG8
+from HAND.tasks.vgg8 import ReconstructedVGG83x3, VGG8
 from HAND.loss.attention_loss import AttentionLossFactory
 from HAND.loss.reconstruction_loss import ReconstructionLossFactory
 from HAND.loss.distillation_loss import DistillationLossFactory
 from HAND.loss.task_loss import TaskLossFactory
-from HAND.models.simple_net import SimpleNet, ReconstructedSimpleNet3x3
 from HAND.options import TrainConfig
 from HAND.predictors.predictor import HANDPredictorFactory
 from HAND.trainer import Trainer
 from HAND.tasks.dataloader_factory import DataloaderFactory
+from HAND.tasks.model_factory import ModelFactory
 
 
 def load_original_model(cfg, device):
@@ -25,10 +25,8 @@ def load_original_model(cfg, device):
             model_kwargs = json.load(f)
     else:
         model_kwargs = dict()
-    # original_model = SimpleNet(**model_kwargs).to(device)  # TODO: factory and get this from config
-    original_model = VGG8(32, True).to(device)  # TODO: factory and get this from config
-    original_model.load_state_dict(torch.load(cfg.original_model_path))
-    return original_model
+    original_model, reconstructed_model = ModelFactory.get(cfg, **model_kwargs)
+    return original_model.to(device), reconstructed_model.to(device)
 
 
 @pyrallis.wrap()
@@ -36,10 +34,7 @@ def main(cfg: TrainConfig):
     use_cuda = not cfg.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
-    original_model = load_original_model(cfg, device)
-
-    # reconstructed_model = ReconstructedSimpleNet3x3(original_model, cfg.hand.embeddings).to(device)
-    reconstructed_model = ReconstructedVGG3x3(original_model, cfg.hand.embeddings).to(device)
+    original_model, reconstructed_model = load_original_model(cfg, device)
 
     pos_embedding = reconstructed_model.positional_encoder.output_size
     predictor = HANDPredictorFactory(cfg.hand, input_size=pos_embedding).get_predictor().to(device)

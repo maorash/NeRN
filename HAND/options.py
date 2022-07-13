@@ -62,6 +62,8 @@ class LogConfig:
 class TaskConfig:
     # Task name
     task_name: str = field(default='mnist')
+    # Original network type
+    original_model_name: str = field(default='SimpleNet')
 
 
 @dataclass
@@ -73,29 +75,29 @@ class TrainConfig:
     # HAND config
     hand: HANDConfig = field(default_factory=HANDConfig)
     # Number of data loading workers
-    workers: int = field(default=4)
+    # workers: int = field(default=4)
     # Input batch size
-    batch_size: int = field(default=100)
+    batch_size: int = field(default=256)
     # Resuming start_epoch from checkpoint
-    not_resume_epoch: bool = field(default=True)
+    # not_resume_epoch: bool = field(default=True)
     # Number of epochs to train for
     epochs: int = field(default=1000)
     # Epoch cycles for trainings
-    cycles: int = field(default=1)
+    # cycles: int = field(default=1)
     # Number of warmup epochs
-    warmup: int = field(default=5)
+    # warmup: int = field(default=5)
     # Learning rate
     lr: float = field(default=1e-4)
     # Learning rate type
-    lr_type: str = field(default='cosine')
+    lr_decay_type: str = field(default='CosineAnnealingLR')
     # Epochs to decay learning rate by 10
-    lr_steps: float = field(default=-1)
+    # lr_steps: float = field(default=-1)
     # Beta for adam. default=0.5
     betas: tuple = field(default=(0.5, 0.999))
     # Loss weight
-    lw: float = field(default=1.0)
+    # lw: float = field(default=1.0)
     # Using sigmoid for output prediction
-    sigmoid: bool = field(default=True)
+    # sigmoid: bool = field(default=True)
     # Optimizer to use, should be a member of `torch.optim`, default is `AdamW`
     optimizer: str = field(default='AdamW')
     # How often to test the reconstructed model on the original task

@@ -41,15 +41,13 @@ class Trainer:
         self.reconstructed_model = reconstructed_model
         self.original_task_eval_fn = original_task_eval_fn
         self.device = device
-        self.task_dataloaders = task_dataloaders
+        self.test_dataloader, self.train_dataloader = task_dataloaders
         self.logger = logger
 
     def train(self):
         self._set_grads_for_training()
 
-        optimizer = self._initialize_optimizer()
-
-        test_dataloader, train_dataloader = self.task_dataloaders
+        optimizer, scheduler = self._initialize_optimizer_and_scheduler()
 
         learnable_weights_shapes = [weights.shape for weights in self.reconstructed_model.get_learnable_weights()]
         indices, positional_embeddings = self.reconstructed_model.get_indices_and_positional_embeddings()
@@ -57,7 +55,7 @@ class Trainer:
 
         training_step = 0
         for epoch in range(self.config.epochs):
-            for batch_idx, (batch, ground_truth) in enumerate(train_dataloader):
+            for batch_idx, (batch, ground_truth) in enumerate(self.train_dataloader):
                 batch, ground_truth = batch.to(self.device), ground_truth.to(self.device)
                 optimizer.zero_grad()
 
@@ -99,12 +97,18 @@ class Trainer:
                                      attention_loss=attention_term,
                                      distillation_loss=distillation_term)
                     self._log_training(training_step, reconstructed_weights, loss_dict)
+                    log_scalar_dict(dict(learning_rate=scheduler.get_last_lr()[-1]),
+                                    title="learning_rate",
+                                    iteration=epoch,
+                                    logger=self.logger)
 
                 optimizer.step()
+                scheduler.step()
+
                 training_step += 1
 
             if epoch % self.config.eval_epochs_interval == 0:
-                self.original_task_eval_fn.eval(self.reconstructed_model, test_dataloader, epoch, self.logger)
+                self.original_task_eval_fn.eval(self.reconstructed_model, self.test_dataloader, epoch, self.logger)
 
             if epoch % self.config.save_epoch_interval == 0:
                 exp_dir = create_experiment_dir(self.config.logging.log_dir, self.config.exp_name)
@@ -151,7 +155,7 @@ class Trainer:
         for param in self.predictor.parameters():
             param.requires_grad = True
 
-    def _initialize_optimizer(self):
+    def _initialize_optimizer_and_scheduler(self):
         optimizer_type = getattr(optim, self.config.optimizer)
         parameters_for_optimizer = list(self.predictor.parameters())
         if self.config.learn_fc_layer is True:
@@ -162,4 +166,11 @@ class Trainer:
         else:
             optimizer = optimizer_type(self.predictor.parameters(), lr=self.config.lr)
 
-        return optimizer
+        if self.config.lr_decay_type is not None:
+            scheduler_type = getattr(optim.lr_scheduler, self.config.lr_decay_type)
+            scheduler = scheduler_type(optimizer, T_max=(self.config.epochs * len(self.train_dataloader)),
+                                       eta_min=1e-6)
+        else:
+            scheduler = optim.lr_scheduler.ConstantLR(optimizer, factor=1, total_iters=0, last_epoch=0)
+
+        return optimizer, scheduler

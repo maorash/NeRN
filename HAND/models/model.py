@@ -33,10 +33,6 @@ class ReconstructedModel(OriginalModel):
         self.reconstructed_model = copy.deepcopy(original_model)
         self.reinitialize_learnable_weights()
 
-    @abstractmethod
-    def get_indices_and_positional_embeddings(self) -> Tuple[List[List[Tuple]], List[List[torch.Tensor]]]:
-        pass
-
     def get_feature_maps(self, batch: torch.Tensor) -> Tuple[torch.Tensor, List[torch.Tensor]]:
         return self.reconstructed_model.get_feature_maps(batch)
 
@@ -50,6 +46,14 @@ class ReconstructedModel(OriginalModel):
     def reinitialize_learnable_weights(self):
         for weight in self.reconstructed_model.get_learnable_weights():
             nn.init.xavier_normal_(weight)
+
+    def _calculate_position_embeddings(self) -> List[List[torch.Tensor]]:
+        positional_embeddings = [[self.positional_encoder(idx) for idx in layer_indices] for layer_indices in
+                                 self.indices]
+        return positional_embeddings
+
+    def get_indices_and_positional_embeddings(self) -> Tuple[List[List[Tuple]], List[List[torch.Tensor]]]:
+        return self.indices, self.positional_embeddings
 
     def update_weights(self, reconstructed_weights: List[torch.Tensor]):
         learnable_weights = self.get_learnable_weights()
