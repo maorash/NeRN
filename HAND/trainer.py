@@ -90,7 +90,7 @@ class Trainer:
                 loss = task_term + reconstruction_term + attention_term + distillation_term
                 loss.backward()
 
-                if batch_idx % self.config.logging.log_interval == 0 and not self.config.logging.disable_logging and epoch > 0:
+                if batch_idx % self.config.logging.log_interval == 0 and not self.config.logging.disable_logging:
                     loss_dict = dict(loss=loss,
                                      original_task_loss=task_term,
                                      reconstruction_loss=reconstruction_term,

@@ -1,0 +1,10 @@
+logging:
+  exp_name: resnet18_cifar10
+original_model_path: trained_models/original_tasks/mnist/cifar10_resnet18_smooth5e5.pt
+hand:
+  num_blocks: 5
+  hidden_layer_size: 1024
+  task_loss_type: CELoss
+task:
+  task_name: cifar10
+  original_model_name: ResNet18

@@ -75,13 +75,16 @@ class MyPositionalEncoding(nn.Module):
 
     def forward(self, pos):
         pe_list = []
-        for p in pos:
-            pe_levels = p * (self.base ** torch.arange(self.levels)) * np.pi
-            # Interleaving sin and cos on pe_levels
-            pe_list.append(torch.dstack([torch.sin(pe_levels), torch.cos(pe_levels)]).flatten())
         if self.embedding_fusion_mode == 'concat':
-            final_embeddings = torch.hstack(pe_list)
+            # Efficient implementation
+            x = (torch.tensor(pos).unsqueeze(-1) * (self.base ** torch.arange(self.levels)) * np.pi)
+            final_embeddings = torch.dstack([torch.sin(x), torch.cos(x)]).flatten()
         elif self.embedding_fusion_mode == 'sum':
+            # Non-efficient implementation
+            for p in pos:
+                pe_levels = p * (self.base ** torch.arange(self.levels)) * np.pi
+                # Interleaving sin and cos on pe_levels
+                pe_list.append(torch.dstack([torch.sin(pe_levels), torch.cos(pe_levels)]).flatten())
             final_embeddings = torch.vstack(pe_list).sum(dim=0)
         else:
             raise NotImplementedError(f'Unsupported embedding fusion mode {self.embedding_fusion_mode}.')

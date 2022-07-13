@@ -1,3 +1,4 @@
+import pickle
 from typing import List, Tuple
 
 import torch
@@ -11,15 +12,15 @@ from HAND.positional_embedding import MyPositionalEncoding
 
 
 class ResNet18(OriginalModel):
-    def __init__(self, num_classes: int = 10):
+    def __init__(self, num_classes: int = 10, **kwargs):
         super(ResNet18, self).__init__()
-
+        self.num_hidden = [64, 64, 64, 64, 64, 128, 128, 128, 128, 256, 256, 256, 256, 512, 512, 512, 512]
+        self.input_channels = 3
         self.model = torchvision.models.resnet18(pretrained=False)
         self.layers_names = ['layer1', 'layer2', 'layer3', 'layer4']
         self.feature_maps = []
         self.num_classes = num_classes
         self.model.fc = torch.nn.Linear(self.model.fc.in_features, self.num_classes)
-
 
     def get_feature_maps(self, batch: torch.Tensor) -> Tuple[torch.Tensor, List[torch.Tensor]]:
         self.feature_maps = []
@@ -68,7 +69,7 @@ class ResNet18(OriginalModel):
         activations = []
         for block in layer:
             x, block_activations = self.block_forward(block, x, extract_feature_maps)
-            activations.append(block_activations)
+            activations += block_activations
         return x, activations
 
     def forward(self, x, extract_feature_maps=True):
@@ -85,12 +86,13 @@ class ResNet18(OriginalModel):
         x = self.model.avgpool(x)
         x = torch.flatten(x, 1)
         x = self.model.fc(x)
+
         if extract_feature_maps is True:
-            self.model.feature_maps = activations
+            self.feature_maps = activations
         return x
 
 
-class ReconstructedVGG3x3(ReconstructedModel):
+class ReconstructedResNet183x3(ReconstructedModel):
     def __init__(self, original_model: ResNet18, embeddings_cfg: EmbeddingsConfig):
         super().__init__(original_model)
         self.indices = self._get_tensor_indices()
@@ -99,23 +101,38 @@ class ReconstructedVGG3x3(ReconstructedModel):
 
     def _get_tensor_indices(self) -> List[List[Tuple]]:
         indices = []
-        curr_layer_indices = []
-        for filter_idx in range(self.original_model.num_hidden[0]):
-            curr_layer_indices.append((0, filter_idx, 0))  # Layer 0, Filter i, Channel 0 (in_channels=1)
-        indices.append(curr_layer_indices)
 
-        for layer_idx in range(1, len(self.original_model.get_learnable_weights())):
+        for layer_idx in range(0, len(self.original_model.get_learnable_weights())):
             curr_layer_indices = []
-            for filter_idx in range(self.original_model.num_hidden[layer_idx]):
-                for channel_idx in range(self.original_model.num_hidden[layer_idx - 1]):
+            for filter_idx in range(self.original_model.num_hidden[layer_idx + 1]):
+                for channel_idx in range(self.original_model.num_hidden[layer_idx]):
                     curr_layer_indices.append((layer_idx, filter_idx, channel_idx))
             indices.append(curr_layer_indices)
 
         return indices
 
     def _calculate_position_embeddings(self) -> List[List[torch.Tensor]]:
-        positional_embeddings = [[self.positional_encoder(idx) for idx in layer_indices] for layer_indices in
-                                 self.indices]
+        try:
+            print("Trying to load precomputed embeddings")
+            with open(f"{__name__}_embeddings.pkl", "rb") as f:
+                positional_embeddings = pickle.load(f)
+            print("Loaded precomputed embeddings")
+            return positional_embeddings
+        except Exception:
+            print("Couldn't load precomputed embeddings, hang on tight..")
+
+        positional_embeddings = []
+        for i, layer_indices in enumerate(self.indices):
+            print(f"Calculating layer {i}/{len(self.indices)} embeddings. It gets slower")
+            layer_embeddings = []
+            for idx in layer_indices:
+                layer_embeddings.append(self.positional_encoder(idx))
+            positional_embeddings.append(layer_embeddings)
+
+        with open(f"{__name__}_embeddings.pkl", "wb") as f:
+            pickle.dump(positional_embeddings, f)
+            print("Saved computed embeddings")
+
         return positional_embeddings
 
     def get_indices_and_positional_embeddings(self) -> Tuple[List[List[Tuple]], List[List[torch.Tensor]]]:

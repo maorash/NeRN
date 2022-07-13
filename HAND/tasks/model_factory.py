@@ -2,13 +2,15 @@ import torch
 
 from HAND.tasks.simple_net import SimpleNet, ReconstructedSimpleNet3x3
 from HAND.tasks.vgg8 import VGG8, ReconstructedVGG83x3
+from HAND.tasks.resnet18 import ResNet18, ReconstructedResNet183x3
 from HAND.options import TrainConfig
 
 
 class ModelFactory:
     models = {
         "SimpleNet": (SimpleNet, ReconstructedSimpleNet3x3),
-        "VGG8": (VGG8, ReconstructedVGG83x3)
+        "VGG8": (VGG8, ReconstructedVGG83x3),
+        "ResNet18": (ResNet18, ReconstructedResNet183x3)
     }
 
     @staticmethod
