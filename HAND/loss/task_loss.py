@@ -34,10 +34,23 @@ class CELoss(TaskLossBase):
         return nn.CrossEntropyLoss()(prediction, target)
 
 
+class StableCELoss(TaskLossBase):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self,
+                prediction: torch.Tensor,
+                target: torch.Tensor,
+                **kwargs) -> torch.Tensor:
+        prediction_log_softmax = torch.log(nn.Softmax(dim=1)(prediction)+1e-3)
+        return nn.NLLLoss()(prediction_log_softmax, target)
+
+
 class TaskLossFactory:
     losses = {
         "NLLLoss": NLLTaskLoss,
-        "CELoss": CELoss
+        "CELoss": CELoss,
+        "StableCELoss": StableCELoss
     }
 
     @staticmethod

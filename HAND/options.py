@@ -37,7 +37,7 @@ class HANDConfig:
     # Output distillation loss weight
     distillation_loss_weight: float = field(default=1)
     # Task loss type, should be a member of `torch.nn.functional`, default is `nll_loss`
-    task_loss_type: str = field(default='NLLLoss')
+    task_loss_type: str = field(default='CELoss')
     # Reconstruction loss type, should be a member of `torch.nn`, default is `MSELoss`
     reconstruction_loss_type: str = field(default='L2')
     # Feature maps distillation loss type, should be a member of `torch.nn`, default is `MSELoss`

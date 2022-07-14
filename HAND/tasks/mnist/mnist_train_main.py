@@ -5,8 +5,8 @@ import json
 import os
 
 import torch
-import torch.nn.functional as F
 import torch.optim as optim
+import torch.nn as nn
 from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
@@ -32,6 +32,7 @@ def get_dataloaders(test_kwargs, train_kwargs):
 
 def train(args, model, device, train_loader, optimizer, epoch, smoothness):
     model.train()
+    loss_fn = nn.CrossEntropyLoss()
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
@@ -41,7 +42,7 @@ def train(args, model, device, train_loader, optimizer, epoch, smoothness):
         else:
             smoothness_loss = - smoothness(model)
 
-        classification_loss = F.nll_loss(output, target)
+        classification_loss = loss_fn(output, target)
         loss = classification_loss + args.smoothness_factor * smoothness_loss
         loss.backward()
         optimizer.step()
@@ -64,11 +65,12 @@ def test(model, device, test_loader):
     model.eval()
     test_loss = 0
     correct = 0
+    loss_fn = nn.CrossEntropyLoss()
     with torch.no_grad():
         for data, target in test_loader:
             data, target = data.to(device), target.to(device)
             output = model(data)
-            test_loss += F.nll_loss(output, target, reduction='sum').item()  # sum up batch loss
+            test_loss += loss_fn(output, target).item()  # sum up batch loss
             pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
             correct += pred.eq(target.view_as(pred)).sum().item()
 
@@ -114,7 +116,6 @@ def main():
                         help='Factor for the smoothness regularization term')
     parser.add_argument('--model_arch', type=str, default="VGG8",
                         help='The model architecture, can be Simple/VGG8')
-
 
     args = parser.parse_args()
     if args.num_hidden is not None and len(args.num_hidden) != args.num_layers:

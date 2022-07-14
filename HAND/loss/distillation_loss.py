@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-
+from torch.nn import functional as F
 from HAND.loss.loss import LossBase
 
 
@@ -12,7 +12,7 @@ class DistillationLossBase(LossBase):
         raise NotImplementedError()
 
 
-class KLDistillationLoss(DistillationLossBase):
+class KLDivLoss(DistillationLossBase):
     def __init__(self):
         super().__init__()
 
@@ -20,12 +20,26 @@ class KLDistillationLoss(DistillationLossBase):
                 reconstructed_outputs: torch.Tensor,
                 original_outputs: torch.Tensor) \
             -> torch.Tensor:
-        return nn.KLDivLoss(log_target=True, reduction="batchmean")(original_outputs, reconstructed_outputs)
+        return nn.KLDivLoss(reduction="batchmean")(F.log_softmax(reconstructed_outputs),
+                                                   F.softmax(original_outputs))
+
+
+class StableKLDivLoss(DistillationLossBase):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self,
+                reconstructed_outputs: torch.Tensor,
+                original_outputs: torch.Tensor) \
+            -> torch.Tensor:
+        return nn.KLDivLoss(reduction="batchmean")(torch.log(F.softmax(reconstructed_outputs, dim=1) + 1e-3),
+                                                   F.softmax(original_outputs, dim=1))
 
 
 class DistillationLossFactory:
     losses = {
-        "KLDivLoss": KLDistillationLoss
+        "KLDivLoss": KLDivLoss,
+        "StableKLDivLoss": StableKLDivLoss
     }
 
     @staticmethod
