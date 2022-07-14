@@ -60,8 +60,7 @@ class VGG8(OriginalModel):
         x = torch.flatten(x, 1)
         for fc_layer in self.fc_layers:
             x = fc_layer(x)
-        output = F.log_softmax(x, dim=1)
-        return output
+        return x
 
 
 class ReconstructedVGG83x3(ReconstructedModel):

@@ -47,8 +47,7 @@ class SimpleNet(OriginalModel):
         x = F.max_pool2d(x, 2)
         x = self.dropout1(x)
         x = torch.flatten(x, 1)
-        x = self.fc(x)
-        output = F.log_softmax(x, dim=1)
+        output = self.fc(x)
         return output
 
 
