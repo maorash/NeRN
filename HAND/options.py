@@ -81,7 +81,7 @@ class TrainConfig:
     # Resuming start_epoch from checkpoint
     # not_resume_epoch: bool = field(default=True)
     # Number of epochs to train for
-    epochs: int = field(default=1000)
+    epochs: int = field(default=250)
     # Epoch cycles for trainings
     # cycles: int = field(default=1)
     # Number of warmup epochs
