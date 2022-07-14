@@ -76,18 +76,22 @@ class Trainer:
                 reconstruction_term = self.config.hand.reconstruction_loss_weight * self.reconstruction_loss(
                     reconstructed_weights, original_weights)
 
-                # Compute task loss
-                task_term = self.config.hand.task_loss_weight * self.task_loss(reconstructed_outputs, ground_truth)
+                if epoch < self.config.num_epochs_recon_loss_only:
+                    loss = reconstruction_term
+                else:
+                    # Compute task loss
+                    task_term = self.config.hand.task_loss_weight * self.task_loss(reconstructed_outputs, ground_truth)
 
-                # Compute attention loss
-                attention_term = self.config.hand.attention_loss_weight * self.attention_loss(
-                    reconstructed_feature_maps, original_feature_maps)
+                    # Compute attention loss
+                    attention_term = self.config.hand.attention_loss_weight * self.attention_loss(
+                        reconstructed_feature_maps, original_feature_maps)
 
-                # Compute distillation loss
-                distillation_term = self.config.hand.distillation_loss_weight * self.distillation_loss(
-                    reconstructed_outputs, original_outputs)
+                    # Compute distillation loss
+                    distillation_term = self.config.hand.distillation_loss_weight * self.distillation_loss(
+                        reconstructed_outputs, original_outputs)
 
-                loss = task_term + reconstruction_term + attention_term + distillation_term
+                    loss = task_term + reconstruction_term + attention_term + distillation_term
+
                 loss.backward()
 
                 if batch_idx % self.config.logging.log_interval == 0 and not self.config.logging.disable_logging:

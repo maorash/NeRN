@@ -112,6 +112,8 @@ class TrainConfig:
     logging: LogConfig = field(default_factory=LogConfig)
     # Task config
     task: TaskConfig = field(default_factory=TaskConfig)
+    # Num epochs to run with reconstruction loss only at the beginning of training
+    num_epochs_recon_loss_only: int = field(default=0)
 
 
 @pyrallis.wrap()
