@@ -5,6 +5,7 @@ from torch import nn
 from typing import List, Tuple
 
 from abc import abstractmethod
+from HAND.tsp.tsp import get_max_sim_order
 
 
 class OriginalModel(nn.Module):
@@ -62,3 +63,17 @@ class ReconstructedModel(OriginalModel):
 
     def forward(self, x):
         return self.reconstructed_model(x)
+
+
+class ReconstructedPermutedModel(ReconstructedModel):
+    def __init__(self, original_model: OriginalModel):
+        super().__init__(original_model)
+        # TODO: change the 9 here
+        self.max_sim_order = [get_max_sim_order(layer_weights.detach().numpy().reshape((-1, 9)), False) for
+                              layer_weights in
+                              self.original_model.get_learnable_weights()]
+
+    def get_learnable_weights(self) -> List[torch.Tensor]:
+        original_learnable_weights = self.reconstructed_model.get_learnable_weights()
+        num_layers = len(original_learnable_weights)
+        return [torch.permute(original_learnable_weights[i], self.max_sim_order[i]) for i in range(num_layers)]

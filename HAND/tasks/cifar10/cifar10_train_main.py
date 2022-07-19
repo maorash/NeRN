@@ -122,7 +122,6 @@ def main():
     parser.add_argument('--model_arch', type=str, default="ResNet14",
                         help='The model architecture, can be Simple/VGG8/ResNet18/ResNet14')
 
-
     args = parser.parse_args()
     if args.num_hidden is not None and len(args.num_hidden) != args.num_layers:
         raise ValueError(f"Got num layers = {args.num_layers}, but {len(args.num_hiddens)} hidden sizes")

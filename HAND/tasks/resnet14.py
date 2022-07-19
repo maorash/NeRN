@@ -6,7 +6,7 @@ import torchvision.models
 from torch import nn as nn
 from torch.nn import functional as F
 
-from HAND.models.model import OriginalModel, ReconstructedModel
+from HAND.models.model import OriginalModel, ReconstructedModel, ReconstructedPermutedModel
 from HAND.options import EmbeddingsConfig
 from HAND.positional_embedding import MyPositionalEncoding
 
@@ -66,7 +66,7 @@ class ResNet14(OriginalModel):
 
         return out, activations
 
-    def layer_forward(self,  layer: torch.nn.Sequential, x, extract_feature_maps=False):
+    def layer_forward(self, layer: torch.nn.Sequential, x, extract_feature_maps=False):
         activations = []
         for block in layer:
             x, block_activations = self.block_forward(block, x, extract_feature_maps)
@@ -139,3 +139,8 @@ class ReconstructedResNet143x3(ReconstructedModel):
 
     def get_indices_and_positional_embeddings(self) -> Tuple[List[List[Tuple]], List[List[torch.Tensor]]]:
         return self.indices, self.positional_embeddings
+
+
+class ReconstructedPermutedResNet143x3(ReconstructedResNet143x3, ReconstructedPermutedModel):
+    def __init__(self, original_model: ResNet14, embeddings_cfg: EmbeddingsConfig):
+        super().__init__(original_model, embeddings_cfg)
