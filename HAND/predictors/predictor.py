@@ -10,6 +10,7 @@ from HAND.options import HANDConfig
 class HANDPredictorFactory:
     def __init__(self, cfg: HANDConfig, input_size: int):
         self.cfg = cfg
+        self.act_layer = ActivationsFactory.get(cfg.act_layer)
         self.input_size = input_size
 
     def get_predictor(self):
@@ -52,7 +53,7 @@ class HAND3x3Predictor(HANDPredictorBase):
         x = positional_embedding
         for layer in self.layers:
             x = layer(x)
-            x = F.relu(x)
+            x = self.act_layer(x)
         x = self.final_linear_layer(x)
         return x
 
@@ -64,3 +65,21 @@ class HANDBasicPredictor(HANDPredictorBase):
 
     def forward(self, positional_embedding: List[torch.Tensor]) -> List[torch.Tensor]:
         pass
+
+
+class ActivationsFactory:
+    activations = {
+        "relu": nn.ReLU,
+        "leaky_relu": nn.LeakyReLU,
+        "hardswish": nn.Hardswish,
+        "gelu": nn.GELU,
+        "relu6": nn.ReLU6,
+        "elu": nn.ELU
+    }
+
+    @staticmethod
+    def get(activation_type: str = "relu") -> nn.Module:
+        try:
+            return ActivationsFactory.activations[activation_type]()
+        except KeyError:
+            raise ValueError("Unknown activation type")

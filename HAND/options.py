@@ -21,7 +21,7 @@ class HANDConfig:
     # Normalization layer
     norm_layer: str = field(default='bn')
     # Activation layer
-    act_layer: str = field(default='ReLU')
+    act_layer: str = field(default='relu')
     # Number of linear blocks
     num_blocks: int = field(default=3)
     # Number of linear blocks
