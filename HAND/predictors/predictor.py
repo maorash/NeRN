@@ -10,7 +10,6 @@ from HAND.options import HANDConfig
 class HANDPredictorFactory:
     def __init__(self, cfg: HANDConfig, input_size: int):
         self.cfg = cfg
-        self.act_layer = ActivationsFactory.get(cfg.act_layer)
         self.input_size = input_size
 
     def get_predictor(self):
@@ -27,6 +26,7 @@ class HANDPredictorBase(nn.Module, ABC):
         super().__init__()
         self.cfg = cfg
         self.input_size = input_size
+        self.act_layer = ActivationsFactory.get(cfg.act_layer)
 
     @abstractmethod
     def forward(self, positional_embedding: torch.Tensor) -> torch.Tensor:
