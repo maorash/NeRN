@@ -81,7 +81,7 @@ class TrainConfig:
     # Resuming start_epoch from checkpoint
     # not_resume_epoch: bool = field(default=True)
     # Number of epochs to train for
-    epochs: int = field(default=250)
+    epochs: int = field(default=200)
     # Epoch cycles for trainings
     # cycles: int = field(default=1)
     # Number of warmup epochs
@@ -90,6 +90,8 @@ class TrainConfig:
     lr: float = field(default=1e-4)
     # Learning rate type
     lr_decay_type: str = field(default='CosineAnnealingLR')
+    # Minimum learning rate for scheduler
+    min_lr: str = field(default=5e-7)
     # Epochs to decay learning rate by 10
     # lr_steps: float = field(default=-1)
     # Beta for adam. default=0.5
@@ -112,6 +114,8 @@ class TrainConfig:
     logging: LogConfig = field(default_factory=LogConfig)
     # Task config
     task: TaskConfig = field(default_factory=TaskConfig)
+    # Num epochs to run with reconstruction loss only at the beginning of training
+    loss_warmup_epochs: int = field(default=0)
 
 
 @pyrallis.wrap()

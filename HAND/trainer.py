@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, List
 import os
 
 import torch
@@ -76,18 +76,21 @@ class Trainer:
                 reconstruction_term = self.config.hand.reconstruction_loss_weight * self.reconstruction_loss(
                     reconstructed_weights, original_weights)
 
-                # Compute task loss
-                task_term = self.config.hand.task_loss_weight * self.task_loss(reconstructed_outputs, ground_truth)
+                if self._loss_warmup(epoch):
+                    task_term, attention_term, distillation_term = 0, 0, 0
+                else:
+                    # Compute task loss
+                    task_term = self.config.hand.task_loss_weight * self.task_loss(reconstructed_outputs, ground_truth)
 
-                # Compute attention loss
-                attention_term = self.config.hand.attention_loss_weight * self.attention_loss(
-                    reconstructed_feature_maps, original_feature_maps)
+                    # Compute attention loss
+                    attention_term = self.config.hand.attention_loss_weight * self.attention_loss(
+                        reconstructed_feature_maps, original_feature_maps)
 
-                # Compute distillation loss
-                distillation_term = self.config.hand.distillation_loss_weight * self.distillation_loss(
-                    reconstructed_outputs, original_outputs)
+                    # Compute distillation loss
+                    distillation_term = self.config.hand.distillation_loss_weight * self.distillation_loss(
+                        reconstructed_outputs, original_outputs)
 
-                loss = task_term + reconstruction_term + attention_term + distillation_term
+                loss = reconstruction_term + task_term + attention_term + distillation_term
                 loss.backward()
 
                 if batch_idx % self.config.logging.log_interval == 0 and not self.config.logging.disable_logging:
@@ -114,7 +117,10 @@ class Trainer:
                 exp_dir = create_experiment_dir(self.config.logging.log_dir, self.config.exp_name)
                 torch.save(self.predictor, os.path.join(exp_dir, f'hand_{epoch}.pth'))
 
-    def _log_training(self, epoch, reconstructed_weights, loss_dict: dict):
+    def _loss_warmup(self, epoch: int):
+        return epoch < self.config.loss_warmup_epochs
+
+    def _log_training(self, epoch: int, reconstructed_weights: List[torch.Tensor], loss_dict: dict):
         log_scalar_dict(loss_dict,
                         title='training_loss',
                         iteration=epoch,
@@ -169,7 +175,7 @@ class Trainer:
         if self.config.lr_decay_type is not None:
             scheduler_type = getattr(optim.lr_scheduler, self.config.lr_decay_type)
             scheduler = scheduler_type(optimizer, T_max=(self.config.epochs * len(self.train_dataloader)),
-                                       eta_min=1e-6)
+                                       eta_min=self.config.min_lr)
         else:
             scheduler = optim.lr_scheduler.ConstantLR(optimizer, factor=1, total_iters=0, last_epoch=0)
 
