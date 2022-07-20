@@ -1,7 +1,6 @@
 logging:
-  exp_name: resnet14_smoothness_1e4_cifar10_stable_lr1e-4
+  exp_name: cifar10_resnet14_smooth_1e4_stable_lr1e-4_loss_warmup
 original_model_path: trained_models/original_tasks/mnist/resnet14_smoothness_1e4_cifar10.pt
-num_epochs_recon_loss_only: 10
 hand:
   num_blocks: 5
   hidden_layer_size: 512
@@ -10,3 +9,4 @@ hand:
 task:
   task_name: cifar10
   original_model_name: ResNet14
+loss_warmup_epochs: 5
