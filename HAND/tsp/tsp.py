@@ -14,7 +14,7 @@ def get_max_sim_order(weights: np.array, calc_all=True) -> List[int]:
     n = len(weights)
     if calc_all:
         all_sims = get_all_cosine_sim(weights)
-    max_sims_order = []
+    max_sims_order = [0]
     possible_indices = [i for i in range(1, n)]
     curr_index = 0
     for _ in tqdm(range(n - 1)):

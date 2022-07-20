@@ -69,11 +69,13 @@ class ReconstructedPermutedModel(ReconstructedModel):
     def __init__(self, original_model: OriginalModel):
         super().__init__(original_model)
         # TODO: change the 9 here
-        self.max_sim_order = [get_max_sim_order(layer_weights.detach().numpy().reshape((-1, 9)), False) for
+        self.max_sim_order = [get_max_sim_order(layer_weights.detach().numpy().reshape((-1, 9)).astype('int8')) for
                               layer_weights in
                               self.original_model.get_learnable_weights()]
 
     def get_learnable_weights(self) -> List[torch.Tensor]:
         original_learnable_weights = self.reconstructed_model.get_learnable_weights()
         num_layers = len(original_learnable_weights)
-        return [torch.permute(original_learnable_weights[i], self.max_sim_order[i]) for i in range(num_layers)]
+        # TODO: change the 9 here
+        original_weights_shapes = [original_learnable_weights[i].shape for i in range(num_layers)]
+        return [original_learnable_weights[i].reshape((-1,3,3))[self.max_sim_order[i]].reshape(original_weights_shapes[i]) for i in range(num_layers)]
