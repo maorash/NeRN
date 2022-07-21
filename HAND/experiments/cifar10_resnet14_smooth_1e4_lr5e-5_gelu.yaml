@@ -4,8 +4,6 @@ original_model_path: trained_models/original_tasks/mnist/resnet14_smoothness_1e4
 hand:
   num_blocks: 5
   hidden_layer_size: 512
-  task_loss_type: CELoss
-  distillation_loss_type: KLDivLoss
   act_layer: gelu
 task:
   task_name: cifar10

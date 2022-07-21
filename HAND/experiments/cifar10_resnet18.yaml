@@ -4,8 +4,6 @@ original_model_path: trained_models/original_tasks/mnist/cifar10_resnet18_smooth
 hand:
   num_blocks: 5
   hidden_layer_size: 1024
-  task_loss_type: CELoss
 task:
   task_name: cifar10
   original_model_name: ResNet18
-loss_warmup_epochs: 3
