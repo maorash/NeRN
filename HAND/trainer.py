@@ -99,7 +99,7 @@ class Trainer:
                                      reconstruction_loss=reconstruction_term,
                                      attention_loss=attention_term,
                                      distillation_loss=distillation_term)
-                    self._log_training(training_step, reconstructed_weights, loss_dict)
+                    self._log_training(training_step, reconstructed_weights, loss_dict, self.config.logging.verbose)
                     log_scalar_dict(dict(learning_rate=scheduler.get_last_lr()[-1]),
                                     title="learning_rate",
                                     iteration=epoch,
@@ -120,7 +120,7 @@ class Trainer:
     def _loss_warmup(self, epoch: int):
         return epoch < self.config.loss_warmup_epochs
 
-    def _log_training(self, epoch: int, reconstructed_weights: List[torch.Tensor], loss_dict: dict):
+    def _log_training(self, epoch: int, reconstructed_weights: List[torch.Tensor], loss_dict: dict, verbose: bool):
         log_scalar_dict(loss_dict,
                         title='training_loss',
                         iteration=epoch,
@@ -128,26 +128,27 @@ class Trainer:
         print(f'\nTraining loss is: {loss_dict["loss"]}')
 
         # logging norms
-        original_weights_norms = self.original_model.get_learnable_weights_norms()
-        log_scalar_list(original_weights_norms,
-                        title='weight_norms',
-                        series_name='original',
-                        iteration=epoch,
-                        logger=self.logger)
+        if verbose is True:
+            original_weights_norms = self.original_model.get_learnable_weights_norms()
+            log_scalar_list(original_weights_norms,
+                            title='weight_norms',
+                            series_name='original',
+                            iteration=epoch,
+                            logger=self.logger)
 
-        reconstructed_weights_norms = self.reconstructed_model.get_learnable_weights_norms()
-        log_scalar_list(reconstructed_weights_norms,
-                        title='weight_norms',
-                        series_name='reconstructed',
-                        iteration=epoch,
-                        logger=self.logger)
+            reconstructed_weights_norms = self.reconstructed_model.get_learnable_weights_norms()
+            log_scalar_list(reconstructed_weights_norms,
+                            title='weight_norms',
+                            series_name='reconstructed',
+                            iteration=epoch,
+                            logger=self.logger)
 
-        reconstructed_weights_grad_norms = compute_grad_norms(reconstructed_weights)
-        log_scalar_list(reconstructed_weights_grad_norms,
-                        title='reconstructed_weights_grad_norms',
-                        series_name='layer',
-                        iteration=epoch,
-                        logger=self.logger)
+            reconstructed_weights_grad_norms = compute_grad_norms(reconstructed_weights)
+            log_scalar_list(reconstructed_weights_grad_norms,
+                            title='reconstructed_weights_grad_norms',
+                            series_name='layer',
+                            iteration=epoch,
+                            logger=self.logger)
 
     def _set_grads_for_training(self):
         self.original_model.eval()
