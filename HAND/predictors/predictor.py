@@ -1,10 +1,10 @@
 import torch
 from torch import nn
-import torch.nn.functional as F
 from typing import List
 from abc import ABC, abstractmethod
 
 from HAND.options import HANDConfig
+from HAND.predictors.activations import ActivationsFactory
 
 
 class HANDPredictorFactory:
@@ -26,6 +26,7 @@ class HANDPredictorBase(nn.Module, ABC):
         super().__init__()
         self.cfg = cfg
         self.input_size = input_size
+        self.act_layer = ActivationsFactory.get(cfg.act_layer)
 
     @abstractmethod
     def forward(self, positional_embedding: torch.Tensor) -> torch.Tensor:
@@ -52,7 +53,7 @@ class HAND3x3Predictor(HANDPredictorBase):
         x = positional_embedding
         for layer in self.layers:
             x = layer(x)
-            x = F.relu(x)
+            x = self.act_layer(x)
         x = self.final_linear_layer(x)
         return x
 
@@ -64,3 +65,5 @@ class HANDBasicPredictor(HANDPredictorBase):
 
     def forward(self, positional_embedding: List[torch.Tensor]) -> List[torch.Tensor]:
         pass
+
+

@@ -21,7 +21,7 @@ class HANDConfig:
     # Normalization layer
     norm_layer: str = field(default='bn')
     # Activation layer
-    act_layer: str = field(default='ReLU')
+    act_layer: str = field(default='relu')
     # Number of linear blocks
     num_blocks: int = field(default=3)
     # Number of linear blocks
@@ -117,7 +117,7 @@ class TrainConfig:
     # Task config
     task: TaskConfig = field(default_factory=TaskConfig)
     # Num epochs to run with reconstruction loss only at the beginning of training
-    loss_warmup_epochs: int = field(default=0)
+    loss_warmup_epochs: int = field(default=3)
 
 
 @pyrallis.wrap()
