@@ -8,3 +8,5 @@ hand:
 task:
   task_name: cifar10
   original_model_name: ResNet14
+lr: 1e-4
+loss_warmup_epochs: 3
