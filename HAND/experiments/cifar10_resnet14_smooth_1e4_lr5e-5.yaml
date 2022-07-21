@@ -9,4 +9,3 @@ task:
   task_name: cifar10
   original_model_name: ResNet14
 lr: 5e-5
-loss_warmup_epochs: 3
