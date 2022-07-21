@@ -12,6 +12,8 @@ class EmbeddingsConfig:
     base: float = field(default=1.25)
     # Embedding fusion mode
     fusion_mode: str = field(default='concat')
+    # Indices normalization mode, if None don't normalize indices (None/)
+    normalization_mode: str = field(default=None)
 
 
 @dataclass
