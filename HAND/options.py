@@ -56,6 +56,8 @@ class LogConfig:
     log_dir: str = field(default='outputs')
     # Disable logging for faster development
     disable_logging: bool = field(default=False)
+    # Log gradient norms and weight norms for all layers
+    verbose: bool = field(default=False)
 
 
 @dataclass
