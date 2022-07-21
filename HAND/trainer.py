@@ -105,6 +105,10 @@ class Trainer:
                                     iteration=epoch,
                                     logger=self.logger)
 
+                if self.config.gradient_normalization != 0:
+                    for predictor_param in self.predictor.parameters():
+                        torch.nn.utils.clip_grad_norm_(predictor_param, max_norm=self.config.gradient_normalization)
+
                 optimizer.step()
                 scheduler.step()
 
