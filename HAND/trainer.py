@@ -105,10 +105,7 @@ class Trainer:
                                     iteration=epoch,
                                     logger=self.logger)
 
-                if self.config.gradient_normalization != 0:
-                    for predictor_param in self.predictor.parameters():
-                        torch.nn.utils.clip_grad_norm_(predictor_param, max_norm=self.config.gradient_normalization)
-
+                self._clip_grad_norm()
                 optimizer.step()
                 scheduler.step()
 
@@ -120,6 +117,11 @@ class Trainer:
             if epoch % self.config.save_epoch_interval == 0:
                 exp_dir = create_experiment_dir(self.config.logging.log_dir, self.config.exp_name)
                 torch.save(self.predictor, os.path.join(exp_dir, f'hand_{epoch}.pth'))
+
+    def _clip_grad_norm(self):
+        if self.config.max_gradient_norm is not None:
+            for predictor_param in self.predictor.parameters():
+                torch.nn.utils.clip_grad_norm_(predictor_param, max_norm=self.config.max_gradient_norm)
 
     def _loss_warmup(self, epoch: int):
         return epoch < self.config.loss_warmup_epochs

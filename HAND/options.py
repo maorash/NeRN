@@ -118,8 +118,8 @@ class TrainConfig:
     task: TaskConfig = field(default_factory=TaskConfig)
     # Num epochs to run with reconstruction loss only at the beginning of training
     loss_warmup_epochs: int = field(default=3)
-    # Apply gradient normalization during training (set 0 for skipping grad norm)
-    gradient_normalization: float = field(default=0)
+    # Apply gradient normalization during training (set None to skip the norm clipping)
+    max_gradient_norm: float = field(default=None)
 
 
 @pyrallis.wrap()
