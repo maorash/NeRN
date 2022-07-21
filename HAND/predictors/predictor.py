@@ -1,10 +1,10 @@
 import torch
 from torch import nn
-import torch.nn.functional as F
 from typing import List
 from abc import ABC, abstractmethod
 
 from HAND.options import HANDConfig
+from HAND.predictors.activations import ActivationsFactory
 
 
 class HANDPredictorFactory:
@@ -67,19 +67,3 @@ class HANDBasicPredictor(HANDPredictorBase):
         pass
 
 
-class ActivationsFactory:
-    activations = {
-        "relu": nn.ReLU,
-        "leaky_relu": nn.LeakyReLU,
-        "hardswish": nn.Hardswish,
-        "gelu": nn.GELU,
-        "relu6": nn.ReLU6,
-        "elu": nn.ELU
-    }
-
-    @staticmethod
-    def get(activation_type: str = "relu") -> nn.Module:
-        try:
-            return ActivationsFactory.activations[activation_type]()
-        except KeyError:
-            raise ValueError("Unknown activation type")
