@@ -16,13 +16,13 @@ class ModelFactory:
     }
 
     @staticmethod
-    def get(cfg: TrainConfig, **kwargs):
+    def get(cfg: TrainConfig, device: torch.device, **kwargs):
         if cfg.task.original_model_name not in ModelFactory.models:
             raise ValueError("Unsupported original model name")
 
-        model = ModelFactory.models[cfg.task.original_model_name][0](**kwargs)
-        model.load_state_dict(torch.load(cfg.original_model_path))
-        reconstructed_model = ModelFactory.models[cfg.task.original_model_name][1](model, cfg.hand.embeddings)
+        model = ModelFactory.models[cfg.task.original_model_name][0](**kwargs).to(device)
+        model.load_state_dict(torch.load(cfg.original_model_path, map_location=device))
+        reconstructed_model = ModelFactory.models[cfg.task.original_model_name][1](model, cfg.hand.embeddings).to(device)
 
         return model, reconstructed_model
 

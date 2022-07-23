@@ -3,8 +3,6 @@ from typing import List, Tuple
 
 import torch
 import torchvision.models
-from torch import nn as nn
-from torch.nn import functional as F
 
 from HAND.models.model import OriginalModel, ReconstructedModel
 from HAND.options import EmbeddingsConfig
@@ -114,9 +112,10 @@ class ReconstructedResNet143x3(ReconstructedModel):
         return indices
 
     def _calculate_position_embeddings(self) -> List[List[torch.Tensor]]:
+        embeddings_cache_filename = f"{__name__}_embeddings_{hash(self.positional_encoder)}.pkl"
         try:
             print("Trying to load precomputed embeddings")
-            with open(f"{__name__}_embeddings.pkl", "rb") as f:
+            with open(embeddings_cache_filename, "rb") as f:
                 positional_embeddings = pickle.load(f)
             print("Loaded precomputed embeddings")
             return positional_embeddings
@@ -131,7 +130,7 @@ class ReconstructedResNet143x3(ReconstructedModel):
                 layer_embeddings.append(self.positional_encoder(idx))
             positional_embeddings.append(layer_embeddings)
 
-        with open(f"{__name__}_embeddings.pkl", "wb") as f:
+        with open(embeddings_cache_filename, "wb") as f:
             pickle.dump(positional_embeddings, f)
             print("Saved computed embeddings")
 

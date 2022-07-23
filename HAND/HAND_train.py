@@ -18,15 +18,15 @@ from HAND.tasks.dataloader_factory import DataloaderFactory
 from HAND.tasks.model_factory import ModelFactory
 
 
-def load_original_model(cfg, device):
+def load_original_model(cfg: TrainConfig, device: torch.device):
     model_kwargs_path = cfg.original_model_path.replace('pt', 'json')
     if os.path.exists(model_kwargs_path):
         with open(model_kwargs_path) as f:
             model_kwargs = json.load(f)
     else:
         model_kwargs = dict()
-    original_model, reconstructed_model = ModelFactory.get(cfg, **model_kwargs)
-    return original_model.to(device), reconstructed_model.to(device)
+    original_model, reconstructed_model = ModelFactory.get(cfg, device, **model_kwargs)
+    return original_model, reconstructed_model
 
 
 @pyrallis.wrap()

@@ -89,3 +89,6 @@ class MyPositionalEncoding(nn.Module):
         else:
             raise NotImplementedError(f'Unsupported embedding fusion mode {self.embedding_fusion_mode}.')
         return final_embeddings
+
+    def __hash__(self):
+        return hash((self.base, self.levels, self.num_idxs, self.output_size))
