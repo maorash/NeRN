@@ -78,4 +78,6 @@ class PermutedModel(OriginalModel, ABC):
         num_layers = len(original_learnable_weights)
         # TODO: change the 9 here
         original_weights_shapes = [original_learnable_weights[i].shape for i in range(num_layers)]
-        return [original_learnable_weights[i].reshape((-1,3,3))[self.max_sim_order[i]].reshape(original_weights_shapes[i]) for i in range(num_layers)]
+        return [
+            original_learnable_weights[i].reshape((-1, 3, 3))[self.max_sim_order[i]].reshape(original_weights_shapes[i])
+            for i in range(num_layers)]

@@ -139,6 +139,6 @@ class ReconstructedResNet143x3(ReconstructedModel):
         return self.indices, self.positional_embeddings
 
 
-class ReconstructedPermutedResNet143x3(ReconstructedResNet143x3, ReconstructedPermutedModel):
-    def __init__(self, original_model: ResNet14, embeddings_cfg: EmbeddingsConfig):
-        super().__init__(original_model, embeddings_cfg)
+class PermutedResNet14(ResNet14, PermutedModel):
+    def __init__(self, num_classes: int = 10, **kwargs):
+        super().__init__(num_classes, **kwargs)
