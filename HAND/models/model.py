@@ -55,10 +55,6 @@ class ReconstructedModel(OriginalModel):
                                  self.indices]
         return positional_embeddings
 
-    @abstractmethod
-    def _get_indices_boundaries(self) -> List[List[int]]:
-        pass
-
     def get_indices_and_positional_embeddings(self) -> Tuple[List[List[Tuple]], List[List[torch.Tensor]]]:
         return self.indices, self.positional_embeddings
 

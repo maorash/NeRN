@@ -101,15 +101,6 @@ class ReconstructedResNet143x3(ReconstructedModel):
         self.positional_encoder = MyPositionalEncoding(embeddings_cfg)
         self.positional_embeddings = self._calculate_position_embeddings()
 
-    def _get_indices_boundaries(self) -> List[List[int]]:
-        weights_shapes = self.get_learnable_weights_shapes()
-        layer_boundaries, filter_boundaries, channel_boundaries = [], [], []
-        for layer_weights_shape in weights_shapes:
-            layer_boundaries.append(len(weights_shapes))
-            filter_boundaries.append(layer_weights_shape[0])
-            channel_boundaries.append(layer_weights_shape[1])
-        return [layer_boundaries, filter_boundaries, channel_boundaries]
-
     def _get_tensor_indices(self) -> List[List[Tuple]]:
         indices = []
         normalize_indices = []
