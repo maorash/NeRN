@@ -17,6 +17,8 @@ class HANDPredictorFactory:
             return HANDBasicPredictor(self.cfg, self.input_size)
         elif self.cfg.method == '3x3':
             return HAND3x3Predictor(self.cfg, self.input_size)
+        elif self.cfg.method == 'kxk':
+            return HANDKxKPredictor(self.cfg, self.input_size)
         else:
             raise ValueError(f'Not recognized predictor type {self.cfg.method}')
 
@@ -58,6 +60,33 @@ class HAND3x3Predictor(HANDPredictorBase):
         return x
 
 
+class HANDKxKPredictor(HANDPredictorBase):
+    """
+    Given 3 positional embeddings: (Layer, Filter, Channel) returns a KxK filter tensor
+    """
+
+    def __init__(self, cfg: HANDConfig, input_size: int):
+        super().__init__(cfg, input_size)
+        self.hidden_size = cfg.hidden_layer_size
+        self.layers = self._construct_layers()
+        if cfg.output_size is None:
+            raise ValueError("Must specify output size with KxK Predictor")
+        self.final_linear_layer = nn.Linear(self.hidden_size, cfg.output_size ** 2)
+
+    def _construct_layers(self):
+        blocks = [nn.Linear(self.input_size, self.hidden_size)]
+        blocks.extend([nn.Linear(self.hidden_size, self.hidden_size) for _ in range(self.cfg.num_blocks - 2)])
+        return nn.ModuleList(blocks)
+
+    def forward(self, positional_embedding: torch.Tensor) -> torch.Tensor:
+        x = positional_embedding
+        for layer in self.layers:
+            x = layer(x)
+            x = self.act_layer(x)
+        x = self.final_linear_layer(x)
+        return x
+
+
 class HANDBasicPredictor(HANDPredictorBase):
     """
     Given 5 positional embeddings: (Layer, Filter, Channel, Height, Width) returns a single floating point
@@ -65,5 +94,3 @@ class HANDBasicPredictor(HANDPredictorBase):
 
     def forward(self, positional_embedding: List[torch.Tensor]) -> List[torch.Tensor]:
         pass
-
-
