@@ -20,6 +20,8 @@ class EmbeddingsConfig:
 class HANDConfig:
     # Predictor type
     method: str = field(default='3x3')
+    # Output size for the kxk method
+    output_size: int = field(default=None)
     # Normalization layer
     norm_layer: str = field(default='bn')
     # Activation layer
