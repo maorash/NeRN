@@ -40,6 +40,9 @@ class ReconstructedModel(OriginalModel):
         weights = self.reconstructed_model.get_learnable_weights()
         return weights
 
+    def get_learnable_weights_shapes(self) -> List[torch.Size]:
+        return [weights.shape for weights in self.reconstructed_model.get_learnable_weights()]
+
     def get_fully_connected_weights(self) -> torch.Tensor:
         return self.reconstructed_model.get_fully_connected_weights()
 
@@ -51,6 +54,10 @@ class ReconstructedModel(OriginalModel):
         positional_embeddings = [[self.positional_encoder(idx) for idx in layer_indices] for layer_indices in
                                  self.indices]
         return positional_embeddings
+
+    @abstractmethod
+    def _get_indices_boundaries(self) -> List[List[int]]:
+        pass
 
     def get_indices_and_positional_embeddings(self) -> Tuple[List[List[Tuple]], List[List[torch.Tensor]]]:
         return self.indices, self.positional_embeddings

@@ -49,7 +49,7 @@ class Trainer:
 
         optimizer, scheduler = self._initialize_optimizer_and_scheduler()
 
-        learnable_weights_shapes = [weights.shape for weights in self.reconstructed_model.get_learnable_weights()]
+        learnable_weights_shapes = self.reconstructed_model.get_learnable_weights_shapes()
         indices, positional_embeddings = self.reconstructed_model.get_indices_and_positional_embeddings()
         positional_embeddings = [torch.stack(layer_emb).to(self.device) for layer_emb in positional_embeddings]
 

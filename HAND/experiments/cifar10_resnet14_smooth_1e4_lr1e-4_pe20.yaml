@@ -1,5 +1,5 @@
 logging:
-  exp_name: cifar10_resnet14_smooth_1e4_lr1e-4_pe20
+  exp_name: resnet14_smoothness_1e4_cifar10_lr1e-4_pe20
 original_model_path: trained_models/original_tasks/mnist/resnet14_smoothness_1e4_cifar10.pt
 hand:
   num_blocks: 5
