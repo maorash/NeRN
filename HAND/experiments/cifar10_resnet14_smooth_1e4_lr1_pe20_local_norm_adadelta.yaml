@@ -1,5 +1,5 @@
 logging:
-  exp_name: resnet14_smoothness_1e4_cifar10_lr5e-4_pe20_local_norm_exponential_decay2
+  exp_name: resnet14_smoothness_1e4_cifar10_lr1_pe20_local_norm_adadelta
 original_model_path: trained_models/original_tasks/mnist/resnet14_smoothness_1e4_cifar10.pt
 hand:
   num_blocks: 5
@@ -11,6 +11,5 @@ task:
   task_name: cifar10
   original_model_name: ResNet14
 optim:
-  lr: 5e-4
-  gamma: 0.995
-  lr_scheduler_type: exponential
+  lr: 1
+  optimizer: adadelta
