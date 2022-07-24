@@ -7,5 +7,6 @@ hand:
 task:
   task_name: cifar10
   original_model_name: ResNet14
-lr: 1e-4
-gradient_normalization: 0.1
+optim:
+  lr: 1e-4
+  max_gradient_norm: 0.1

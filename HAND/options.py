@@ -71,6 +71,31 @@ class TaskConfig:
 
 
 @dataclass
+class OptimizationConfig:
+    # Learning rate
+    lr: float = field(default=1e-4)
+    # Learning rate type
+    lr_scheduler_type: str = field(default='cosine')
+    # Minimum learning rate for scheduler
+    min_lr: float = field(default=1e-6)
+    # Gamma factor for exponential LR decay (ExponentialLR)
+    gamma: float = field(default=0.99)
+    # Beta for adam. default=0.5
+    betas: tuple = field(default=(0.5, 0.999))
+    # Momentum for SGD optimizer
+    momentum: float = field(default=0.9)
+    # Weight decay for optimizer
+    # TODO: default for adamw is 1e-2, so make sure this doesn't hurt performance
+    weight_decay: float = field(default=1e-3)
+    # Optimizer to use, should be a member of `torch.optim`, default is `AdamW`
+    optimizer: str = field(default='adamw')
+    # Apply gradient normalization during training (set None to skip the norm clipping)
+    max_gradient_norm: float = field(default=None)
+    # Epochs to decay learning rate by 10
+    # lr_steps: float = field(default=-1)
+
+
+@dataclass
 class TrainConfig:
     # The experiment name
     exp_name: str = field(default='default_exp')
@@ -90,22 +115,6 @@ class TrainConfig:
     # cycles: int = field(default=1)
     # Number of warmup epochs
     # warmup: int = field(default=5)
-    # Learning rate
-    lr: float = field(default=1e-4)
-    # Learning rate type
-    lr_decay_type: str = field(default='CosineAnnealingLR')
-    # Minimum learning rate for scheduler
-    min_lr: str = field(default=1e-6)
-    # Epochs to decay learning rate by 10
-    # lr_steps: float = field(default=-1)
-    # Beta for adam. default=0.5
-    betas: tuple = field(default=(0.5, 0.999))
-    # Loss weight
-    # lw: float = field(default=1.0)
-    # Using sigmoid for output prediction
-    # sigmoid: bool = field(default=True)
-    # Optimizer to use, should be a member of `torch.optim`, default is `AdamW`
-    optimizer: str = field(default='AdamW')
     # How often to test the reconstructed model on the original task
     eval_epochs_interval: int = field(default=1)
     # How often to save the learned model
@@ -118,10 +127,10 @@ class TrainConfig:
     logging: LogConfig = field(default_factory=LogConfig)
     # Task config
     task: TaskConfig = field(default_factory=TaskConfig)
+    # Optimization config
+    optim: OptimizationConfig = field(default_factory=OptimizationConfig)
     # Num epochs to run with reconstruction loss only at the beginning of training
     loss_warmup_epochs: int = field(default=3)
-    # Apply gradient normalization during training (set None to skip the norm clipping)
-    max_gradient_norm: float = field(default=None)
 
 
 @pyrallis.wrap()
