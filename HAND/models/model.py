@@ -4,11 +4,11 @@ import torch
 from torch import nn
 from typing import List, Tuple
 
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from HAND.tsp.tsp import get_max_sim_order
 
 
-class OriginalModel(nn.Module):
+class OriginalModel(nn.Module, ABC):
     @abstractmethod
     def get_feature_maps(self, batch: torch.Tensor) -> Tuple[torch.Tensor, List[torch.Tensor]]:
         pass
@@ -65,16 +65,16 @@ class ReconstructedModel(OriginalModel):
         return self.reconstructed_model(x)
 
 
-class ReconstructedPermutedModel(ReconstructedModel):
-    def __init__(self, original_model: OriginalModel):
-        super().__init__(original_model)
+class PermutedModel(OriginalModel, ABC):
+    def __init__(self):
+        super().__init__()
         # TODO: change the 9 here
         self.max_sim_order = [get_max_sim_order(layer_weights.detach().numpy().reshape((-1, 9)).astype('int8')) for
                               layer_weights in
-                              self.original_model.get_learnable_weights()]
+                              self.get_learnable_weights()]
 
     def get_learnable_weights(self) -> List[torch.Tensor]:
-        original_learnable_weights = self.reconstructed_model.get_learnable_weights()
+        original_learnable_weights = super().get_learnable_weights()
         num_layers = len(original_learnable_weights)
         # TODO: change the 9 here
         original_weights_shapes = [original_learnable_weights[i].shape for i in range(num_layers)]
