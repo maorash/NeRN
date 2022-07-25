@@ -1,5 +1,6 @@
 from typing import List
 
+import numpy as np
 from torch.optim.lr_scheduler import CosineAnnealingLR, ExponentialLR
 from torch.optim.lr_scheduler import _LRScheduler
 from torch.optim.optimizer import Optimizer
@@ -45,6 +46,8 @@ class LRSchedulerFactory:
 
     @staticmethod
     def _init_exponential(optimizer: Optimizer, cfg: TrainConfig):
-        return GenericScheduler(ExponentialLR(optimizer, cfg.optim.gamma),
+        # If not explicitly set, automatically compute exponential factor to achieve min_lr at final iteration
+        gamma = np.power(cfg.optim.min_lr / cfg.optim.lr, 1 / cfg.epochs) if cfg.optim.gamma == 0 else cfg.optim.gamma
+        return GenericScheduler(ExponentialLR(optimizer, gamma),
                                 step_on_epoch=True,
                                 step_on_batch=False)

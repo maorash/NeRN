@@ -79,7 +79,8 @@ class OptimizationConfig:
     # Minimum learning rate for scheduler
     min_lr: float = field(default=1e-6)
     # Gamma factor for exponential LR decay (ExponentialLR)
-    gamma: float = field(default=0.99)
+    # Set 0 to automatically compute the factor for achieving min_lr after all training iterations
+    gamma: float = field(default=0)
     # Beta for adam. default=0.5
     betas: tuple = field(default=(0.5, 0.999))
     # Momentum for SGD optimizer
@@ -130,7 +131,7 @@ class TrainConfig:
     # Optimization config
     optim: OptimizationConfig = field(default_factory=OptimizationConfig)
     # Num epochs to run with reconstruction loss only at the beginning of training
-    loss_warmup_epochs: int = field(default=3)
+    loss_warmup_epochs: int = field(default=1)
 
 
 @pyrallis.wrap()

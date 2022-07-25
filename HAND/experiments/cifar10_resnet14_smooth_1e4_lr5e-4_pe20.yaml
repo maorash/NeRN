@@ -11,3 +11,5 @@ task:
   original_model_name: ResNet14
 optim:
   lr: 5e-4
+batch_size: 100
+epochs: 100
