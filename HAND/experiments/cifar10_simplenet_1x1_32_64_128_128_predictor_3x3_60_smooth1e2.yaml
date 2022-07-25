@@ -1,0 +1,11 @@
+logging:
+  exp_name: cifar10_simplenet_1x1_32_64_128_128_predictor_3x3_60_smooth1e2
+original_model_path: trained_models/original_tasks/mnist/cifar10_simple_net_1x1_32_64_128_128_smoothing_1e2.pt
+hand:
+  hidden_layer_size: 60
+  num_blocks: 3
+  method: kxk
+  output_size: 3
+task:
+  task_name: cifar10
+  original_model_name: SimpleNetKxK
