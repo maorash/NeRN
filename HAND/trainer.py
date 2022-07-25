@@ -1,6 +1,7 @@
 from typing import Tuple, List
 import os
 
+import numpy as np
 import torch
 from clearml import Logger
 from torch import optim
@@ -56,16 +57,25 @@ class Trainer:
         positional_embeddings = [torch.stack(layer_emb).to(self.device) for layer_emb in positional_embeddings]
 
         training_step = 0
+        layer_ind_for_grads = 0
         for epoch in range(self.config.epochs):
-            for batch_idx, (batch, ground_truth) in enumerate(self.train_dataloader):
+            for batch_ind, (batch, ground_truth) in enumerate(self.train_dataloader):
                 batch, ground_truth = batch.to(self.device), ground_truth.to(self.device)
                 optimizer.zero_grad()
 
                 reconstructed_weights = []
-                # Each forward pass of the prediction model predicts an entire layer's weights
-                for layer_positional_embeddings, layer_shape in zip(positional_embeddings, learnable_weights_shapes):
-                    layer_reconstructed_weights = self.predictor(layer_positional_embeddings).reshape(layer_shape)
-                    layer_reconstructed_weights.retain_grad()
+                layer_ind_for_grads = np.random.randint(0, len(positional_embeddings))
+                # layer_ind_for_grads = (layer_ind_for_grads + 1) % len(positional_embeddings)
+                for layer_ind, (layer_positional_embeddings, layer_shape) in enumerate(zip(positional_embeddings,
+                                                                                         learnable_weights_shapes)):
+                    if layer_ind == layer_ind_for_grads:
+                        layer_reconstructed_weights = self._predict_layer_weights(layer_positional_embeddings,
+                                                                                  layer_shape)
+                        layer_reconstructed_weights.retain_grad()
+                    else:
+                        with torch.no_grad():
+                            layer_reconstructed_weights = self._predict_layer_weights(layer_positional_embeddings,
+                                                                                      layer_shape)
                     reconstructed_weights.append(layer_reconstructed_weights)
 
                 self.reconstructed_model.update_weights(reconstructed_weights)
@@ -95,7 +105,7 @@ class Trainer:
                 loss = reconstruction_term + task_term + attention_term + distillation_term
                 loss.backward()
 
-                if batch_idx % self.config.logging.log_interval == 0 and not self.config.logging.disable_logging:
+                if batch_ind % self.config.logging.log_interval == 0 and not self.config.logging.disable_logging:
                     loss_dict = dict(loss=loss,
                                      original_task_loss=task_term,
                                      reconstruction_loss=reconstruction_term,
@@ -120,6 +130,16 @@ class Trainer:
             if epoch % self.config.save_epoch_interval == 0:
                 exp_dir = create_experiment_dir(self.config.logging.log_dir, self.config.exp_name)
                 torch.save(self.predictor, os.path.join(exp_dir, f'hand_{epoch}.pth'))
+
+    def _predict_layer_weights(self, layer_positional_embeddings, layer_shape):
+        layer_reconstructed_weights = []
+        for weights_batch_idx in range(0, layer_positional_embeddings.shape[0],
+                                       self.config.hand.weights_batch_size):
+            weights_batch = layer_positional_embeddings[
+                            weights_batch_idx: weights_batch_idx + self.config.hand.weights_batch_size]
+            layer_reconstructed_weights.append(self.predictor(weights_batch))
+        layer_reconstructed_weights = torch.vstack(layer_reconstructed_weights).reshape(layer_shape)
+        return layer_reconstructed_weights
 
     def _clip_grad_norm(self):
         if self.config.optim.max_gradient_norm is not None:

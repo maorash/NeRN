@@ -30,6 +30,10 @@ class HANDConfig:
     hidden_layer_size: int = field(default=30)
     # Positional embeddings config
     embeddings: EmbeddingsConfig = field(default_factory=EmbeddingsConfig)
+    # Batch size for weight prediction (number of weights to predict in a batch)
+    weights_batch_size: int = field(default=2 ** 16)
+    # Whether or not to compute gradients on the entire predicted network, or for a random batch of predicted weights
+    weights_batch_gradients: bool = field(default=True)
     # Task loss weight
     task_loss_weight: float = field(default=1)
     # Reconstruction loss weight
