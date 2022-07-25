@@ -5,7 +5,7 @@ from torch import nn as nn
 from torch.nn import functional as F
 
 from HAND.options import EmbeddingsConfig
-from HAND.models.model import OriginalModel, ReconstructedModel
+from HAND.models.model import OriginalModel, ReconstructedModel, ReconstructedModelKxK
 from HAND.positional_embedding import MyPositionalEncoding
 
 
@@ -16,9 +16,13 @@ class SimpleNet(OriginalModel):
         self.num_hidden = num_hidden if num_hidden is not None else [32] * num_layers
         self.kernel_sizes = kernel_sizes if kernel_sizes is not None else [3] * num_layers
         self.input_size = input_size
-        self.layers_list = [nn.Conv2d(self.input_channels, self.num_hidden[0], (kernel_sizes[0], kernel_sizes[0]), (1, 1), padding='same')]
+        self.layers_list = [
+            nn.Conv2d(self.input_channels, self.num_hidden[0], (self.kernel_sizes[0], self.kernel_sizes[0]), (1, 1),
+                      padding='same')]
         self.layers_list.extend(
-            [nn.Conv2d(self.num_hidden[i], self.num_hidden[i + 1], (kernel_sizes[i+1], kernel_sizes[i+1]), (1, 1), padding='same') for i in
+            [nn.Conv2d(self.num_hidden[i], self.num_hidden[i + 1], (self.kernel_sizes[i + 1], self.kernel_sizes[i + 1]),
+                       (1, 1),
+                       padding='same') for i in
              range(num_layers - 1)])
         self.convs = nn.ModuleList(self.layers_list)
         self.dropout1 = nn.Dropout(0.25)
@@ -53,6 +57,27 @@ class SimpleNet(OriginalModel):
 
 
 class ReconstructedSimpleNet3x3(ReconstructedModel):
+    def __init__(self, original_model: SimpleNet, embeddings_cfg: EmbeddingsConfig):
+        super().__init__(original_model)
+        self.indices = self._get_tensor_indices()
+        self.positional_encoder = MyPositionalEncoding(embeddings_cfg)
+        self.positional_embeddings = self._calculate_position_embeddings()
+
+    def _get_tensor_indices(self) -> List[List[Tuple]]:
+        indices = []
+        num_channels_in_layers = [self.original_model.input_channels] + self.original_model.num_hidden
+
+        for layer_idx in range(len(self.original_model.get_learnable_weights())):
+            curr_layer_indices = []
+            for filter_idx in range(self.original_model.num_hidden[layer_idx]):
+                for channel_idx in range(num_channels_in_layers[layer_idx]):
+                    curr_layer_indices.append((layer_idx, filter_idx, channel_idx))
+            indices.append(curr_layer_indices)
+
+        return indices
+
+
+class ReconstructedSimpleNetKxK(ReconstructedModelKxK):
     def __init__(self, original_model: SimpleNet, embeddings_cfg: EmbeddingsConfig):
         super().__init__(original_model)
         self.indices = self._get_tensor_indices()

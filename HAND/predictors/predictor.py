@@ -34,6 +34,11 @@ class HANDPredictorBase(nn.Module, ABC):
     def forward(self, positional_embedding: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError()
 
+    @property
+    def output_size(self) -> int:
+        raise NotImplementedError()
+
+
 
 class HAND3x3Predictor(HANDPredictorBase):
     """
@@ -58,6 +63,10 @@ class HAND3x3Predictor(HANDPredictorBase):
             x = self.act_layer(x)
         x = self.final_linear_layer(x)
         return x
+
+    @property
+    def output_size(self) -> int:
+        return 3
 
 
 class HANDKxKPredictor(HANDPredictorBase):
@@ -85,6 +94,10 @@ class HANDKxKPredictor(HANDPredictorBase):
             x = self.act_layer(x)
         x = self.final_linear_layer(x)
         return x
+
+    @property
+    def output_size(self) -> int:
+        return self.cfg.output_size
 
 
 class HANDBasicPredictor(HANDPredictorBase):

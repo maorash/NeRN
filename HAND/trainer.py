@@ -62,7 +62,10 @@ class Trainer:
                 reconstructed_weights = []
                 # Each forward pass of the prediction model predicts an entire layer's weights
                 for layer_positional_embeddings, layer_shape in zip(positional_embeddings, learnable_weights_shapes):
-                    layer_reconstructed_weights = self.predictor(layer_positional_embeddings).reshape(layer_shape)
+                    layer_reconstructed_weights = self.predictor(layer_positional_embeddings).reshape(
+                        (layer_shape[0], layer_shape[1], self.predictor.output_size,
+                         self.predictor.output_size))
+
                     layer_reconstructed_weights.retain_grad()
                     reconstructed_weights.append(layer_reconstructed_weights)
 
