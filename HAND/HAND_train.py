@@ -41,7 +41,7 @@ def main(cfg: TrainConfig):
 
     for p in predictor.parameters():
         if len(p.shape) >= 2:
-            torch.nn.init.xavier_normal_(p)
+            p.data = torch.fmod(p.data, 2)
 
     num_predictor_params = sum([p.numel() for p in predictor.parameters()])
     print(f"Predictor:"
