@@ -48,6 +48,8 @@ class HANDConfig:
     attention_loss_type: str = field(default='L2')
     # Output distillation loss type, should be a member of `torch.nn`, default is `KLDivLoss`
     distillation_loss_type: str = field(default='KLDivLoss')
+    # The sampling mode for the reconstruction model (center/average/max)
+    sampling_mode: str = field(default='center')
 
 
 @dataclass

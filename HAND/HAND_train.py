@@ -6,7 +6,6 @@ import torch
 
 from HAND.eval_func import EvalFunction
 from HAND.logger import initialize_clearml_task
-from HAND.tasks.vgg8 import ReconstructedVGG83x3, VGG8
 from HAND.loss.attention_loss import AttentionLossFactory
 from HAND.loss.reconstruction_loss import ReconstructionLossFactory
 from HAND.loss.distillation_loss import DistillationLossFactory
