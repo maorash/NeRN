@@ -5,7 +5,7 @@ from torch import nn as nn
 from torch.nn import functional as F
 
 from HAND.options import EmbeddingsConfig
-from HAND.models.model import OriginalModel, ReconstructedModel, ReconstructedModelKxK
+from HAND.models.model import OriginalModel, ReconstructedModel
 from HAND.positional_embedding import MyPositionalEncoding
 
 
@@ -56,30 +56,9 @@ class SimpleNet(OriginalModel):
         return output
 
 
-class ReconstructedSimpleNet3x3(ReconstructedModel):
-    def __init__(self, original_model: SimpleNet, embeddings_cfg: EmbeddingsConfig):
-        super().__init__(original_model)
-        self.indices = self._get_tensor_indices()
-        self.positional_encoder = MyPositionalEncoding(embeddings_cfg)
-        self.positional_embeddings = self._calculate_position_embeddings()
-
-    def _get_tensor_indices(self) -> List[List[Tuple]]:
-        indices = []
-        num_channels_in_layers = [self.original_model.input_channels] + self.original_model.num_hidden
-
-        for layer_idx in range(len(self.original_model.get_learnable_weights())):
-            curr_layer_indices = []
-            for filter_idx in range(self.original_model.num_hidden[layer_idx]):
-                for channel_idx in range(num_channels_in_layers[layer_idx]):
-                    curr_layer_indices.append((layer_idx, filter_idx, channel_idx))
-            indices.append(curr_layer_indices)
-
-        return indices
-
-
-class ReconstructedSimpleNetKxK(ReconstructedModelKxK):
-    def __init__(self, original_model: SimpleNet, embeddings_cfg: EmbeddingsConfig):
-        super().__init__(original_model)
+class ReconstructedSimpleNet(ReconstructedModel):
+    def __init__(self, original_model: SimpleNet, embeddings_cfg: EmbeddingsConfig, sampling_mode: str = None):
+        super().__init__(original_model, sampling_mode)
         self.indices = self._get_tensor_indices()
         self.positional_encoder = MyPositionalEncoding(embeddings_cfg)
         self.positional_embeddings = self._calculate_position_embeddings()
