@@ -45,6 +45,7 @@ class Trainer:
         self.device = device
         self.test_dataloader, self.train_dataloader = task_dataloaders
         self.logger = logger
+        self.exp_dir_path = None
 
     def train(self):
         self._set_grads_for_training()
@@ -54,6 +55,9 @@ class Trainer:
         learnable_weights_shapes = self.reconstructed_model.get_learnable_weights_shapes()
         indices, positional_embeddings = self.reconstructed_model.get_indices_and_positional_embeddings()
         positional_embeddings = [torch.stack(layer_emb).to(self.device) for layer_emb in positional_embeddings]
+
+        self.exp_dir_path = create_experiment_dir(self.config.logging.log_dir, self.config.logging.exp_name)
+        max_accuracy = 0
 
         training_step = 0
         for epoch in range(self.config.epochs):
@@ -115,11 +119,16 @@ class Trainer:
             scheduler.step_epoch()
 
             if epoch % self.config.eval_epochs_interval == 0:
-                self.original_task_eval_fn.eval(self.reconstructed_model, self.test_dataloader, epoch, self.logger)
+                accuracy = self.original_task_eval_fn.eval(self.reconstructed_model, self.test_dataloader, epoch, self.logger)
+                if accuracy > max_accuracy:
+                    max_accuracy = accuracy
+                    self._save_checkpoint(f"best")
 
             if epoch % self.config.save_epoch_interval == 0:
-                exp_dir = create_experiment_dir(self.config.logging.log_dir, self.config.exp_name)
-                torch.save(self.predictor, os.path.join(exp_dir, f'hand_{epoch}.pth'))
+                self._save_checkpoint(f"epoch_{epoch}")
+
+    def _save_checkpoint(self, suffix: str):
+        torch.save(self.predictor, os.path.join(self.exp_dir_path, f"hand_{self.config.logging.exp_name}_{suffix}.pth"))
 
     def _clip_grad_norm(self):
         if self.config.optim.max_gradient_norm is not None:

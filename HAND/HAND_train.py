@@ -38,13 +38,7 @@ def main(cfg: TrainConfig):
     pos_embedding = reconstructed_model.positional_encoder.output_size
     predictor = HANDPredictorFactory(cfg.hand, input_size=pos_embedding).get_predictor().to(device)
 
-    if cfg.hand.init == "fmod":
-        print("Initializing using fmod")
-        for p in predictor.parameters():
-            if len(p.shape) >= 2:
-                p.data = torch.fmod(p.data, 2)
-    elif cfg.hand.init == "default":
-        print("Using default torch initialization")
+    init_predictor(cfg, predictor)
 
     num_predictor_params = sum([p.numel() for p in predictor.parameters()])
     print(f"Predictor:"
@@ -77,6 +71,21 @@ def main(cfg: TrainConfig):
                       task_dataloaders=dataloaders,
                       device=device)
     trainer.train()
+
+
+def init_predictor(cfg, predictor):
+    if cfg.hand.init == "fmod":
+        print("Initializing using fmod")
+        for p in predictor.parameters():
+            if len(p.shape) >= 2:
+                p.data = torch.fmod(p.data, 2)
+    elif cfg.hand.init == "checkpoint":
+        print(f"Loading pretrained weights from: {cfg.hand.checkpoint_path}")
+        predictor.load_state_dict(torch.load(cfg.hand.checkpoint_path).state_dict())
+    elif cfg.hand.init == "default":
+        print("Using default torch initialization")
+    else:
+        raise ValueError(f"Unsupported initialization method: {cfg.hand.init}")
 
 
 if __name__ == '__main__':

@@ -18,8 +18,10 @@ class EmbeddingsConfig:
 
 @dataclass
 class HANDConfig:
-    # Initialization method (fmod/default)
+    # Initialization method (fmod/default/checkpoint)
     init: str = field(default="fmod")
+    # Path for checkpoint (weights initialization)
+    checkpoint_path: str = field(default=None)
     # Predictor type
     method: str = field(default='3x3')
     # Normalization layer
@@ -88,7 +90,6 @@ class OptimizationConfig:
     # Momentum for SGD optimizer
     momentum: float = field(default=0.9)
     # Weight decay for optimizer
-    # TODO: default for adamw is 1e-2, so make sure this doesn't hurt performance
     weight_decay: float = field(default=1e-3)
     # Optimizer to use, should be a member of `torch.optim`, default is `AdamW`
     optimizer: str = field(default='adamw')
@@ -100,8 +101,6 @@ class OptimizationConfig:
 
 @dataclass
 class TrainConfig:
-    # The experiment name
-    exp_name: str = field(default='default_exp')
     # Path to the original model file
     original_model_path: str = field(default='trained_models/original_tasks/mnist/mnist_cnn.pt')
     # HAND config
@@ -121,7 +120,7 @@ class TrainConfig:
     # How often to test the reconstructed model on the original task
     eval_epochs_interval: int = field(default=1)
     # How often to save the learned model
-    save_epoch_interval: int = field(default=1000)
+    save_epoch_interval: int = field(default=10)
     # Use cpu instead of cuda
     no_cuda: bool = field(default=False)
     # Learn the fully connected layer of the reconstructed model
