@@ -1,12 +1,10 @@
 logging:
-  exp_name: resnet14_smoothness_1e4_cifar10_lr5e-4_pe40_local_norm
+  exp_name: resnet14_cifar10_lr5e-4_default_init
 original_model_path: trained_models/original_tasks/mnist/resnet14_smoothness_1e4_cifar10.pt
 hand:
   num_blocks: 5
   hidden_layer_size: 512
-  embeddings:
-    enc_levels: 40
-    normalization_mode: local
+  init: default
 task:
   task_name: cifar10
   original_model_name: ResNet14

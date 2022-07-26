@@ -7,7 +7,7 @@ class EmbeddingsConfig:
     # Number of indices to encode
     num_idxs: int = field(default=3)
     # Encoding levels
-    enc_levels: int = field(default=80)
+    enc_levels: int = field(default=20)
     # Base num
     base: float = field(default=1.25)
     # Embedding fusion mode
@@ -18,6 +18,8 @@ class EmbeddingsConfig:
 
 @dataclass
 class HANDConfig:
+    # Initialization method (fmod/default)
+    init: str = field(default="fmod")
     # Predictor type
     method: str = field(default='3x3')
     # Normalization layer
