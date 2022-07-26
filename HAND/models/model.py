@@ -71,10 +71,10 @@ class ReconstructedModel(OriginalModel):
                 sampled_predicted_weights = curr_predicted_weights[:, :, min_coord:max_coord, min_coord:max_coord]
             elif self.sampling_mode == "average":
                 sampled_predicted_weights = F.avg_pool2d(curr_predicted_weights,
-                                                         curr_predicted_kernel_size - curr_learnable_kernel_size)
+                                                         curr_predicted_kernel_size - curr_learnable_kernel_size + 1, 1)
             elif self.sampling_mode == "max":
                 sampled_predicted_weights = F.max_pool2d(curr_predicted_weights,
-                                                         curr_predicted_kernel_size - curr_learnable_kernel_size)
+                                                         curr_predicted_kernel_size - curr_learnable_kernel_size + 1, 1)
             else:
                 raise ValueError(f"Unsupported sampling mode {self.sampling_mode}")
 
