@@ -7,7 +7,7 @@ class EmbeddingsConfig:
     # Number of indices to encode
     num_idxs: int = field(default=3)
     # Encoding levels
-    enc_levels: int = field(default=80)
+    enc_levels: int = field(default=20)
     # Base num
     base: float = field(default=1.25)
     # Embedding fusion mode
@@ -18,6 +18,10 @@ class EmbeddingsConfig:
 
 @dataclass
 class HANDConfig:
+    # Initialization method (fmod/default/checkpoint)
+    init: str = field(default="fmod")
+    # Path for checkpoint (weights initialization)
+    checkpoint_path: str = field(default=None)
     # Predictor type
     method: str = field(default='3x3')
     # Normalization layer
@@ -83,13 +87,13 @@ class OptimizationConfig:
     # Minimum learning rate for scheduler
     min_lr: float = field(default=1e-6)
     # Gamma factor for exponential LR decay (ExponentialLR)
-    gamma: float = field(default=0.99)
+    # Set 0 to automatically compute the factor for achieving min_lr after all training iterations
+    gamma: float = field(default=0)
     # Beta for adam. default=0.5
     betas: tuple = field(default=(0.5, 0.999))
     # Momentum for SGD optimizer
     momentum: float = field(default=0.9)
     # Weight decay for optimizer
-    # TODO: default for adamw is 1e-2, so make sure this doesn't hurt performance
     weight_decay: float = field(default=1e-3)
     # Optimizer to use, should be a member of `torch.optim`, default is `AdamW`
     optimizer: str = field(default='adamw')
@@ -101,8 +105,6 @@ class OptimizationConfig:
 
 @dataclass
 class TrainConfig:
-    # The experiment name
-    exp_name: str = field(default='default_exp')
     # Path to the original model file
     original_model_path: str = field(default='trained_models/original_tasks/mnist/mnist_cnn.pt')
     # HAND config
@@ -122,7 +124,7 @@ class TrainConfig:
     # How often to test the reconstructed model on the original task
     eval_epochs_interval: int = field(default=1)
     # How often to save the learned model
-    save_epoch_interval: int = field(default=1000)
+    save_epoch_interval: int = field(default=10)
     # Use cpu instead of cuda
     no_cuda: bool = field(default=False)
     # Learn the fully connected layer of the reconstructed model
@@ -134,7 +136,7 @@ class TrainConfig:
     # Optimization config
     optim: OptimizationConfig = field(default_factory=OptimizationConfig)
     # Num epochs to run with reconstruction loss only at the beginning of training
-    loss_warmup_epochs: int = field(default=3)
+    loss_warmup_epochs: int = field(default=1)
 
 
 @pyrallis.wrap()

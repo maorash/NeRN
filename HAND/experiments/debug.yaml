@@ -1,12 +1,11 @@
 logging:
   exp_name: debug
-  disable_logging: True
 original_model_path: trained_models/original_tasks/mnist/resnet14_smoothness_1e4_cifar10.pt
 hand:
   num_blocks: 5
   hidden_layer_size: 512
-  task_loss_type: CELoss
 task:
   task_name: cifar10
   original_model_name: ResNet14
-lr: 1e-4
+optim:
+  lr: 5e-4
