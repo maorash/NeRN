@@ -4,7 +4,6 @@ import os
 import numpy as np
 import torch
 from clearml import Logger
-from torch import optim
 from torch.utils.data import DataLoader
 
 from HAND.eval_func import EvalFunction

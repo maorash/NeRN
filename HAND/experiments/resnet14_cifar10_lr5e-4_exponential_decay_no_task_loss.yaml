@@ -1,0 +1,13 @@
+logging:
+  exp_name: resnet14_cifar10_lr5e-4_exponential_decay_no_task_loss
+original_model_path: trained_models/original_tasks/mnist/resnet14_smoothness_1e4_cifar10.pt
+hand:
+  num_blocks: 5
+  hidden_layer_size: 512
+  task_loss_weight: 0
+task:
+  task_name: cifar10
+  original_model_name: ResNet14
+optim:
+  lr: 5e-4
+  lr_scheduler_type: exponential
