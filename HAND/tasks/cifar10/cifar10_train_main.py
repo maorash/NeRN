@@ -119,7 +119,7 @@ def main():
                         help='For Saving the current Model')
     parser.add_argument('--smoothness-type', type=str, default=None,
                         help='Smoothness regularization, can be Cosine/L2')
-    parser.add_argument('--smoothness-factor', type=float, default=1e-4,
+    parser.add_argument('--smoothness-factor', type=float, default=1e-2,
                         help='Factor for the smoothness regularization term')
     parser.add_argument('--model_arch', type=str, default="SimpleNet",
                         help='The model architecture, can be SimpleNet/VGG8/ResNet18/ResNet14')

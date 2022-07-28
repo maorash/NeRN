@@ -1,0 +1,15 @@
+logging:
+  verbose: True
+  exp_name: cifar10_simplenet_only_1x1_32_64_128_128_predictor_3x3_80_max_lr1e4_maxnorm01
+original_model_path: trained_models/original_tasks/mnist/cifar10_simple_net_only_1x1_32_64_128_128_1e4.pt
+lr: 1e-4
+hand:
+  hidden_layer_size: 80
+  num_blocks: 3
+  method: kxk
+  output_size: 1
+  sampling_mode: max
+task:
+  task_name: cifar10
+  original_model_name: SimpleNet
+max_gradient: 0.1

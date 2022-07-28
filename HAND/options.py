@@ -7,7 +7,7 @@ class EmbeddingsConfig:
     # Number of indices to encode
     num_idxs: int = field(default=3)
     # Encoding levels
-    enc_levels: int = field(default=80)
+    enc_levels: int = field(default=20)
     # Base num
     base: float = field(default=1.25)
     # Embedding fusion mode
@@ -19,9 +19,9 @@ class EmbeddingsConfig:
 @dataclass
 class HANDConfig:
     # Predictor type
-    method: str = field(default='3x3')
+    method: str = field(default='kxk')
     # Output size for the kxk method
-    output_size: int = field(default=None)
+    output_size: int = field(default=3)
     # Normalization layer
     norm_layer: str = field(default='bn')
     # Activation layer
@@ -126,6 +126,8 @@ class TrainConfig:
     loss_warmup_epochs: int = field(default=3)
     # Apply gradient normalization during training (set None to skip the norm clipping)
     max_gradient_norm: float = field(default=None)
+    # Apply gradient clipping during training (set None to skip the clipping)
+    max_gradient: float = field(default=None)
 
 
 @pyrallis.wrap()
