@@ -2,10 +2,13 @@ logging:
   exp_name: simplenet_cifar10_32_64_128_128
 original_model_path: trained_models/original_tasks/mnist/cifar10_simple_net_32_64_128_128.pt
 hand:
-  num_blocks: 5
-  hidden_layer_size: 512
+  num_blocks: 3
+  hidden_layer_size: 100
+  embeddings:
+    enc_levels: 80
 task:
   task_name: cifar10
   original_model_name: SimpleNet
 batch_size: 100
 epochs: 100
+loss_warmup_epochs: 0

@@ -4,8 +4,8 @@ import os
 import pyrallis
 import torch
 
+from clearml import Task
 from HAND.eval_func import EvalFunction
-from HAND.logger import initialize_clearml_task
 from HAND.loss.attention_loss import AttentionLossFactory
 from HAND.loss.reconstruction_loss import ReconstructionLossFactory
 from HAND.loss.distillation_loss import DistillationLossFactory
@@ -51,7 +51,8 @@ def main(cfg: TrainConfig):
           f"\t-> Size: {num_predicted_params * 4 / 1024 / 1024:.2f}Mb")
 
     if not cfg.logging.disable_logging:
-        clearml_task = initialize_clearml_task(cfg.logging.exp_name)
+        clearml_task = Task.init(project_name='HAND_compression', task_name=cfg.logging.exp_name, deferred_init=True)
+        clearml_task.connect(pyrallis.encode(cfg))
         clearml_logger = clearml_task.get_logger()
     else:
         clearml_logger = None
