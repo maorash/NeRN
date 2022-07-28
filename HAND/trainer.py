@@ -3,19 +3,20 @@ import os
 
 import torch
 from clearml import Logger
-from torch import optim
 from torch.utils.data import DataLoader
 
 from HAND.eval_func import EvalFunction
 from HAND.logger import log_scalar_dict
 from HAND.models.model import OriginalModel, ReconstructedModel
 from HAND.predictors.predictor import HANDPredictorBase
-from logger import create_experiment_dir, log_scalar_list, compute_grad_norms
-from loss.attention_loss import AttentionLossBase
-from loss.reconstruction_loss import ReconstructionLossBase
-from loss.distillation_loss import DistillationLossBase
-from loss.task_loss import TaskLossBase
-from options import TrainConfig
+from HAND.logger import create_experiment_dir, log_scalar_list, compute_grad_norms
+from HAND.loss.attention_loss import AttentionLossBase
+from HAND.loss.reconstruction_loss import ReconstructionLossBase
+from HAND.loss.distillation_loss import DistillationLossBase
+from HAND.loss.task_loss import TaskLossBase
+from HAND.optimization.optimizer import OptimizerFactory
+from HAND.optimization.scheduler import GenericScheduler, LRSchedulerFactory
+from HAND.options import TrainConfig
 
 
 class Trainer:
@@ -43,6 +44,7 @@ class Trainer:
         self.device = device
         self.test_dataloader, self.train_dataloader = task_dataloaders
         self.logger = logger
+        self.exp_dir_path = None
 
     def train(self):
         self._set_grads_for_training()
@@ -52,6 +54,9 @@ class Trainer:
         learnable_weights_shapes = self.reconstructed_model.get_learnable_weights_shapes()
         indices, positional_embeddings = self.reconstructed_model.get_indices_and_positional_embeddings()
         positional_embeddings = [torch.stack(layer_emb).to(self.device) for layer_emb in positional_embeddings]
+
+        self.exp_dir_path = create_experiment_dir(self.config.logging.log_dir, self.config.logging.exp_name)
+        max_accuracy = 0
 
         training_step = 0
         for epoch in range(self.config.epochs):
@@ -110,20 +115,27 @@ class Trainer:
 
                 self._clip_grad_norm()
                 optimizer.step()
-                scheduler.step()
-
+                scheduler.step_batch()
                 training_step += 1
 
+            scheduler.step_epoch()
+
             if epoch % self.config.eval_epochs_interval == 0:
-                self.original_task_eval_fn.eval(self.reconstructed_model, self.test_dataloader, epoch, self.logger)
+                accuracy = self.original_task_eval_fn.eval(self.reconstructed_model, self.test_dataloader, epoch, self.logger)
+                if accuracy > max_accuracy:
+                    max_accuracy = accuracy
+                    self._save_checkpoint(f"best")
 
             if epoch % self.config.save_epoch_interval == 0:
-                exp_dir = create_experiment_dir(self.config.logging.log_dir, self.config.exp_name)
-                torch.save(self.predictor, os.path.join(exp_dir, f'hand_{epoch}.pth'))
+                self._save_checkpoint(f"epoch_{epoch}")
+
+    def _save_checkpoint(self, suffix: str):
+        torch.save(self.predictor, os.path.join(self.exp_dir_path, f"hand_{self.config.logging.exp_name}_{suffix}.pth"))
 
     def _clip_grad_norm(self):
-        if self.config.max_gradient_norm is not None:
+        if self.config.optim.max_gradient_norm is not None:
             for predictor_param in self.predictor.parameters():
+                torch.nn.utils.clip_grad_norm_(predictor_param, max_norm=self.config.optim.max_gradient_norm)
                 torch.nn.utils.clip_grad_norm_(predictor_param, max_norm=self.config.max_gradient_norm)
         if self.config.max_gradient is not None:
             for predictor_param in self.predictor.parameters():
@@ -174,22 +186,12 @@ class Trainer:
         for param in self.predictor.parameters():
             param.requires_grad = True
 
-    def _initialize_optimizer_and_scheduler(self):
-        optimizer_type = getattr(optim, self.config.optimizer)
+    def _initialize_optimizer_and_scheduler(self) -> Tuple[torch.optim.Optimizer, GenericScheduler]:
         parameters_for_optimizer = list(self.predictor.parameters())
         if self.config.learn_fc_layer is True:
             parameters_for_optimizer.append(self.reconstructed_model.get_fully_connected_weights())
-        if self.config.optimizer != "SGD":
-            optimizer = optimizer_type(parameters_for_optimizer,
-                                       betas=self.config.betas, lr=self.config.lr)
-        else:
-            optimizer = optimizer_type(self.predictor.parameters(), lr=self.config.lr)
 
-        if self.config.lr_decay_type is not None:
-            scheduler_type = getattr(optim.lr_scheduler, self.config.lr_decay_type)
-            scheduler = scheduler_type(optimizer, T_max=(self.config.epochs * len(self.train_dataloader)),
-                                       eta_min=self.config.min_lr)
-        else:
-            scheduler = optim.lr_scheduler.ConstantLR(optimizer, factor=1, total_iters=0, last_epoch=0)
+        optimizer = OptimizerFactory.get(parameters_for_optimizer, self.config)
+        scheduler = LRSchedulerFactory.get(optimizer, len(self.train_dataloader), self.config)
 
         return optimizer, scheduler

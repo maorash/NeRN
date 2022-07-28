@@ -1,11 +1,11 @@
 logging:
-  exp_name: resnet14_smoothness_1e4_cifar10_lr5e-5_relu6
+  exp_name: resnet14_cifar10_lr1e-5
 original_model_path: trained_models/original_tasks/mnist/resnet14_smoothness_1e4_cifar10.pt
 hand:
   num_blocks: 5
   hidden_layer_size: 512
-  act_layer: relu6
 task:
   task_name: cifar10
   original_model_name: ResNet14
-lr: 5e-5
+optim:
+  lr: 1e-5

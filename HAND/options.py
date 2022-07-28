@@ -18,6 +18,10 @@ class EmbeddingsConfig:
 
 @dataclass
 class HANDConfig:
+    # Initialization method (fmod/default/checkpoint)
+    init: str = field(default="fmod")
+    # Path for checkpoint (weights initialization)
+    checkpoint_path: str = field(default=None)
     # Predictor type
     method: str = field(default='kxk')
     # Output size for the kxk method
@@ -75,9 +79,32 @@ class TaskConfig:
 
 
 @dataclass
+class OptimizationConfig:
+    # Learning rate
+    lr: float = field(default=1e-4)
+    # Learning rate type
+    lr_scheduler_type: str = field(default='cosine')
+    # Minimum learning rate for scheduler
+    min_lr: float = field(default=1e-6)
+    # Gamma factor for exponential LR decay (ExponentialLR)
+    # Set 0 to automatically compute the factor for achieving min_lr after all training iterations
+    gamma: float = field(default=0)
+    # Beta for adam. default=0.5
+    betas: tuple = field(default=(0.5, 0.999))
+    # Momentum for SGD optimizer
+    momentum: float = field(default=0.9)
+    # Weight decay for optimizer
+    weight_decay: float = field(default=1e-3)
+    # Optimizer to use, should be a member of `torch.optim`, default is `AdamW`
+    optimizer: str = field(default='adamw')
+    # Apply gradient normalization during training (set None to skip the norm clipping)
+    max_gradient_norm: float = field(default=None)
+    # Epochs to decay learning rate by 10
+    # lr_steps: float = field(default=-1)
+
+
+@dataclass
 class TrainConfig:
-    # The experiment name
-    exp_name: str = field(default='default_exp')
     # Path to the original model file
     original_model_path: str = field(default='trained_models/original_tasks/mnist/mnist_cnn.pt')
     # HAND config
@@ -94,26 +121,10 @@ class TrainConfig:
     # cycles: int = field(default=1)
     # Number of warmup epochs
     # warmup: int = field(default=5)
-    # Learning rate
-    lr: float = field(default=1e-4)
-    # Learning rate type
-    lr_decay_type: str = field(default='CosineAnnealingLR')
-    # Minimum learning rate for scheduler
-    min_lr: str = field(default=1e-6)
-    # Epochs to decay learning rate by 10
-    # lr_steps: float = field(default=-1)
-    # Beta for adam. default=0.5
-    betas: tuple = field(default=(0.5, 0.999))
-    # Loss weight
-    # lw: float = field(default=1.0)
-    # Using sigmoid for output prediction
-    # sigmoid: bool = field(default=True)
-    # Optimizer to use, should be a member of `torch.optim`, default is `AdamW`
-    optimizer: str = field(default='AdamW')
     # How often to test the reconstructed model on the original task
     eval_epochs_interval: int = field(default=1)
     # How often to save the learned model
-    save_epoch_interval: int = field(default=1000)
+    save_epoch_interval: int = field(default=10)
     # Use cpu instead of cuda
     no_cuda: bool = field(default=False)
     # Learn the fully connected layer of the reconstructed model
@@ -122,8 +133,10 @@ class TrainConfig:
     logging: LogConfig = field(default_factory=LogConfig)
     # Task config
     task: TaskConfig = field(default_factory=TaskConfig)
+    # Optimization config
+    optim: OptimizationConfig = field(default_factory=OptimizationConfig)
     # Num epochs to run with reconstruction loss only at the beginning of training
-    loss_warmup_epochs: int = field(default=3)
+    loss_warmup_epochs: int = field(default=1)
     # Apply gradient normalization during training (set None to skip the norm clipping)
     max_gradient_norm: float = field(default=None)
     # Apply gradient clipping during training (set None to skip the clipping)
