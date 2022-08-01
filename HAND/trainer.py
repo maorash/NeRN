@@ -81,6 +81,18 @@ class Trainer:
                                                                                       layer_shape)
                     reconstructed_weights.append(layer_reconstructed_weights)
 
+                # layer_ind_for_grads = np.random.randint(0, len(positional_embeddings))
+                # # layer_ind_for_grads = (layer_ind_for_grads + 1) % len(positional_embeddings)
+                # for layer_ind, (layer_positional_embeddings, layer_shape) in enumerate(zip(positional_embeddings,
+                #                                                                            learnable_weights_shapes)):
+                #     if layer_ind == layer_ind_for_grads:
+                #         layer_reconstructed_weights = self.predictor(layer_positional_embeddings).reshape(layer_shape)
+                #         layer_reconstructed_weights.retain_grad()
+                #     else:
+                #         with torch.no_grad():
+                #             layer_reconstructed_weights = self.predictor(layer_positional_embeddings).reshape(layer_shape)
+                #     reconstructed_weights.append(layer_reconstructed_weights)
+
                 self.reconstructed_model.update_weights(reconstructed_weights)
 
                 original_outputs, original_feature_maps = self.original_model.get_feature_maps(batch)
