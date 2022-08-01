@@ -21,13 +21,16 @@ Reference:
 If you use this implementation in you work, please don't forget to mention the
 author, Yerlan Idelbayev.
 '''
+from typing import Tuple, List
 
-
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
 
 __all__ = ['ResNet', 'resnet20', 'resnet32', 'resnet44', 'resnet56', 'resnet110', 'resnet1202']
+
+from HAND.models.model import OriginalModel
 
 
 def _weights_init(m):
@@ -79,8 +82,12 @@ class BasicBlock(nn.Module):
         out = F.relu(out)
         return out
 
+    def get_learnable_weights(self):
+        return [self.conv1.weight, self.conv2.weight]
 
-class ResNet(nn.Module):
+
+class ResNet(OriginalModel):
+
     def __init__(self, block, num_blocks, num_classes=10):
         super(ResNet, self).__init__()
         self.in_planes = 16
@@ -91,7 +98,7 @@ class ResNet(nn.Module):
         self.layer2 = self._make_layer(block, 32, num_blocks[1], stride=2)
         self.layer3 = self._make_layer(block, 64, num_blocks[2], stride=2)
         self.linear = nn.Linear(64, num_classes)
-
+        self.feature_maps = []
         self.apply(_weights_init)
 
     def _make_layer(self, block, planes, num_blocks, stride):
@@ -103,15 +110,39 @@ class ResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x):
+    def forward(self, x, extract_feature_maps=False):
+        activations = []
         out = F.relu(self.bn1(self.conv1(x)))
         out = self.layer1(out)
+        activations.append(out)
         out = self.layer2(out)
+        activations.append(out)
         out = self.layer3(out)
+        activations.append(out)
         out = F.avg_pool2d(out, out.size()[3])
         out = out.view(out.size(0), -1)
         out = self.linear(out)
+        if extract_feature_maps:
+            self.feature_maps = activations
+            return out, self.feature_maps
         return out
+
+    def get_feature_maps(self, batch: torch.Tensor) -> Tuple[torch.Tensor, List[torch.Tensor]]:
+        self.feature_maps = []
+        output = self.forward(batch, extract_feature_maps=True)
+        return output, self.feature_maps
+
+    def get_fully_connected_weights(self) -> torch.Tensor:
+        return self.linear.weight
+
+    def get_learnable_weights(self) -> List[torch.Tensor]:
+        learnable_weights = [self.conv1.weight]
+        for layer in [self.layer1, self.layer2, self.layer3]:
+            layer_learanable_weights = []
+            for block in layer:
+                learnable_weights.extend(block.get_learnable_weights())
+                layer_learanable_weights.extend(block.get_learnable_weights())
+        return learnable_weights
 
 
 def resnet20():
