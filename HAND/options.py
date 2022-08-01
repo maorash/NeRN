@@ -99,8 +99,8 @@ class OptimizationConfig:
     optimizer: str = field(default='adamw')
     # Apply gradient normalization during training (set None to skip the norm clipping)
     max_gradient_norm: float = field(default=None)
-    # Epochs to decay learning rate by 10
-    # lr_steps: float = field(default=-1)
+    # Apply gradient clipping during training (set None to skip the clipping)
+    max_gradient: float = field(default=None)
 
 
 @dataclass
@@ -137,10 +137,6 @@ class TrainConfig:
     optim: OptimizationConfig = field(default_factory=OptimizationConfig)
     # Num epochs to run with reconstruction loss only at the beginning of training
     loss_warmup_epochs: int = field(default=1)
-    # Apply gradient normalization during training (set None to skip the norm clipping)
-    max_gradient_norm: float = field(default=None)
-    # Apply gradient clipping during training (set None to skip the clipping)
-    max_gradient: float = field(default=None)
 
 
 @pyrallis.wrap()

@@ -94,11 +94,9 @@ class ResNet14(OriginalModel):
 
 class ReconstructedResNet14(ReconstructedModel):
     def __init__(self, original_model: ResNet14, embeddings_cfg: EmbeddingsConfig, sampling_mode: str = None):
-        super().__init__(original_model, sampling_mode)
-        self.embeddings_cfg = embeddings_cfg
+        super().__init__(original_model, embeddings_cfg, sampling_mode)
         self.normalized_indices = None
         self.indices = self._get_tensor_indices()
-        self.positional_encoder = MyPositionalEncoding(embeddings_cfg)
         self.positional_embeddings = self._calculate_position_embeddings()
 
     def _get_tensor_indices(self) -> List[List[Tuple]]:

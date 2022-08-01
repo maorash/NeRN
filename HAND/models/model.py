@@ -8,6 +8,9 @@ from torch.nn import functional as F
 
 from abc import abstractmethod
 
+from HAND.options import EmbeddingsConfig
+from HAND.positional_embedding import MyPositionalEncoding
+
 
 class OriginalModel(nn.Module):
     @abstractmethod
@@ -29,12 +32,14 @@ class OriginalModel(nn.Module):
 
 
 class ReconstructedModel(OriginalModel):
-    def __init__(self, original_model: OriginalModel, sampling_mode: str = None):
+    def __init__(self, original_model: OriginalModel, embeddings_cfg: EmbeddingsConfig, sampling_mode: str = "center"):
         super().__init__()
         self.original_model = original_model
         self.reconstructed_model = copy.deepcopy(original_model)
         self.reinitialize_learnable_weights()
-        self.sampling_mode = sampling_mode if sampling_mode is not None else "center"
+        self.embeddings_cfg = embeddings_cfg
+        self.positional_encoder = MyPositionalEncoding(embeddings_cfg)
+        self.sampling_mode = sampling_mode
 
     def get_feature_maps(self, batch: torch.Tensor) -> Tuple[torch.Tensor, List[torch.Tensor]]:
         return self.reconstructed_model.get_feature_maps(batch)
@@ -61,12 +66,12 @@ class ReconstructedModel(OriginalModel):
                 positional_embeddings = pickle.load(f)
             print("Loaded precomputed embeddings")
             return positional_embeddings
-        except Exception:
-            print("Couldn't load precomputed embeddings, hang on tight..")
+        except IOError:
+            print("Couldn't load precomputed embeddings, computing embeddings")
 
         positional_embeddings = []
         for i, layer_indices in enumerate(self.indices):
-            print(f"Calculating layer {i}/{len(self.indices)} embeddings. It gets slower")
+            print(f"Calculating layer {i}/{len(self.indices)} embeddings")
             layer_embeddings = []
             for idx in layer_indices:
                 layer_embeddings.append(self.positional_encoder(idx))
@@ -84,6 +89,7 @@ class ReconstructedModel(OriginalModel):
     def update_weights(self, reconstructed_weights: List[torch.Tensor]):
         learnable_weights = self.get_learnable_weights()
         for curr_layer_weights, curr_predicted_weights in zip(learnable_weights, reconstructed_weights):
+            # Assuming a square filter
             curr_learnable_kernel_size = curr_layer_weights.shape[-1]
             curr_predicted_kernel_size = curr_predicted_weights.shape[-1]
             if self.sampling_mode == "center":
