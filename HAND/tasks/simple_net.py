@@ -76,23 +76,3 @@ class ReconstructedSimpleNet(ReconstructedModel):
 
         return indices
 
-
-class ReconstructedSimpleNetKxK(ReconstructedModelKxK):
-    def __init__(self, original_model: SimpleNet, embeddings_cfg: EmbeddingsConfig):
-        super().__init__(original_model)
-        self.indices = self._get_tensor_indices()
-        self.positional_encoder = MyPositionalEncoding(embeddings_cfg)
-        self.positional_embeddings = self._calculate_position_embeddings()
-
-    def _get_tensor_indices(self) -> List[List[Tuple]]:
-        indices = []
-        num_channels_in_layers = [self.original_model.input_channels] + self.original_model.num_hidden
-
-        for layer_idx in range(len(self.original_model.get_learnable_weights())):
-            curr_layer_indices = []
-            for filter_idx in range(self.original_model.num_hidden[layer_idx]):
-                for channel_idx in range(num_channels_in_layers[layer_idx]):
-                    curr_layer_indices.append((layer_idx, filter_idx, channel_idx))
-            indices.append(curr_layer_indices)
-
-        return indices

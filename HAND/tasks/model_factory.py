@@ -1,18 +1,18 @@
 import torch
 
 from HAND.tasks.simple_net import SimpleNet, ReconstructedSimpleNet
-from HAND.tasks.vgg8 import VGG8, ReconstructedVGG83x3
-from HAND.tasks.resnet18 import ResNet18, ReconstructedResNet183x3
-from HAND.tasks.resnet14 import ResNet14, ReconstructedResNet143x3
+from HAND.tasks.vgg8 import VGG8, ReconstructedVGG8
+from HAND.tasks.resnet18 import ResNet18, ReconstructedResNet18
+from HAND.tasks.resnet14 import ResNet14, ReconstructedResNet14
 from HAND.options import TrainConfig
 
 
 class ModelFactory:
     models = {
         "SimpleNet": (SimpleNet, ReconstructedSimpleNet),
-        "VGG8": (VGG8, ReconstructedVGG83x3),
-        "ResNet18": (ResNet18, ReconstructedResNet183x3),
-        "ResNet14": (ResNet14, ReconstructedResNet143x3)
+        "VGG8": (VGG8, ReconstructedVGG8),
+        "ResNet18": (ResNet18, ReconstructedResNet18),
+        "ResNet14": (ResNet14, ReconstructedResNet14)
     }
 
     @staticmethod

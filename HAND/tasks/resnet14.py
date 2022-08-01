@@ -92,9 +92,9 @@ class ResNet14(OriginalModel):
         return x
 
 
-class ReconstructedResNet143x3(ReconstructedModel):
-    def __init__(self, original_model: ResNet14, embeddings_cfg: EmbeddingsConfig):
-        super().__init__(original_model)
+class ReconstructedResNet14(ReconstructedModel):
+    def __init__(self, original_model: ResNet14, embeddings_cfg: EmbeddingsConfig, sampling_mode: str = None):
+        super().__init__(original_model, sampling_mode)
         self.embeddings_cfg = embeddings_cfg
         self.normalized_indices = None
         self.indices = self._get_tensor_indices()
@@ -119,9 +119,11 @@ class ReconstructedResNet143x3(ReconstructedModel):
                     if self.embeddings_cfg.normalization_mode is None:
                         curr_normalized_layer_indices.append((layer_idx, filter_idx, channel_idx))
                     elif self.embeddings_cfg.normalization_mode == "global":
-                        curr_normalized_layer_indices.append((layer_idx / max_index, filter_idx / max_index, channel_idx / max_index))
+                        curr_normalized_layer_indices.append(
+                            (layer_idx / max_index, filter_idx / max_index, channel_idx / max_index))
                     elif self.embeddings_cfg.normalization_mode == "local":
-                        curr_normalized_layer_indices.append((layer_idx / num_layers, filter_idx / curr_num_filters, channel_idx / curr_num_channels))
+                        curr_normalized_layer_indices.append(
+                            (layer_idx / num_layers, filter_idx / curr_num_filters, channel_idx / curr_num_channels))
                     else:
                         raise ValueError(f"Unsupported normalization mode {self.normalization_mode}")
 
@@ -131,31 +133,3 @@ class ReconstructedResNet143x3(ReconstructedModel):
         self.normalized_indices = normalize_indices
 
         return indices
-
-    def _calculate_position_embeddings(self) -> List[List[torch.Tensor]]:
-        embeddings_cache_filename = f"{__name__}_embeddings_{hash(self.positional_encoder)}.pkl"
-        try:
-            print("Trying to load precomputed embeddings")
-            with open(embeddings_cache_filename, "rb") as f:
-                positional_embeddings = pickle.load(f)
-            print("Loaded precomputed embeddings")
-            return positional_embeddings
-        except Exception:
-            print("Couldn't load precomputed embeddings, hang on tight..")
-
-        positional_embeddings = []
-        for i, layer_indices in enumerate(self.normalized_indices):
-            print(f"Calculating layer {i}/{len(self.normalized_indices)} embeddings. It gets slower")
-            layer_embeddings = []
-            for idx in layer_indices:
-                layer_embeddings.append(self.positional_encoder(idx))
-            positional_embeddings.append(layer_embeddings)
-
-        with open(embeddings_cache_filename, "wb") as f:
-            pickle.dump(positional_embeddings, f)
-            print("Saved computed embeddings")
-
-        return positional_embeddings
-
-    def get_indices_and_positional_embeddings(self) -> Tuple[List[List[Tuple]], List[List[torch.Tensor]]]:
-        return self.indices, self.positional_embeddings
