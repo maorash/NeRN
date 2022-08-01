@@ -1,3 +1,4 @@
+import pickle
 import copy
 
 import torch
@@ -53,8 +54,28 @@ class ReconstructedModel(OriginalModel):
             nn.init.xavier_normal_(weight)
 
     def _calculate_position_embeddings(self) -> List[List[torch.Tensor]]:
-        positional_embeddings = [[self.positional_encoder(idx) for idx in layer_indices] for layer_indices in
-                                 self.indices]
+        embeddings_cache_filename = f"{__name__}_embeddings_{hash(self.positional_encoder)}.pkl"
+        try:
+            print("Trying to load precomputed embeddings")
+            with open(embeddings_cache_filename, "rb") as f:
+                positional_embeddings = pickle.load(f)
+            print("Loaded precomputed embeddings")
+            return positional_embeddings
+        except Exception:
+            print("Couldn't load precomputed embeddings, hang on tight..")
+
+        positional_embeddings = []
+        for i, layer_indices in enumerate(self.indices):
+            print(f"Calculating layer {i}/{len(self.indices)} embeddings. It gets slower")
+            layer_embeddings = []
+            for idx in layer_indices:
+                layer_embeddings.append(self.positional_encoder(idx))
+            positional_embeddings.append(layer_embeddings)
+
+        with open(embeddings_cache_filename, "wb") as f:
+            pickle.dump(positional_embeddings, f)
+            print("Saved computed embeddings")
+
         return positional_embeddings
 
     def get_indices_and_positional_embeddings(self) -> Tuple[List[List[Tuple]], List[List[torch.Tensor]]]:
@@ -93,7 +114,7 @@ class ReconstructedModelKxK(ReconstructedModel):
         for curr_layer_weights, curr_predicted_weights in zip(learnable_weights, reconstructed_weights):
             curr_learnable_kernel_size = curr_layer_weights.shape[-1]
             curr_predicted_kernel_size = curr_predicted_weights.shape[-1]
-            min_coord = int(curr_predicted_kernel_size / 2 - curr_learnable_kernel_size/2)
-            max_coord = int(curr_predicted_kernel_size / 2 + curr_learnable_kernel_size/2)
+            min_coord = int(curr_predicted_kernel_size / 2 - curr_learnable_kernel_size / 2)
+            max_coord = int(curr_predicted_kernel_size / 2 + curr_learnable_kernel_size / 2)
             curr_layer_weights.data = curr_layer_weights.data * 0. + \
                                       curr_predicted_weights[:, :, min_coord:max_coord, min_coord:max_coord]
