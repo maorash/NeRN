@@ -103,18 +103,3 @@ class ReconstructedModel(OriginalModel):
 
     def forward(self, x):
         return self.reconstructed_model(x)
-
-
-class ReconstructedModelKxK(ReconstructedModel):
-    def __init__(self, original_model: OriginalModel):
-        super().__init__(original_model)
-
-    def update_weights(self, reconstructed_weights: List[torch.Tensor]):
-        learnable_weights = self.get_learnable_weights()
-        for curr_layer_weights, curr_predicted_weights in zip(learnable_weights, reconstructed_weights):
-            curr_learnable_kernel_size = curr_layer_weights.shape[-1]
-            curr_predicted_kernel_size = curr_predicted_weights.shape[-1]
-            min_coord = int(curr_predicted_kernel_size / 2 - curr_learnable_kernel_size / 2)
-            max_coord = int(curr_predicted_kernel_size / 2 + curr_learnable_kernel_size / 2)
-            curr_layer_weights.data = curr_layer_weights.data * 0. + \
-                                      curr_predicted_weights[:, :, min_coord:max_coord, min_coord:max_coord]
