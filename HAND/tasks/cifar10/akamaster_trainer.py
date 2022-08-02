@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 import time
 
@@ -10,20 +11,24 @@ import torch.optim
 import torch.utils.data
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
+
+from HAND.models.regularization import CosineSmoothness, L2Smoothness
 from HAND.tasks import resnet
 
 model_names = sorted(name for name in resnet.__dict__
-    if name.islower() and not name.startswith("__")
+                     if name.islower() and not name.startswith("__")
                      and name.startswith("resnet")
                      and callable(resnet.__dict__[name]))
 
 print(model_names)
 
 parser = argparse.ArgumentParser(description='Propert ResNets for CIFAR10 in pytorch')
-parser.add_argument('--arch', '-a', metavar='ARCH', default='resnet32',
+parser.add_argument('--exp-name', type=str, required=True,
+                    help='Name of the experiment. Will be the name of output model file.')
+parser.add_argument('--arch', '-a', metavar='ARCH', default='resnet20',
                     choices=model_names,
                     help='model architecture: ' + ' | '.join(model_names) +
-                    ' (default: resnet32)')
+                         ' (default: resnet20)')
 parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
                     help='number of data loading workers (default: 4)')
 parser.add_argument('--epochs', default=200, type=int, metavar='N',
@@ -48,26 +53,46 @@ parser.add_argument('--pretrained', dest='pretrained', action='store_true',
                     help='use pre-trained model')
 parser.add_argument('--half', dest='half', action='store_true',
                     help='use half-precision(16-bit) ')
-parser.add_argument('--save-dir', dest='save_dir',
-                    help='The directory used to save the trained models',
-                    default='save_temp', type=str)
+parser.add_argument('--save-model', action='store_true', default=True,
+                    help='For Saving the current Model')
 parser.add_argument('--save-every', dest='save_every',
                     help='Saves checkpoints at every specified number of epochs',
                     type=int, default=10)
+parser.add_argument('--smoothness-type', type=str, default="Cosine",
+                    help='Smoothness regularization, can be Cosine/L2')
+parser.add_argument('--smoothness-factor', type=float, default=1e-4,
+                    help='Factor for the smoothness regularization term')
 best_prec1 = 0
+
+
+class MyDataParallel(torch.nn.DataParallel):
+    def __init__(self, module):
+        super(MyDataParallel, self).__init__(module)
+        self.module = module
+
+    def get_learnable_weights(self):
+        return self.module.get_learnable_weights()
 
 
 def main():
     global args, best_prec1
     args = parser.parse_args()
 
-
     # Check the save_dir exists or not
-    if not os.path.exists(args.save_dir):
-        os.makedirs(args.save_dir)
+    # if not os.path.exists(args.save_dir):
+    #     os.makedirs(args.save_dir)
 
-    model = torch.nn.DataParallel(resnet.__dict__[args.arch]())
+    model = MyDataParallel(resnet.__dict__[args.arch]())
     model.cuda()
+
+    if args.smoothness_type is None:
+        smoothness = None
+    elif args.smoothness_type == "Cosine":
+        smoothness = CosineSmoothness()
+    elif args.smoothness_type == "L2":
+        smoothness = L2Smoothness()
+    else:
+        raise ValueError("Unexpected smoothness type")
 
     # optionally resume from a checkpoint
     if args.resume:
@@ -123,18 +148,17 @@ def main():
         # for resnet1202 original paper uses lr=0.01 for first 400 minibatches for warm-up
         # then switch back. In this setup it will correspond for first epoch.
         for param_group in optimizer.param_groups:
-            param_group['lr'] = args.lr*0.1
-
+            param_group['lr'] = args.lr * 0.1
 
     if args.evaluate:
         validate(val_loader, model, criterion)
         return
 
     for epoch in range(args.start_epoch, args.epochs):
-
+        print(f"At epoch {epoch} of experiment {args.exp_name}")
         # train for one epoch
         print('current lr {:.5e}'.format(optimizer.param_groups[0]['lr']))
-        train(train_loader, model, criterion, optimizer, epoch)
+        train(train_loader, model, criterion, optimizer, epoch, smoothness)
         lr_scheduler.step()
 
         # evaluate on validation set
@@ -144,26 +168,38 @@ def main():
         is_best = prec1 > best_prec1
         best_prec1 = max(prec1, best_prec1)
 
-        if epoch > 0 and epoch % args.save_every == 0:
-            save_checkpoint({
-                'epoch': epoch + 1,
-                'state_dict': model.state_dict(),
-                'best_prec1': best_prec1,
-            }, is_best, filename=os.path.join(args.save_dir, 'checkpoint.th'))
+        # if epoch > 0 and epoch % args.save_every == 0:
+        #     save_checkpoint({
+        #         'epoch': epoch + 1,
+        #         'state_dict': model.state_dict(),
+        #         'best_prec1': best_prec1,
+        #     }, is_best, filename=os.path.join(args.save_dir, 'checkpoint.th'))
+        #
+        # save_checkpoint({
+        #     'state_dict': model.state_dict(),
+        #     'best_prec1': best_prec1,
+        # }, is_best, filename=os.path.join(args.save_dir, 'model.th'))
+    model_kwargs = dict(arch=args.arch)
+    model_kwargs.update({
+        "smoothness_type": args.smoothness_type,
+        "smoothness_factor": args.smoothness_factor
+    })
+    if args.save_model:
+        save_dir = '../../trained_models/original_tasks/mnist'
+        os.makedirs(save_dir, exist_ok=True)
+        torch.save(model.state_dict(), save_dir + "/" + args.exp_name + ".pt")
+        with open(save_dir + '/' + args.exp_name + '.json', 'w') as model_save_path:
+            json.dump(model_kwargs, model_save_path)
 
-        save_checkpoint({
-            'state_dict': model.state_dict(),
-            'best_prec1': best_prec1,
-        }, is_best, filename=os.path.join(args.save_dir, 'model.th'))
 
-
-def train(train_loader, model, criterion, optimizer, epoch):
+def train(train_loader, model, criterion, optimizer, epoch, smoothness):
     """
         Run one train epoch
     """
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
+    smoothness_losses = AverageMeter()
     top1 = AverageMeter()
 
     # switch to train mode
@@ -181,9 +217,14 @@ def train(train_loader, model, criterion, optimizer, epoch):
         if args.half:
             input_var = input_var.half()
 
+        if smoothness is None:
+            smoothness_loss = 0
+        else:
+            smoothness_loss = - smoothness(model)
+
         # compute output
         output = model(input_var)
-        loss = criterion(output, target_var)
+        loss = criterion(output, target_var) + args.smoothness_factor * smoothness_loss
 
         # compute gradient and do SGD step
         optimizer.zero_grad()
@@ -192,9 +233,11 @@ def train(train_loader, model, criterion, optimizer, epoch):
 
         output = output.float()
         loss = loss.float()
+        smoothness_loss = smoothness_loss.float()
         # measure accuracy and record loss
         prec1 = accuracy(output.data, target)[0]
         losses.update(loss.item(), input.size(0))
+        smoothness_losses.update(smoothness_loss.item(), input.size(0))
         top1.update(prec1.item(), input.size(0))
 
         # measure elapsed time
@@ -207,8 +250,9 @@ def train(train_loader, model, criterion, optimizer, epoch):
                   'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                   'Prec@1 {top1.val:.3f} ({top1.avg:.3f})'.format(
-                      epoch, i, len(train_loader), batch_time=batch_time,
-                      data_time=data_time, loss=losses, top1=top1))
+                epoch, i, len(train_loader), batch_time=batch_time,
+                data_time=data_time, loss=losses, top1=top1))
+            print('Smoothness {:.4f}'.format(smoothness_losses.val))
 
 
 def validate(val_loader, model, criterion):
@@ -253,13 +297,14 @@ def validate(val_loader, model, criterion):
                       'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                       'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                       'Prec@1 {top1.val:.3f} ({top1.avg:.3f})'.format(
-                          i, len(val_loader), batch_time=batch_time, loss=losses,
-                          top1=top1))
+                    i, len(val_loader), batch_time=batch_time, loss=losses,
+                    top1=top1))
 
     print(' * Prec@1 {top1.avg:.3f}'
           .format(top1=top1))
 
     return top1.avg
+
 
 def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
     """
@@ -267,8 +312,10 @@ def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
     """
     torch.save(state, filename)
 
+
 class AverageMeter(object):
     """Computes and stores the average and current value"""
+
     def __init__(self):
         self.reset()
 
