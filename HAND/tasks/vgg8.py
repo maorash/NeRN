@@ -65,9 +65,8 @@ class VGG8(OriginalModel):
 
 class ReconstructedVGG8(ReconstructedModel):
     def __init__(self, original_model: VGG8, embeddings_cfg: EmbeddingsConfig, sampling_mode: str = None):
-        super().__init__(original_model, sampling_mode)
+        super().__init__(original_model, embeddings_cfg, sampling_mode)
         self.indices = self._get_tensor_indices()
-        self.positional_encoder = MyPositionalEncoding(embeddings_cfg)
         self.positional_embeddings = self._calculate_position_embeddings()
 
     def _get_tensor_indices(self) -> List[List[Tuple]]:

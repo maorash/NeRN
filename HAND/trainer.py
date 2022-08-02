@@ -136,10 +136,9 @@ class Trainer:
         if self.config.optim.max_gradient_norm is not None:
             for predictor_param in self.predictor.parameters():
                 torch.nn.utils.clip_grad_norm_(predictor_param, max_norm=self.config.optim.max_gradient_norm)
-                torch.nn.utils.clip_grad_norm_(predictor_param, max_norm=self.config.max_gradient_norm)
-        if self.config.max_gradient is not None:
+        if self.config.optim.max_gradient is not None:
             for predictor_param in self.predictor.parameters():
-                torch.nn.utils.clip_grad_value_(predictor_param, clip_value=self.config.max_gradient)
+                torch.nn.utils.clip_grad_value_(predictor_param, clip_value=self.config.optim.max_gradient)
 
     def _loss_warmup(self, epoch: int):
         return epoch < self.config.loss_warmup_epochs
