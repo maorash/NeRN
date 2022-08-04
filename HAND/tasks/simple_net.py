@@ -10,14 +10,19 @@ from HAND.positional_embedding import MyPositionalEncoding
 
 
 class SimpleNet(OriginalModel):
-    def __init__(self, num_hidden=None, num_layers=3, input_size=28, input_channels=3, **kwargs):
+    def __init__(self, num_hidden=None, num_layers=3, input_size=28, input_channels=3, kernel_sizes=None, **kwargs):
         super(SimpleNet, self).__init__()
         self.input_channels = input_channels
         self.num_hidden = num_hidden if num_hidden is not None else [32] * num_layers
+        self.kernel_sizes = kernel_sizes if kernel_sizes is not None else [3] * num_layers
         self.input_size = input_size
-        self.layers_list = [nn.Conv2d(self.input_channels, self.num_hidden[0], (3, 3), (1, 1), padding='same')]
+        self.layers_list = [
+            nn.Conv2d(self.input_channels, self.num_hidden[0], (self.kernel_sizes[0], self.kernel_sizes[0]), (1, 1),
+                      padding='same')]
         self.layers_list.extend(
-            [nn.Conv2d(self.num_hidden[i], self.num_hidden[i + 1], (3, 3), (1, 1), padding='same') for i in
+            [nn.Conv2d(self.num_hidden[i], self.num_hidden[i + 1], (self.kernel_sizes[i + 1], self.kernel_sizes[i + 1]),
+                       (1, 1),
+                       padding='same') for i in
              range(num_layers - 1)])
         self.convs = nn.ModuleList(self.layers_list)
         self.dropout1 = nn.Dropout(0.25)
@@ -51,11 +56,10 @@ class SimpleNet(OriginalModel):
         return output
 
 
-class ReconstructedSimpleNet3x3(ReconstructedModel):
-    def __init__(self, original_model: SimpleNet, embeddings_cfg: EmbeddingsConfig):
-        super().__init__(original_model)
+class ReconstructedSimpleNet(ReconstructedModel):
+    def __init__(self, original_model: SimpleNet, embeddings_cfg: EmbeddingsConfig, sampling_mode: str = None):
+        super().__init__(original_model, embeddings_cfg, sampling_mode)
         self.indices = self._get_tensor_indices()
-        self.positional_encoder = MyPositionalEncoding(embeddings_cfg)
         self.positional_embeddings = self._calculate_position_embeddings()
 
     def _get_tensor_indices(self) -> List[List[Tuple]]:
@@ -70,3 +74,4 @@ class ReconstructedSimpleNet3x3(ReconstructedModel):
             indices.append(curr_layer_indices)
 
         return indices
+

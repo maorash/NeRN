@@ -67,7 +67,10 @@ class Trainer:
                 reconstructed_weights = []
                 # Each forward pass of the prediction model predicts an entire layer's weights
                 for layer_positional_embeddings, layer_shape in zip(positional_embeddings, learnable_weights_shapes):
-                    layer_reconstructed_weights = self.predictor(layer_positional_embeddings).reshape(layer_shape)
+                    layer_reconstructed_weights = self.predictor(layer_positional_embeddings).reshape(
+                        (layer_shape[0], layer_shape[1], self.predictor.output_size,
+                         self.predictor.output_size))
+
                     layer_reconstructed_weights.retain_grad()
                     reconstructed_weights.append(layer_reconstructed_weights)
 
@@ -133,6 +136,9 @@ class Trainer:
         if self.config.optim.max_gradient_norm is not None:
             for predictor_param in self.predictor.parameters():
                 torch.nn.utils.clip_grad_norm_(predictor_param, max_norm=self.config.optim.max_gradient_norm)
+        if self.config.optim.max_gradient is not None:
+            for predictor_param in self.predictor.parameters():
+                torch.nn.utils.clip_grad_value_(predictor_param, clip_value=self.config.optim.max_gradient)
 
     def _loss_warmup(self, epoch: int):
         return epoch < self.config.loss_warmup_epochs
