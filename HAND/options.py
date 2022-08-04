@@ -1,3 +1,5 @@
+from typing import Optional
+
 import pyrallis
 from dataclasses import dataclass, field
 
@@ -32,12 +34,12 @@ class HANDConfig:
     num_blocks: int = field(default=3)
     # Number of linear blocks
     hidden_layer_size: int = field(default=30)
+    # Batch size for weight prediction (number of weights to predict in a batch)
+    weights_batch_size: Optional[int] = field(default=2 ** 16)
+    # Weight batching method (all/sequential_layer/random_layer/random_batch)
+    weights_batch_method: str = field(default='all')
     # Positional embeddings config
     embeddings: EmbeddingsConfig = field(default_factory=EmbeddingsConfig)
-    # Batch size for weight prediction (number of weights to predict in a batch)
-    weights_batch_size: int = field(default=2 ** 16)
-    # Whether or not to compute gradients on the entire predicted network, or for a random batch of predicted weights
-    weights_batch_gradients: bool = field(default=True)
     # Task loss weight
     task_loss_weight: float = field(default=1)
     # Reconstruction loss weight
@@ -99,8 +101,6 @@ class OptimizationConfig:
     optimizer: str = field(default='adamw')
     # Apply gradient normalization during training (set None to skip the norm clipping)
     max_gradient_norm: float = field(default=None)
-    # Epochs to decay learning rate by 10
-    # lr_steps: float = field(default=-1)
 
 
 @dataclass
@@ -113,14 +113,8 @@ class TrainConfig:
     # workers: int = field(default=4)
     # Input batch size
     batch_size: int = field(default=256)
-    # Resuming start_epoch from checkpoint
-    # not_resume_epoch: bool = field(default=True)
     # Number of epochs to train for
     epochs: int = field(default=250)
-    # Epoch cycles for trainings
-    # cycles: int = field(default=1)
-    # Number of warmup epochs
-    # warmup: int = field(default=5)
     # How often to test the reconstructed model on the original task
     eval_epochs_interval: int = field(default=1)
     # How often to save the learned model

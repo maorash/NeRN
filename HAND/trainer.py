@@ -60,39 +60,12 @@ class Trainer:
         max_accuracy = 0
 
         training_step = 0
-        layer_ind_for_grads = 0
         for epoch in range(self.config.epochs):
             for batch_ind, (batch, ground_truth) in enumerate(self.train_dataloader):
                 batch, ground_truth = batch.to(self.device), ground_truth.to(self.device)
                 optimizer.zero_grad()
 
-                reconstructed_weights = []
-                layer_ind_for_grads = np.random.randint(0, len(positional_embeddings))
-                # layer_ind_for_grads = (layer_ind_for_grads + 1) % len(positional_embeddings)
-                for layer_ind, (layer_positional_embeddings, layer_shape) in enumerate(zip(positional_embeddings,
-                                                                                         learnable_weights_shapes)):
-                    if layer_ind == layer_ind_for_grads:
-                        layer_reconstructed_weights = self._predict_layer_weights(layer_positional_embeddings,
-                                                                                  layer_shape)
-                        layer_reconstructed_weights.retain_grad()
-                    else:
-                        with torch.no_grad():
-                            layer_reconstructed_weights = self._predict_layer_weights(layer_positional_embeddings,
-                                                                                      layer_shape)
-                    reconstructed_weights.append(layer_reconstructed_weights)
-
-                # layer_ind_for_grads = np.random.randint(0, len(positional_embeddings))
-                # # layer_ind_for_grads = (layer_ind_for_grads + 1) % len(positional_embeddings)
-                # for layer_ind, (layer_positional_embeddings, layer_shape) in enumerate(zip(positional_embeddings,
-                #                                                                            learnable_weights_shapes)):
-                #     if layer_ind == layer_ind_for_grads:
-                #         layer_reconstructed_weights = self.predictor(layer_positional_embeddings).reshape(layer_shape)
-                #         layer_reconstructed_weights.retain_grad()
-                #     else:
-                #         with torch.no_grad():
-                #             layer_reconstructed_weights = self.predictor(layer_positional_embeddings).reshape(layer_shape)
-                #     reconstructed_weights.append(layer_reconstructed_weights)
-
+                reconstructed_weights = self.predictor.predict_all(positional_embeddings, learnable_weights_shapes)
                 self.reconstructed_model.update_weights(reconstructed_weights)
 
                 original_outputs, original_feature_maps = self.original_model.get_feature_maps(batch)
@@ -150,16 +123,6 @@ class Trainer:
 
     def _save_checkpoint(self, suffix: str):
         torch.save(self.predictor, os.path.join(self.exp_dir_path, f"hand_{self.config.logging.exp_name}_{suffix}.pth"))
-
-    def _predict_layer_weights(self, layer_positional_embeddings, layer_shape):
-        layer_reconstructed_weights = []
-        for weights_batch_idx in range(0, layer_positional_embeddings.shape[0],
-                                       self.config.hand.weights_batch_size):
-            weights_batch = layer_positional_embeddings[
-                            weights_batch_idx: weights_batch_idx + self.config.hand.weights_batch_size]
-            layer_reconstructed_weights.append(self.predictor(weights_batch))
-        layer_reconstructed_weights = torch.vstack(layer_reconstructed_weights).reshape(layer_shape)
-        return layer_reconstructed_weights
 
     def _clip_grad_norm(self):
         if self.config.optim.max_gradient_norm is not None:
