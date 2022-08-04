@@ -60,8 +60,12 @@ parser.add_argument('--save-every', dest='save_every',
                     type=int, default=10)
 parser.add_argument('--smoothness-type', type=str, default="Cosine",
                     help='Smoothness regularization, can be Cosine/L2')
-parser.add_argument('--smoothness-factor', type=float, default=1e-4,
-                    help='Factor for the smoothness regularization term')
+parser.add_argument('--cosine-smoothness-factor', type=float, default=1e-4,
+                    help='Factor for the cosine smoothness regularization term')
+parser.add_argument('--l2-smoothness-factor', type=float, default=None,
+                    help='Factor for the l2 smoothness regularization term. If none, taking the value of the cosine smoothness factor')
+parser.add_argument('--basic-block-option', type=str, default='A',
+                    help='Basic block option, can be A/B')
 best_prec1 = 0
 
 
@@ -82,7 +86,8 @@ def main():
     # if not os.path.exists(args.save_dir):
     #     os.makedirs(args.save_dir)
 
-    model = MyDataParallel(resnet.__dict__[args.arch]())
+    model = MyDataParallel(resnet.__dict__[args.arch](basic_block_option=args.basic_block_option))
+    # model = resnet.__dict__[args.arch](basic_block_option=args.basic_block_option)
     model.cuda()
 
     if args.smoothness_type is None:
@@ -182,12 +187,14 @@ def main():
     model_kwargs = dict(arch=args.arch)
     model_kwargs.update({
         "smoothness_type": args.smoothness_type,
-        "smoothness_factor": args.smoothness_factor
+        "cosine_smoothness_factor": args.cosine_smoothness_factor,
+        "l2_smoothness_factor": args.l2_smoothness_factor,
+        "basic_block_option": args.basic_block_option
     })
     if args.save_model:
         save_dir = '../../trained_models/original_tasks/mnist'
         os.makedirs(save_dir, exist_ok=True)
-        torch.save(model.state_dict(), save_dir + "/" + args.exp_name + ".pt")
+        torch.save(model.module.state_dict(), save_dir + "/" + args.exp_name + ".pt")
         with open(save_dir + '/' + args.exp_name + '.json', 'w') as model_save_path:
             json.dump(model_kwargs, model_save_path)
 
@@ -199,7 +206,8 @@ def train(train_loader, model, criterion, optimizer, epoch, smoothness):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
-    smoothness_losses = AverageMeter()
+    cosine_smoothness_losses = AverageMeter()
+    l2_smoothness_losses = AverageMeter()
     top1 = AverageMeter()
 
     # switch to train mode
@@ -218,13 +226,18 @@ def train(train_loader, model, criterion, optimizer, epoch, smoothness):
             input_var = input_var.half()
 
         if smoothness is None:
-            smoothness_loss = 0
+            l2_smoothness_loss = 0
+            cosine_smoothness_loss = 0
         else:
-            smoothness_loss = - smoothness(model)
+            cosine_smoothness, l2_smoothness = smoothness(model)
+            cosine_smoothness_loss = -cosine_smoothness
+            l2_smoothness_loss = -l2_smoothness
 
         # compute output
         output = model(input_var)
-        loss = criterion(output, target_var) + args.smoothness_factor * smoothness_loss
+        l2_smoothness_factor = args.l2_smoothness_factor if args.l2_smoothness_factor is not None else args.cosine_smoothness_factor
+        loss = criterion(output,
+                         target_var) + l2_smoothness_factor * l2_smoothness_loss + args.cosine_smoothness_factor * cosine_smoothness_loss
 
         # compute gradient and do SGD step
         optimizer.zero_grad()
@@ -233,11 +246,13 @@ def train(train_loader, model, criterion, optimizer, epoch, smoothness):
 
         output = output.float()
         loss = loss.float()
-        smoothness_loss = smoothness_loss.float()
+        cosine_smoothness_loss = cosine_smoothness_loss.float()
+        l2_smoothness_loss = l2_smoothness_loss.float()
         # measure accuracy and record loss
         prec1 = accuracy(output.data, target)[0]
         losses.update(loss.item(), input.size(0))
-        smoothness_losses.update(smoothness_loss.item(), input.size(0))
+        cosine_smoothness_losses.update(cosine_smoothness_loss.item(), input.size(0))
+        l2_smoothness_losses.update(l2_smoothness_loss.item(), input.size(0))
         top1.update(prec1.item(), input.size(0))
 
         # measure elapsed time
@@ -252,7 +267,8 @@ def train(train_loader, model, criterion, optimizer, epoch, smoothness):
                   'Prec@1 {top1.val:.3f} ({top1.avg:.3f})'.format(
                 epoch, i, len(train_loader), batch_time=batch_time,
                 data_time=data_time, loss=losses, top1=top1))
-            print('Smoothness {:.4f}'.format(smoothness_losses.val))
+            print('L2 Smoothness {:.4f}, Cosine Smoothness {:.4f}'.format(l2_smoothness_losses.val,
+                                                                          cosine_smoothness_losses.val))
 
 
 def validate(val_loader, model, criterion):
