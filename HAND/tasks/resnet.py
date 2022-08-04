@@ -58,8 +58,8 @@ class BasicBlock(nn.Module):
         self.bn1 = nn.BatchNorm2d(planes)
         self.conv2 = nn.Conv2d(planes, planes, kernel_size=(3, 3), stride=(1, 1), padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(planes)
-
         self.shortcut = nn.Sequential()
+        self.option = option
         if stride != 1 or in_planes != planes:
             if option == 'A':
                 """
@@ -74,6 +74,8 @@ class BasicBlock(nn.Module):
                               bias=False),
                     nn.BatchNorm2d(self.expansion * planes)
                 )
+        else:
+            self.option = "C"
 
     def forward(self, x):
         out = F.relu(self.bn1(self.conv1(x)))
@@ -83,7 +85,20 @@ class BasicBlock(nn.Module):
         return out
 
     def get_learnable_weights(self):
-        return [self.conv1.weight, self.conv2.weight]
+        if self.option == 'A' or self.option == 'C':
+            return [self.conv1.weight, self.conv2.weight]
+        else:
+            return [self.conv1.weight, self.conv2.weight, self.shortcut[0].weight]
+
+
+class BasicBlockA(BasicBlock):
+    def __init__(self, in_planes, planes, stride=1):
+        super(BasicBlockA, self).__init__(in_planes, planes, stride, option='A')
+
+
+class BasicBlockB(BasicBlock):
+    def __init__(self, in_planes, planes, stride=1):
+        super(BasicBlockB, self).__init__(in_planes, planes, stride, option='B')
 
 
 class ResNet(OriginalModel):
@@ -100,6 +115,8 @@ class ResNet(OriginalModel):
         self.linear = nn.Linear(64, num_classes)
         self.feature_maps = []
         self.apply(_weights_init)
+        self.num_hidden = [[weight.shape[0], weight.shape[1]] for weight in self.get_learnable_weights()]
+
 
     def _make_layer(self, block, planes, num_blocks, stride):
         strides = [stride] + [1] * (num_blocks - 1)
@@ -124,7 +141,7 @@ class ResNet(OriginalModel):
         out = self.linear(out)
         if extract_feature_maps:
             self.feature_maps = activations
-            return out, self.feature_maps
+            return out
         return out
 
     def get_feature_maps(self, batch: torch.Tensor) -> Tuple[torch.Tensor, List[torch.Tensor]]:
@@ -145,28 +162,34 @@ class ResNet(OriginalModel):
         return learnable_weights
 
 
-def resnet20():
-    return ResNet(BasicBlock, [3, 3, 3])
+def resnet20(basic_block_option='A', **kwargs):
+    basic_block = BasicBlockA if basic_block_option == 'A' else BasicBlockB
+    return ResNet(basic_block, [3, 3, 3])
 
 
-def resnet32():
-    return ResNet(BasicBlock, [5, 5, 5])
+def resnet32(basic_block_option='A'):
+    basic_block = BasicBlockA if basic_block_option == 'A' else BasicBlockB
+    return ResNet(basic_block, [5, 5, 5])
 
 
-def resnet44():
-    return ResNet(BasicBlock, [7, 7, 7])
+def resnet44(basic_block_option='A'):
+    basic_block = BasicBlockA if basic_block_option == 'A' else BasicBlockB
+    return ResNet(basic_block, [7, 7, 7])
 
 
-def resnet56():
-    return ResNet(BasicBlock, [9, 9, 9])
+def resnet56(basic_block_option='A'):
+    basic_block = BasicBlockA if basic_block_option == 'A' else BasicBlockB
+    return ResNet(basic_block, [9, 9, 9])
 
 
-def resnet110():
-    return ResNet(BasicBlock, [18, 18, 18])
+def resnet110(basic_block_option='A'):
+    basic_block = BasicBlockA if basic_block_option == 'A' else BasicBlockB
+    return ResNet(basic_block, [18, 18, 18])
 
 
-def resnet1202():
-    return ResNet(BasicBlock, [200, 200, 200])
+def resnet1202(basic_block_option='A'):
+    basic_block = BasicBlockA if basic_block_option == 'A' else BasicBlockB
+    return ResNet(basic_block, [200, 200, 200])
 
 
 def test(net):
