@@ -44,9 +44,11 @@ class HANDPredictorBase(nn.Module, ABC):
 
     def predict_all(self, positional_embeddings: List[torch.Tensor], learnable_weights_shapes: List[torch.Size]) \
             -> List[torch.Tensor]:
+        predicted_weights_shapes = [(layer_shape[0], layer_shape[1], self.output_size, self.output_size) for layer_shape
+                                    in learnable_weights_shapes]
         reconstructed_weights = []
         if self.cfg.weights_batch_method == 'all':
-            for embedding, shape in zip(positional_embeddings, learnable_weights_shapes):
+            for embedding, shape in zip(positional_embeddings, predicted_weights_shapes):
                 layer_reconstructed_weights = self._predict_weights(embedding).reshape(shape)
                 layer_reconstructed_weights.retain_grad()
                 reconstructed_weights.append(layer_reconstructed_weights)
@@ -54,7 +56,7 @@ class HANDPredictorBase(nn.Module, ABC):
             self.layer_ind_for_grads = (self.layer_ind_for_grads + 1) % len(positional_embeddings) if \
                 self.cfg.weights_batch_method == 'sequential_layer' else \
                 torch.randint(0, len(positional_embeddings), (1,)).item()
-            for layer_ind, (embedding, shape) in enumerate(zip(positional_embeddings, learnable_weights_shapes)):
+            for layer_ind, (embedding, shape) in enumerate(zip(positional_embeddings, predicted_weights_shapes)):
                 if layer_ind == self.layer_ind_for_grads:
                     layer_reconstructed_weights = self._predict_weights(embedding).reshape(shape)
                     layer_reconstructed_weights.retain_grad()
@@ -94,7 +96,7 @@ class HANDPredictorBase(nn.Module, ABC):
 
             reconstructed_weights = torch.vsplit(predicted,
                                                  list(np.cumsum([pe.shape[0] for pe in positional_embeddings])))[:-1]
-            reconstructed_weights = [w.reshape(s) for w, s in zip(reconstructed_weights, learnable_weights_shapes)]
+            reconstructed_weights = [w.reshape(s) for w, s in zip(reconstructed_weights, predicted_weights_shapes)]
         else:
             raise ValueError("Unsupported predictor method")
 
@@ -117,6 +119,7 @@ class HANDKxKPredictor(HANDPredictorBase):
     """
     Given 3 positional embeddings: (Layer, Filter, Channel) returns a KxK filter tensor
     """
+
     def __init__(self, cfg: HANDConfig, input_size: int):
         super().__init__(cfg, input_size)
         self.hidden_size = cfg.hidden_layer_size
@@ -145,6 +148,7 @@ class HANDBasicPredictor(HANDPredictorBase):
     """
     Given 5 positional embeddings: (Layer, Filter, Channel, Height, Width) returns a single floating point
     """
+
     @property
     def output_size(self) -> int:
         return 1
