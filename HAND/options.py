@@ -25,7 +25,9 @@ class HANDConfig:
     # Path for checkpoint (weights initialization)
     checkpoint_path: str = field(default=None)
     # Predictor type
-    method: str = field(default='3x3')
+    method: str = field(default='kxk')
+    # Output size for the kxk method
+    output_size: int = field(default=3)
     # Normalization layer
     norm_layer: str = field(default='bn')
     # Activation layer
@@ -56,6 +58,8 @@ class HANDConfig:
     attention_loss_type: str = field(default='L2')
     # Output distillation loss type, should be a member of `torch.nn`, default is `KLDivLoss`
     distillation_loss_type: str = field(default='KLDivLoss')
+    # The sampling mode for the reconstruction model (center/average/max)
+    sampling_mode: str = field(default='center')
 
 
 @dataclass
@@ -101,6 +105,8 @@ class OptimizationConfig:
     optimizer: str = field(default='adamw')
     # Apply gradient normalization during training (set None to skip the norm clipping)
     max_gradient_norm: float = field(default=None)
+    # Apply gradient clipping during training (set None to skip the clipping)
+    max_gradient: float = field(default=None)
 
 
 @dataclass

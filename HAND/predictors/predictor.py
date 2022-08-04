@@ -16,8 +16,8 @@ class HANDPredictorFactory:
     def get_predictor(self):
         if self.cfg.method == 'basic':
             return HANDBasicPredictor(self.cfg, self.input_size)
-        elif self.cfg.method == '3x3':
-            return HAND3x3Predictor(self.cfg, self.input_size)
+        elif self.cfg.method == 'kxk':
+            return HANDKxKPredictor(self.cfg, self.input_size)
         else:
             raise ValueError(f'Not recognized predictor type {self.cfg.method}')
 
@@ -36,6 +36,10 @@ class HANDPredictorBase(nn.Module, ABC):
 
     @abstractmethod
     def forward(self, positional_embedding: torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError()
+
+    @property
+    def output_size(self) -> int:
         raise NotImplementedError()
 
     def predict_all(self, positional_embeddings: List[torch.Tensor], learnable_weights_shapes: List[torch.Size]) \
@@ -109,16 +113,15 @@ class HANDPredictorBase(nn.Module, ABC):
         return layer_reconstructed_weights
 
 
-class HAND3x3Predictor(HANDPredictorBase):
+class HANDKxKPredictor(HANDPredictorBase):
     """
-    Given 3 positional embeddings: (Layer, Filter, Channel) returns a 3x3 filter tensor
+    Given 3 positional embeddings: (Layer, Filter, Channel) returns a KxK filter tensor
     """
-
     def __init__(self, cfg: HANDConfig, input_size: int):
         super().__init__(cfg, input_size)
         self.hidden_size = cfg.hidden_layer_size
         self.layers = self._construct_layers()
-        self.final_linear_layer = nn.Linear(self.hidden_size, 9)
+        self.final_linear_layer = nn.Linear(self.hidden_size, cfg.output_size ** 2)
 
     def _construct_layers(self):
         blocks = [nn.Linear(self.input_size, self.hidden_size)]
@@ -133,11 +136,18 @@ class HAND3x3Predictor(HANDPredictorBase):
         x = self.final_linear_layer(x)
         return x
 
+    @property
+    def output_size(self) -> int:
+        return self.cfg.output_size
+
 
 class HANDBasicPredictor(HANDPredictorBase):
     """
     Given 5 positional embeddings: (Layer, Filter, Channel, Height, Width) returns a single floating point
     """
+    @property
+    def output_size(self) -> int:
+        return 1
 
     def forward(self, positional_embedding: List[torch.Tensor]) -> List[torch.Tensor]:
         pass
