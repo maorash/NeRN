@@ -1,6 +1,7 @@
 from typing import Tuple, List
 import os
 
+import numpy as np
 import torch
 from clearml import Logger
 from torch.utils.data import DataLoader
@@ -45,6 +46,8 @@ class Trainer:
         self.test_dataloader, self.train_dataloader = task_dataloaders
         self.logger = logger
         self.exp_dir_path = None
+        self.max_accuracy = 0
+        self.loss_window = []
 
     def train(self):
         self._set_grads_for_training()
@@ -56,24 +59,14 @@ class Trainer:
         positional_embeddings = [torch.stack(layer_emb).to(self.device) for layer_emb in positional_embeddings]
 
         self.exp_dir_path = create_experiment_dir(self.config.logging.log_dir, self.config.logging.exp_name)
-        max_accuracy = 0
 
         training_step = 0
         for epoch in range(self.config.epochs):
-            for batch_idx, (batch, ground_truth) in enumerate(self.train_dataloader):
+            for batch_ind, (batch, ground_truth) in enumerate(self.train_dataloader):
                 batch, ground_truth = batch.to(self.device), ground_truth.to(self.device)
                 optimizer.zero_grad()
 
-                reconstructed_weights = []
-                # Each forward pass of the prediction model predicts an entire layer's weights
-                for layer_positional_embeddings, layer_shape in zip(positional_embeddings, learnable_weights_shapes):
-                    layer_reconstructed_weights = self.predictor(layer_positional_embeddings).reshape(
-                        (layer_shape[0], layer_shape[1], self.predictor.output_size,
-                         self.predictor.output_size))
-
-                    layer_reconstructed_weights.retain_grad()
-                    reconstructed_weights.append(layer_reconstructed_weights)
-
+                reconstructed_weights = self.predictor.predict_all(positional_embeddings, learnable_weights_shapes)
                 self.reconstructed_model.update_weights(reconstructed_weights)
 
                 original_outputs, original_feature_maps = self.original_model.get_feature_maps(batch)
@@ -101,7 +94,7 @@ class Trainer:
                 loss = reconstruction_term + task_term + attention_term + distillation_term
                 loss.backward()
 
-                if batch_idx % self.config.logging.log_interval == 0 and not self.config.logging.disable_logging:
+                if batch_ind % self.config.logging.log_interval == 0 and not self.config.logging.disable_logging:
                     loss_dict = dict(loss=loss,
                                      original_task_loss=task_term,
                                      reconstruction_loss=reconstruction_term,
@@ -112,6 +105,11 @@ class Trainer:
                                     title="learning_rate",
                                     iteration=epoch,
                                     logger=self.logger)
+                if batch_ind % self.config.eval_loss_window_interval == 0 and not self.config.logging.disable_logging:
+                    if len(self.loss_window) == self.config.eval_loss_window_size \
+                            and loss <= min(self.loss_window) and not self.config.logging.disable_logging:
+                        self._eval(epoch * len(self.train_dataloader) + batch_ind, "greedy")
+                    self._add_to_loss_window(loss.item())
 
                 self._clip_grad_norm()
                 optimizer.step()
@@ -121,13 +119,22 @@ class Trainer:
             scheduler.step_epoch()
 
             if epoch % self.config.eval_epochs_interval == 0:
-                accuracy = self.original_task_eval_fn.eval(self.reconstructed_model, self.test_dataloader, epoch, self.logger)
-                if accuracy > max_accuracy:
-                    max_accuracy = accuracy
-                    self._save_checkpoint(f"best")
+                self._eval(epoch)
 
             if epoch % self.config.save_epoch_interval == 0:
                 self._save_checkpoint(f"epoch_{epoch}")
+
+    def _eval(self, epoch, log_suffix=None):
+        accuracy = self.original_task_eval_fn.eval(self.reconstructed_model, self.test_dataloader, epoch, self.logger,
+                                                   log_suffix)
+        if accuracy > self.max_accuracy:
+            self.max_accuracy = accuracy
+            self._save_checkpoint(f"best")
+
+    def _add_to_loss_window(self, loss):
+        if len(self.loss_window) == self.config.eval_loss_window_size:
+            self.loss_window.pop(0)
+        self.loss_window.append(loss)
 
     def _save_checkpoint(self, suffix: str):
         torch.save(self.predictor, os.path.join(self.exp_dir_path, f"hand_{self.config.logging.exp_name}_{suffix}.pth"))
