@@ -123,6 +123,10 @@ class TrainConfig:
     epochs: int = field(default=250)
     # How often to test the reconstructed model on the original task
     eval_epochs_interval: int = field(default=1)
+    # Best losses window size for evaluating the reconstructed model on the original task
+    eval_loss_window_size: int = field(default=20)
+    # How often to add the loss to the window
+    eval_loss_window_interval: int = field(default=10)
     # How often to save the learned model
     save_epoch_interval: int = field(default=10)
     # Use cpu instead of cuda
