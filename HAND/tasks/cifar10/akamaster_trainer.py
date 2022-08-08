@@ -114,26 +114,8 @@ def main():
 
     cudnn.benchmark = True
 
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225])
-
-    train_loader = torch.utils.data.DataLoader(
-        datasets.CIFAR10(root='./data', train=True, transform=transforms.Compose([
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomCrop(32, 4),
-            transforms.ToTensor(),
-            normalize,
-        ]), download=True),
-        batch_size=args.batch_size, shuffle=True,
-        num_workers=args.workers, pin_memory=True)
-
-    val_loader = torch.utils.data.DataLoader(
-        datasets.CIFAR10(root='./data', train=False, transform=transforms.Compose([
-            transforms.ToTensor(),
-            normalize,
-        ])),
-        batch_size=128, shuffle=False,
-        num_workers=args.workers, pin_memory=True)
+    train_loader, val_loader = get_dataloaders(**{'batch_size': args.batch_size},
+                                               **{'batch_size': args.batch_size})
 
     # define loss function (criterion) and optimizer
     criterion = nn.CrossEntropyLoss().cuda()
@@ -197,6 +179,29 @@ def main():
         torch.save(model.module.state_dict(), save_dir + "/" + args.exp_name + ".pt")
         with open(save_dir + '/' + args.exp_name + '.json', 'w') as model_save_path:
             json.dump(model_kwargs, model_save_path)
+
+
+def get_dataloaders(test_kwargs, train_kwargs):
+    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                     std=[0.229, 0.224, 0.225])
+    train_loader = torch.utils.data.DataLoader(
+        datasets.CIFAR10(root='./data', train=True, transform=transforms.Compose([
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomCrop(32, 4),
+            transforms.ToTensor(),
+            normalize,
+        ]), download=True),
+        batch_size=train_kwargs["batch_size"], shuffle=True,
+        num_workers=0, pin_memory=True)
+
+    val_loader = torch.utils.data.DataLoader(
+        datasets.CIFAR10(root='./data', train=False, transform=transforms.Compose([
+            transforms.ToTensor(),
+            normalize,
+        ])),
+        batch_size=128, shuffle=False,
+        num_workers=0, pin_memory=True)
+    return val_loader, train_loader
 
 
 def train(train_loader, model, criterion, optimizer, epoch, smoothness):

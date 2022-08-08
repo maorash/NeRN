@@ -18,9 +18,28 @@ class EvalFunction:
         accuracy = 100. * correct / len(dataloader.dataset)
         if clearml_logger is not None:
             clearml_logger.report_scalar(f'eval_loss{f"_{suffix}" if suffix else ""}', 'eval_loss', test_loss, epoch)
-            clearml_logger.report_scalar(f'eval_accuracy{f"_{suffix}" if suffix else ""}', 'eval_accuracy', accuracy, epoch)
+            clearml_logger.report_scalar(f'eval_accuracy{f"_{suffix}" if suffix else ""}', 'eval_accuracy', accuracy,
+                                         epoch)
         print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
             test_loss, correct, len(dataloader.dataset),
+            accuracy))
+        return accuracy
+
+    def train_eval(self, reconstructed_model: ReconstructedModel,
+                   dataloader: DataLoader,
+                   epoch: int,
+                   clearml_logger: Logger,
+                   suffix="") -> float:
+        print(f'\n Starting eval on train set{f" - {suffix}" if suffix else "."}')
+        train_loss, correct = self._eval_model(reconstructed_model, dataloader)
+        accuracy = 100. * correct / len(dataloader.dataset)
+        if clearml_logger is not None:
+            clearml_logger.report_scalar(f'train_eval_loss{f"_{suffix}" if suffix else ""}', 'train_eval_loss',
+                                         train_loss, epoch)
+            clearml_logger.report_scalar(f'train_eval_accuracy{f"_{suffix}" if suffix else ""}', 'train_eval_accuracy',
+                                         accuracy, epoch)
+        print('\nTrain set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+            train_loss, correct, len(dataloader.dataset),
             accuracy))
         return accuracy
 

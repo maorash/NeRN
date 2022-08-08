@@ -1,0 +1,12 @@
+logging:
+  exp_name: resnet20_5e-3_A_overfit_20enc_levels
+original_model_path: trained_models/original_tasks/mnist/resnet20_5e-3.pt
+hand:
+  num_blocks: 5
+  hidden_layer_size: 500
+task:
+  task_name: cifar10
+  original_model_name: ResNet20
+optim:
+  lr: 5e-4
+  lr_scheduler_type: exponential

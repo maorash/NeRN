@@ -141,7 +141,6 @@ class ResNet(OriginalModel):
         out = self.linear(out)
         if extract_feature_maps:
             self.feature_maps = activations
-            return out
         return out
 
     def get_feature_maps(self, batch: torch.Tensor) -> Tuple[torch.Tensor, List[torch.Tensor]]:
