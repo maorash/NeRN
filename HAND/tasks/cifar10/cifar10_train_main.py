@@ -101,6 +101,8 @@ def main():
                         help='List of hidden channels sizes in SimpleNet')
     parser.add_argument('--num-layers', type=int, default=3, metavar='N',
                         help='number of layers in SimpleNet')
+    parser.add_argument('--kernel-sizes', type=int, default=None, metavar='N', nargs='+',
+                        help='List of kernel sizes in SimpleNet')
     parser.add_argument('--lr', type=float, default=1.0, metavar='LR',
                         help='learning rate (default: 1.0)')
     parser.add_argument('--gamma', type=float, default=0.7, metavar='M',
@@ -117,14 +119,17 @@ def main():
                         help='For Saving the current Model')
     parser.add_argument('--smoothness-type', type=str, default=None,
                         help='Smoothness regularization, can be Cosine/L2')
-    parser.add_argument('--smoothness-factor', type=float, default=1e-4,
+    parser.add_argument('--smoothness-factor', type=float, default=1e-2,
                         help='Factor for the smoothness regularization term')
-    parser.add_argument('--model_arch', type=str, default="ResNet14",
-                        help='The model architecture, can be Simple/VGG8/ResNet18/ResNet14')
+    parser.add_argument('--model_arch', type=str, default="SimpleNet",
+                        help='The model architecture, can be SimpleNet/VGG8/ResNet18/ResNet14')
 
     args = parser.parse_args()
     if args.num_hidden is not None and len(args.num_hidden) != args.num_layers:
         raise ValueError(f"Got num layers = {args.num_layers}, but {len(args.num_hiddens)} hidden sizes")
+
+    if args.kernel_sizes is not None and len(args.kernel_sizes) != args.num_layers:
+        raise ValueError(f"Got num layers = {args.num_layers}, but {len(args.kernel_sizes)} kernel sizes")
 
     use_cuda = not args.no_cuda and torch.cuda.is_available()
 
@@ -145,7 +150,7 @@ def main():
 
     if args.model_arch == "SimpleNet":
         model_kwargs = dict(input_size=32, num_hidden=args.num_hidden, input_channels=3, num_layers=args.num_layers,
-                            num_classes=10)
+                            num_classes=10, kernel_sizes=args.kernel_sizes)
         model = SimpleNet(**model_kwargs).to(device)
     elif args.model_arch == "VGG8":
         model_kwargs = dict(input_size=32, input_channels=3, num_classes=10)

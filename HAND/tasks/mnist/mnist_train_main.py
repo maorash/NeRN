@@ -94,6 +94,8 @@ def main():
                         help='number of epochs to train (default: 14)')
     parser.add_argument('--num-hidden', type=int, default=None, metavar='N', nargs='+',
                         help='List of hidden channels sizes in SimpleNet')
+    parser.add_argument('--kernel-sizes', type=int, default=None, metavar='N', nargs='+',
+                        help='List of kernel sizes in SimpleNet')
     parser.add_argument('--num-layers', type=int, default=3, metavar='N',
                         help='number of layers in SimpleNet')
     parser.add_argument('--lr', type=float, default=1.0, metavar='LR',
@@ -121,6 +123,9 @@ def main():
     if args.num_hidden is not None and len(args.num_hidden) != args.num_layers:
         raise ValueError(f"Got num layers = {args.num_layers}, but {len(args.num_hiddens)} hidden sizes")
 
+    if args.kernel_sizes is not None and len(args.kernel_sizes) != args.num_layers:
+        raise ValueError(f"Got num layers = {args.num_layers}, but {len(args.kernel_sizes)} kernel sizes")
+
     use_cuda = not args.no_cuda and torch.cuda.is_available()
 
     torch.manual_seed(args.seed)
@@ -140,7 +145,7 @@ def main():
 
     if args.model_arch == "SimpleNet":
         model_kwargs = dict(input_size=28, num_hidden=args.num_hidden, input_channels=1, num_layers=args.num_layers,
-                            num_classes=10)
+                            num_classes=10, kernel_sizes=args.kernel_sizes)
         model = SimpleNet(**model_kwargs).to(device)
     elif args.model_arch == "VGG8":
         model_kwargs = dict(input_size=28, input_channels=1, num_classes=10)

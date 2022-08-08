@@ -1,10 +1,7 @@
-import pickle
 from typing import List, Tuple
 
 import torch
 import torchvision.models
-from torch import nn as nn
-from torch.nn import functional as F
 
 from HAND.models.model import OriginalModel, ReconstructedModel
 from HAND.options import EmbeddingsConfig
@@ -92,11 +89,10 @@ class ResNet18(OriginalModel):
         return x
 
 
-class ReconstructedResNet183x3(ReconstructedModel):
-    def __init__(self, original_model: ResNet18, embeddings_cfg: EmbeddingsConfig):
-        super().__init__(original_model)
+class ReconstructedResNet18(ReconstructedModel):
+    def __init__(self, original_model: ResNet18, embeddings_cfg: EmbeddingsConfig, sampling_mode: str = None):
+        super().__init__(original_model, embeddings_cfg, sampling_mode)
         self.indices = self._get_tensor_indices()
-        self.positional_encoder = MyPositionalEncoding(embeddings_cfg)
         self.positional_embeddings = self._calculate_position_embeddings()
 
     def _get_tensor_indices(self) -> List[List[Tuple]]:
@@ -111,29 +107,3 @@ class ReconstructedResNet183x3(ReconstructedModel):
 
         return indices
 
-    def _calculate_position_embeddings(self) -> List[List[torch.Tensor]]:
-        try:
-            print("Trying to load precomputed embeddings")
-            with open(f"{__name__}_embeddings.pkl", "rb") as f:
-                positional_embeddings = pickle.load(f)
-            print("Loaded precomputed embeddings")
-            return positional_embeddings
-        except Exception:
-            print("Couldn't load precomputed embeddings, hang on tight..")
-
-        positional_embeddings = []
-        for i, layer_indices in enumerate(self.indices):
-            print(f"Calculating layer {i}/{len(self.indices)} embeddings. It gets slower")
-            layer_embeddings = []
-            for idx in layer_indices:
-                layer_embeddings.append(self.positional_encoder(idx))
-            positional_embeddings.append(layer_embeddings)
-
-        with open(f"{__name__}_embeddings.pkl", "wb") as f:
-            pickle.dump(positional_embeddings, f)
-            print("Saved computed embeddings")
-
-        return positional_embeddings
-
-    def get_indices_and_positional_embeddings(self) -> Tuple[List[List[Tuple]], List[List[torch.Tensor]]]:
-        return self.indices, self.positional_embeddings

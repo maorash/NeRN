@@ -60,6 +60,7 @@ class MyPositionalEncoding(nn.Module):
     def __init__(self, config: EmbeddingsConfig):
         super(MyPositionalEncoding, self).__init__()
         self.embedding_fusion_mode = config.fusion_mode
+        self.normalization_mode = config.normalization_mode
         self.num_idxs = config.num_idxs
         assert self.embedding_fusion_mode in ['concat', 'sum']
         assert config.enc_levels >= 1
@@ -89,3 +90,6 @@ class MyPositionalEncoding(nn.Module):
         else:
             raise NotImplementedError(f'Unsupported embedding fusion mode {self.embedding_fusion_mode}.')
         return final_embeddings
+
+    def __hash__(self):
+        return hash((self.base, self.levels, self.num_idxs, self.output_size))

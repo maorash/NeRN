@@ -92,51 +92,45 @@ class ResNet14(OriginalModel):
         return x
 
 
-class ReconstructedResNet143x3(ReconstructedModel):
-    def __init__(self, original_model: ResNet14, embeddings_cfg: EmbeddingsConfig):
-        super().__init__(original_model)
+class ReconstructedResNet14(ReconstructedModel):
+    def __init__(self, original_model: ResNet14, embeddings_cfg: EmbeddingsConfig, sampling_mode: str = None):
+        super().__init__(original_model, embeddings_cfg, sampling_mode)
+        self.normalized_indices = None
         self.indices = self._get_tensor_indices()
-        self.positional_encoder = MyPositionalEncoding(embeddings_cfg)
         self.positional_embeddings = self._calculate_position_embeddings()
 
     def _get_tensor_indices(self) -> List[List[Tuple]]:
         indices = []
+        normalize_indices = []
 
-        for layer_idx in range(0, len(self.original_model.get_learnable_weights())):
+        max_index = max([max(weights_shape) for weights_shape in self.get_learnable_weights_shapes()])
+
+        num_layers = len(self.original_model.get_learnable_weights())
+        for layer_idx in range(0, num_layers):
             curr_layer_indices = []
-            for filter_idx in range(self.original_model.num_hidden[layer_idx + 1]):
-                for channel_idx in range(self.original_model.num_hidden[layer_idx]):
+            curr_normalized_layer_indices = []
+            curr_num_filters = self.original_model.num_hidden[layer_idx + 1]
+            for filter_idx in range(curr_num_filters):
+                curr_num_channels = self.original_model.num_hidden[layer_idx]
+                for channel_idx in range(curr_num_channels):
                     curr_layer_indices.append((layer_idx, filter_idx, channel_idx))
+                    if self.embeddings_cfg.normalization_mode is None:
+                        curr_normalized_layer_indices.append((layer_idx, filter_idx, channel_idx))
+                    elif self.embeddings_cfg.normalization_mode == "global":
+                        curr_normalized_layer_indices.append(
+                            (layer_idx / max_index, filter_idx / max_index, channel_idx / max_index))
+                    elif self.embeddings_cfg.normalization_mode == "local":
+                        curr_normalized_layer_indices.append(
+                            (layer_idx / num_layers, filter_idx / curr_num_filters, channel_idx / curr_num_channels))
+                    else:
+                        raise ValueError(f"Unsupported normalization mode {self.normalization_mode}")
+
             indices.append(curr_layer_indices)
+            normalize_indices.append(curr_normalized_layer_indices)
+
+        self.normalized_indices = normalize_indices
 
         return indices
-
-    def _calculate_position_embeddings(self) -> List[List[torch.Tensor]]:
-        try:
-            print("Trying to load precomputed embeddings")
-            with open(f"{__name__}_embeddings.pkl", "rb") as f:
-                positional_embeddings = pickle.load(f)
-            print("Loaded precomputed embeddings")
-            return positional_embeddings
-        except Exception:
-            print("Couldn't load precomputed embeddings, hang on tight..")
-
-        positional_embeddings = []
-        for i, layer_indices in enumerate(self.indices):
-            print(f"Calculating layer {i}/{len(self.indices)} embeddings. It gets slower")
-            layer_embeddings = []
-            for idx in layer_indices:
-                layer_embeddings.append(self.positional_encoder(idx))
-            positional_embeddings.append(layer_embeddings)
-
-        with open(f"{__name__}_embeddings.pkl", "wb") as f:
-            pickle.dump(positional_embeddings, f)
-            print("Saved computed embeddings")
-
-        return positional_embeddings
-
-    def get_indices_and_positional_embeddings(self) -> Tuple[List[List[Tuple]], List[List[torch.Tensor]]]:
-        return self.indices, self.positional_embeddings
 
 
 class PermutedResNet14(ResNet14, PermutedModel):
