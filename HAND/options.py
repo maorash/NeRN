@@ -38,7 +38,7 @@ class HANDConfig:
     hidden_layer_size: int = field(default=30)
     # Batch size for weight prediction (number of weights to predict in a batch)
     weights_batch_size: Optional[int] = field(default=2 ** 16)
-    # Weight batching method (all/sequential_layer/random_layer/random_batch)
+    # Weight batching method (all/sequential_layer/random_layer/random_batch/random_batch_without_replacement)
     weights_batch_method: str = field(default='all')
     # Positional embeddings config
     embeddings: EmbeddingsConfig = field(default_factory=EmbeddingsConfig)

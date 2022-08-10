@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 import torch
@@ -19,9 +19,9 @@ class HANDPredictorFactory:
             return HANDBasicPredictor(self.cfg, self.input_size)
         elif self.cfg.method == 'kxk':
             return HANDKxKPredictor(self.cfg, self.input_size)
-        elif self.cfg.method == 'nerf':
+        elif self.cfg.method == 'kxk_nerf':
             return HANDKxKNerFPredictor(self.cfg, self.input_size)
-        elif self.cfg.method == 'residual':
+        elif self.cfg.method == 'kxk_residual':
             return HANDKxKResidualPredictor(self.cfg, self.input_size)
         else:
             raise ValueError(f'Not recognized predictor type {self.cfg.method}')
@@ -36,7 +36,7 @@ class HANDPredictorBase(nn.Module, ABC):
         # Layer index for computing gradients (for when cfg.weights_batch_method is a layer-based method)
         self.layer_ind_for_grads = 0
         # Random batch variables for computing gradients (for when cfg.weights_batch_method is a batch-based method)
-        self.permuted_indices = None
+        self.permuted_positional_embeddings = None
         self.random_batch_idx = 0
 
     @abstractmethod
@@ -58,52 +58,61 @@ class HANDPredictorBase(nn.Module, ABC):
                 layer_reconstructed_weights.retain_grad()
                 reconstructed_weights.append(layer_reconstructed_weights)
         elif self.cfg.weights_batch_method in ('sequential_layer', 'random_layer'):
-            self.layer_ind_for_grads = (self.layer_ind_for_grads + 1) % len(positional_embeddings) if \
-                self.cfg.weights_batch_method == 'sequential_layer' else \
-                torch.randint(0, len(positional_embeddings), (1,)).item()
-            for layer_ind, (embedding, shape) in enumerate(zip(positional_embeddings, predicted_weights_shapes)):
-                if layer_ind == self.layer_ind_for_grads:
-                    layer_reconstructed_weights = self._predict_weights(embedding).reshape(shape)
-                    layer_reconstructed_weights.retain_grad()
-                else:
-                    with torch.no_grad():
-                        layer_reconstructed_weights = self._predict_weights(embedding).reshape(shape)
-                reconstructed_weights.append(layer_reconstructed_weights)
+            reconstructed_weights = self._predict_all_by_layers(positional_embeddings, predicted_weights_shapes)
         elif self.cfg.weights_batch_method in ('random_batch', 'random_batch_without_replacement'):
-            stacked_embeddings = torch.vstack(positional_embeddings)
-            if self.cfg.weights_batch_method == 'random_batch':
-                self.permuted_indices = torch.randperm(stacked_embeddings.shape[0], device=stacked_embeddings.device)
-                indices_with_grads = self.permuted_indices[:self.cfg.weights_batch_size]
-                indices_without_grads = self.permuted_indices[self.cfg.weights_batch_size:]
-            else:
-                num_batches = -(stacked_embeddings.shape[0] // -self.cfg.weights_batch_size)
-                if self.permuted_indices is None or self.random_batch_idx >= num_batches:
-                    self.permuted_indices = torch.randperm(stacked_embeddings.shape[0],
-                                                           device=stacked_embeddings.device)
-                with_grads_ind_begin = self.random_batch_idx * self.cfg.weights_batch_size
-                with_grads_ind_end = (self.random_batch_idx + 1) * self.cfg.weights_batch_size
-                indices_with_grads = self.permuted_indices[with_grads_ind_begin: with_grads_ind_end]
-                indices_without_grads = torch.concat([self.permuted_indices[:with_grads_ind_begin],
-                                                      self.permuted_indices[with_grads_ind_end:]])
-                self.random_batch_idx = (self.random_batch_idx + 1) % num_batches
-
-            predicted_with_grads = self._predict_weights(stacked_embeddings[indices_with_grads])
-            predicted_with_grads.retain_grad()
-
-            predicted = torch.zeros(stacked_embeddings.shape[0], predicted_with_grads.shape[1],
-                                    device=stacked_embeddings.device)
-            predicted[indices_with_grads] = predicted_with_grads
-
-            if indices_without_grads.shape[0] > 0:
-                with torch.no_grad():
-                    predicted_without_grads = self._predict_weights(stacked_embeddings[indices_without_grads])
-                    predicted[indices_without_grads] = predicted_without_grads
-
-            reconstructed_weights = torch.vsplit(predicted,
-                                                 list(np.cumsum([pe.shape[0] for pe in positional_embeddings])))[:-1]
-            reconstructed_weights = [w.reshape(s) for w, s in zip(reconstructed_weights, predicted_weights_shapes)]
+            reconstructed_weights = self._predict_all_by_random_batches(positional_embeddings, predicted_weights_shapes)
         else:
             raise ValueError("Unsupported predictor method")
+
+        return reconstructed_weights
+
+    def _predict_all_by_random_batches(self, positional_embeddings: List[torch.Tensor],
+                                       predicted_weights_shapes: List[Tuple]) -> List[torch.Tensor]:
+        stacked_embeddings = torch.vstack(positional_embeddings)
+        if self.cfg.weights_batch_method == 'random_batch':
+            self.permuted_positional_embeddings = torch.randperm(stacked_embeddings.shape[0],
+                                                                 device=stacked_embeddings.device)
+            indices_with_grads = self.permuted_positional_embeddings[:self.cfg.weights_batch_size]
+            indices_without_grads = self.permuted_positional_embeddings[self.cfg.weights_batch_size:]
+        else:
+            num_batches = -(stacked_embeddings.shape[0] // -self.cfg.weights_batch_size)
+            if self.permuted_positional_embeddings is None or self.random_batch_idx >= num_batches:
+                self.permuted_positional_embeddings = torch.randperm(stacked_embeddings.shape[0],
+                                                                     device=stacked_embeddings.device)
+            with_grads_ind_begin = self.random_batch_idx * self.cfg.weights_batch_size
+            with_grads_ind_end = (self.random_batch_idx + 1) * self.cfg.weights_batch_size
+            indices_with_grads = self.permuted_positional_embeddings[with_grads_ind_begin: with_grads_ind_end]
+            indices_without_grads = torch.concat([self.permuted_positional_embeddings[:with_grads_ind_begin],
+                                                  self.permuted_positional_embeddings[with_grads_ind_end:]])
+            self.random_batch_idx = (self.random_batch_idx + 1) % num_batches
+        predicted_with_grads = self._predict_weights(stacked_embeddings[indices_with_grads])
+        predicted_with_grads.retain_grad()
+        predicted = torch.zeros(stacked_embeddings.shape[0], predicted_with_grads.shape[1],
+                                device=stacked_embeddings.device)
+        predicted[indices_with_grads] = predicted_with_grads
+        if indices_without_grads.shape[0] > 0:
+            with torch.no_grad():
+                predicted_without_grads = self._predict_weights(stacked_embeddings[indices_without_grads])
+                predicted[indices_without_grads] = predicted_without_grads
+        reconstructed_weights = torch.vsplit(predicted,
+                                             list(np.cumsum([pe.shape[0] for pe in positional_embeddings])))[:-1]
+        reconstructed_weights = [w.reshape(s) for w, s in zip(reconstructed_weights, predicted_weights_shapes)]
+        return reconstructed_weights
+
+    def _predict_all_by_layers(self, positional_embeddings: List[torch.Tensor],
+                               predicted_weights_shapes: List[Tuple]) -> List[torch.Tensor]:
+        reconstructed_weights = []
+        self.layer_ind_for_grads = (self.layer_ind_for_grads + 1) % len(positional_embeddings) if \
+            self.cfg.weights_batch_method == 'sequential_layer' else \
+            torch.randint(0, len(positional_embeddings), (1,)).item()
+        for layer_ind, (embedding, shape) in enumerate(zip(positional_embeddings, predicted_weights_shapes)):
+            if layer_ind == self.layer_ind_for_grads:
+                layer_reconstructed_weights = self._predict_weights(embedding).reshape(shape)
+                layer_reconstructed_weights.retain_grad()
+            else:
+                with torch.no_grad():
+                    layer_reconstructed_weights = self._predict_weights(embedding).reshape(shape)
+            reconstructed_weights.append(layer_reconstructed_weights)
 
         return reconstructed_weights
 
@@ -149,17 +158,14 @@ class HANDKxKPredictor(HANDPredictorBase):
         return self.cfg.output_size
 
 
-class HANDKxKNerFPredictor(HANDPredictorBase):
+class HANDKxKNerFPredictor(HANDKxKPredictor):
     """
     Given 3 positional embeddings: (Layer, Filter, Channel) returns a KxK filter tensor
     """
 
     def __init__(self, cfg: HANDConfig, input_size: int):
-        super().__init__(cfg, input_size)
-        self.hidden_size = cfg.hidden_layer_size
         self.skips = [self.cfg.num_blocks // 2]  # nerf uses a skip in the middle of the blocks
-        self.layers = self._construct_layers()
-        self.final_linear_layer = nn.Linear(self.hidden_size, cfg.output_size ** 2)
+        super().__init__(cfg, input_size)
 
     def _construct_layers(self):
         blocks = [nn.Linear(self.input_size, self.hidden_size)]
@@ -182,22 +188,15 @@ class HANDKxKNerFPredictor(HANDPredictorBase):
         x = self.final_linear_layer(x)
         return x
 
-    @property
-    def output_size(self) -> int:
-        return self.cfg.output_size
 
-
-class HANDKxKResidualPredictor(HANDPredictorBase):
+class HANDKxKResidualPredictor(HANDKxKPredictor):
     """
     Given 3 positional embeddings: (Layer, Filter, Channel) returns a KxK filter tensor
     """
 
     def __init__(self, cfg: HANDConfig, input_size: int):
-        super().__init__(cfg, input_size)
-        self.hidden_size = cfg.hidden_layer_size
         self.skips = [self.cfg.num_blocks // 2]  # nerf uses a skip in the middle of the blocks
-        self.layers = self._construct_layers()
-        self.final_linear_layer = nn.Linear(self.hidden_size, cfg.output_size ** 2)
+        super().__init__(cfg, input_size)
 
     def _construct_layers(self):
         blocks = [nn.Linear(self.input_size, self.hidden_size)]
@@ -216,10 +215,6 @@ class HANDKxKResidualPredictor(HANDPredictorBase):
             x = self.act_layer(x)
         x = self.final_linear_layer(x)
         return x
-
-    @property
-    def output_size(self) -> int:
-        return self.cfg.output_size
 
 
 class HANDBasicPredictor(HANDPredictorBase):
