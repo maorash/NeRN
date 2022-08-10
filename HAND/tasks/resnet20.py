@@ -33,7 +33,7 @@ class ReconstructedResNet20(ReconstructedModel):
                 curr_num_channels = self.original_model.num_hidden[layer_idx][1]
                 for channel_idx in range(curr_num_channels):
                     curr_layer_indices.append((layer_idx, filter_idx, channel_idx))
-                    if self.embeddings_cfg.normalization_mode is None:
+                    if self.embeddings_cfg.normalization_mode == "None":
                         curr_normalized_layer_indices.append((layer_idx, filter_idx, channel_idx))
                     elif self.embeddings_cfg.normalization_mode == "global":
                         curr_normalized_layer_indices.append(
@@ -42,7 +42,7 @@ class ReconstructedResNet20(ReconstructedModel):
                         curr_normalized_layer_indices.append(
                             (layer_idx / num_layers, filter_idx / curr_num_filters, channel_idx / curr_num_channels))
                     else:
-                        raise ValueError(f"Unsupported normalization mode {self.normalization_mode}")
+                        raise ValueError(f"Unsupported normalization mode {self.embeddings_cfg.normalization_mode}")
 
             indices.append(curr_layer_indices)
             normalize_indices.append(curr_normalized_layer_indices)
