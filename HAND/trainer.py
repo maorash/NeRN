@@ -1,7 +1,6 @@
 from typing import Tuple, List
 import os
 
-import numpy as np
 import torch
 from clearml import Logger
 from torch.utils.data import DataLoader

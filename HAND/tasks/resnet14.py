@@ -131,3 +131,6 @@ class ReconstructedResNet14(ReconstructedModel):
         self.normalized_indices = normalize_indices
 
         return indices
+
+    def __str__(self):
+        return f"{type(self).__name__}"

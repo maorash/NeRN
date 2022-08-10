@@ -59,7 +59,7 @@ class ReconstructedModel(OriginalModel):
             nn.init.xavier_normal_(weight)
 
     def _calculate_position_embeddings(self) -> List[List[torch.Tensor]]:
-        embeddings_cache_filename = f"{__name__}_embeddings_{hash(self.positional_encoder)}.pkl"
+        embeddings_cache_filename = f"{str(self)}_embeddings_{hash(self.positional_encoder)}.pkl"
         try:
             print("Trying to load precomputed embeddings")
             with open(embeddings_cache_filename, "rb") as f:

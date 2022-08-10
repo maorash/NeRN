@@ -1,0 +1,14 @@
+logging:
+  exp_name: resnet20_1e-6_B_cifar10
+original_model_path: trained_models/original_tasks/mnist/resnet20_1e-6_B.pt
+hand:
+  num_blocks: 4
+  hidden_layer_size: 180
+  embeddings:
+    enc_levels: 20
+    normalization_mode:
+task:
+  task_name: cifar10v2
+  original_model_name: ResNet20
+optim:
+  lr: 5e-4

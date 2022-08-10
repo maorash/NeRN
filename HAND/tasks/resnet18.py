@@ -126,3 +126,6 @@ class ReconstructedResNet18(ReconstructedModel):
 
         return indices
 
+    def __str__(self):
+        return f"{type(self).__name__}"
+
