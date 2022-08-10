@@ -1,3 +1,4 @@
+import collections
 import os
 from datetime import datetime
 from typing import List
@@ -25,3 +26,14 @@ def log_scalar_dict(scalar_dict: dict, title: str, iteration: int, logger: Logge
 
 def compute_grad_norms(weights: List[Tensor]):
     return [weight.grad.norm() for weight in weights]
+
+
+def flatten(d, parent_key='', sep='.'):
+    items = []
+    for k, v in d.items():
+        new_key = parent_key + sep + k if parent_key else k
+        if isinstance(v, collections.MutableMapping):
+            items.extend(flatten(v, new_key, sep=sep).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)

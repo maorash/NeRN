@@ -1,10 +1,11 @@
 logging:
-  exp_name: resnet18_cifar10
+  exp_name: 2020_08_09_cifar10_resnet18_nerf_h768_exponential
   log_interval: 10
 original_model_path: trained_models/original_tasks/mnist/cifar10_resnet18_smooth5e5.pt
 hand:
-  num_blocks: 5
-  hidden_layer_size: 1024
+  method: 'nerf'
+  num_blocks: 8
+  hidden_layer_size: 768
   weights_batch_method: random_batch
   embeddings:
     enc_levels: 40
@@ -13,3 +14,4 @@ task:
   original_model_name: ResNet18
 optim:
   lr: 5e-4
+  lr_scheduler_type: exponential

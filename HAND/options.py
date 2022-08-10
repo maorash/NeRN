@@ -1,3 +1,5 @@
+from typing import Optional
+
 import pyrallis
 from dataclasses import dataclass, field
 
@@ -34,6 +36,10 @@ class HANDConfig:
     num_blocks: int = field(default=3)
     # Number of linear blocks
     hidden_layer_size: int = field(default=30)
+    # Batch size for weight prediction (number of weights to predict in a batch)
+    weights_batch_size: Optional[int] = field(default=2 ** 16)
+    # Weight batching method (all/sequential_layer/random_layer/random_batch/random_batch_without_replacement)
+    weights_batch_method: str = field(default='all')
     # Positional embeddings config
     embeddings: EmbeddingsConfig = field(default_factory=EmbeddingsConfig)
     # Task loss weight
@@ -113,16 +119,14 @@ class TrainConfig:
     # workers: int = field(default=4)
     # Input batch size
     batch_size: int = field(default=256)
-    # Resuming start_epoch from checkpoint
-    # not_resume_epoch: bool = field(default=True)
     # Number of epochs to train for
     epochs: int = field(default=250)
-    # Epoch cycles for trainings
-    # cycles: int = field(default=1)
-    # Number of warmup epochs
-    # warmup: int = field(default=5)
     # How often to test the reconstructed model on the original task
     eval_epochs_interval: int = field(default=1)
+    # Best losses window size for evaluating the reconstructed model on the original task
+    eval_loss_window_size: int = field(default=20)
+    # How often to add the loss to the window
+    eval_loss_window_interval: int = field(default=10)
     # How often to save the learned model
     save_epoch_interval: int = field(default=10)
     # Use cpu instead of cuda
