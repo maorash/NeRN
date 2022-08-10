@@ -6,6 +6,7 @@ hand:
   hidden_layer_size: 180
   embeddings:
     enc_levels: 20
+    normalization_mode:
 task:
   task_name: cifar10v2
   original_model_name: ResNet20
