@@ -60,19 +60,20 @@ class Trainer:
         self.exp_dir_path = create_experiment_dir(self.config.logging.log_dir, self.config.logging.exp_name)
 
         training_step = 0
+        original_weights = self.original_model.get_learnable_weights()
+
         for epoch in range(self.config.epochs):
             for batch_ind, (batch, ground_truth) in enumerate(self.train_dataloader):
                 batch, ground_truth = batch.to(self.device), ground_truth.to(self.device)
                 optimizer.zero_grad()
 
-                reconstructed_weights = self.predictor.predict_all(positional_embeddings, learnable_weights_shapes)
+                reconstructed_weights = self.predictor.predict_all(positional_embeddings, original_weights, learnable_weights_shapes)
                 self.reconstructed_model.update_weights(reconstructed_weights)
 
                 original_outputs, original_feature_maps = self.original_model.get_feature_maps(batch)
                 reconstructed_outputs, reconstructed_feature_maps = self.reconstructed_model.get_feature_maps(batch)
 
                 # Compute reconstruction loss
-                original_weights = self.original_model.get_learnable_weights()
                 reconstruction_term = self.config.hand.reconstruction_loss_weight * self.reconstruction_loss(
                     reconstructed_weights, original_weights)
 
