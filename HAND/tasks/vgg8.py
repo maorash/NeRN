@@ -79,3 +79,6 @@ class ReconstructedVGG8(ReconstructedModel):
             indices.append(curr_layer_indices)
 
         return indices
+
+    def __str__(self):
+        return f"{type(self).__name__}"

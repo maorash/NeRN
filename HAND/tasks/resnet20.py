@@ -3,11 +3,12 @@ from typing import List, Tuple
 from HAND.models.model import ReconstructedModel
 from HAND.options import EmbeddingsConfig
 from HAND.tasks.resnet import ResNet, BasicBlockA, BasicBlockB
-from HAND.models.model import OriginalModel
+
 
 class ResNet20(ResNet):
     def __init__(self, basic_block_option='A', **kwargs):
-        basic_block = BasicBlockA if basic_block_option == 'A' else BasicBlockB
+        self.basic_block_option = basic_block_option
+        basic_block = BasicBlockA if self.basic_block_option == 'A' else BasicBlockB
         super(ResNet20, self).__init__(basic_block, [3, 3, 3])
 
 
@@ -28,3 +29,6 @@ class ReconstructedResNet20(ReconstructedModel):
             indices.append(curr_layer_indices)
 
         return indices
+
+    def __str__(self):
+        return f"{type(self).__name__}_{self.original_model.basic_block_option}"

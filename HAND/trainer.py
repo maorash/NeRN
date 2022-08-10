@@ -1,8 +1,6 @@
-import copy
 from typing import Tuple, List
 import os
 
-import numpy as np
 import torch
 from clearml import Logger
 from torch.utils.data import DataLoader
@@ -45,7 +43,6 @@ class Trainer:
         self.original_task_eval_fn = original_task_eval_fn
         self.device = device
         self.test_dataloader, self.train_dataloader = task_dataloaders
-        self.train_eval_dataloader = copy.deepcopy(self.train_dataloader)
         self.logger = logger
         self.exp_dir_path = None
         self.max_accuracy = 0
@@ -122,7 +119,6 @@ class Trainer:
 
             if epoch % self.config.eval_epochs_interval == 0:
                 self._eval(epoch)
-                self._train_eval(epoch)
 
             if epoch % self.config.save_epoch_interval == 0:
                 self._save_checkpoint(f"epoch_{epoch}")
@@ -133,11 +129,6 @@ class Trainer:
         if accuracy > self.max_accuracy:
             self.max_accuracy = accuracy
             self._save_checkpoint(f"best")
-
-    def _train_eval(self, epoch, log_suffix=None):
-        accuracy = self.original_task_eval_fn.train_eval(self.reconstructed_model, self.train_eval_dataloader, epoch,
-                                                         self.logger,
-                                                         log_suffix)
 
     def _add_to_loss_window(self, loss):
         if len(self.loss_window) == self.config.eval_loss_window_size:

@@ -22,7 +22,7 @@ model_names = sorted(name for name in resnet.__dict__
 
 print(model_names)
 
-parser = argparse.ArgumentParser(description='Propert ResNets for CIFAR10 in pytorch')
+parser = argparse.ArgumentParser(description='Proper ResNets for CIFAR10 in pytorch')
 parser.add_argument('--exp-name', type=str, required=True,
                     help='Name of the experiment. Will be the name of output model file.')
 parser.add_argument('--arch', '-a', metavar='ARCH', default='resnet20',
@@ -114,8 +114,7 @@ def main():
 
     cudnn.benchmark = True
 
-    train_loader, val_loader = get_dataloaders(**{'batch_size': args.batch_size},
-                                               **{'batch_size': args.batch_size})
+    val_loader, train_loader = get_dataloaders({'workers': args.workers}, {'batch_size': args.batch_size, 'workers': args.workers}, use_workers=True)
 
     # define loss function (criterion) and optimizer
     criterion = nn.CrossEntropyLoss().cuda()
@@ -181,7 +180,7 @@ def main():
             json.dump(model_kwargs, model_save_path)
 
 
-def get_dataloaders(test_kwargs, train_kwargs):
+def get_dataloaders(test_kwargs, train_kwargs, use_workers=False):
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
     train_loader = torch.utils.data.DataLoader(
@@ -192,7 +191,7 @@ def get_dataloaders(test_kwargs, train_kwargs):
             normalize,
         ]), download=True),
         batch_size=train_kwargs["batch_size"], shuffle=True,
-        num_workers=0, pin_memory=True)
+        num_workers=train_kwargs["workers"] if use_workers else 0, pin_memory=True)
 
     val_loader = torch.utils.data.DataLoader(
         datasets.CIFAR10(root='./data', train=False, transform=transforms.Compose([
@@ -200,7 +199,7 @@ def get_dataloaders(test_kwargs, train_kwargs):
             normalize,
         ])),
         batch_size=128, shuffle=False,
-        num_workers=0, pin_memory=True)
+        num_workers=test_kwargs["workers"] if use_workers else 0, pin_memory=True)
     return val_loader, train_loader
 
 

@@ -1,6 +1,6 @@
 logging:
-  exp_name: resnet20_0_B_exp_cifar10
-original_model_path: trained_models/original_tasks/mnist/resnet20_0_B.pt
+  exp_name: resnet20_1e-4_B_exp_cifar10
+original_model_path: trained_models/original_tasks/mnist/resnet20_1e-4_B.pt
 hand:
   num_blocks: 4
   hidden_layer_size: 180
