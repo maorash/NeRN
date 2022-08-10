@@ -2,7 +2,6 @@ from typing import Tuple, List
 import os
 
 import numpy as np
-import einops
 import torch
 from clearml import Logger
 from torch.utils.data import DataLoader
@@ -63,20 +62,19 @@ class Trainer:
 
         training_step = 0
         original_weights = self.original_model.get_learnable_weights()
-        original_norms = [torch.norm(einops.rearrange(weight,'cout cin h w -> (cout cin) (h w)'),dim=1) for weight in original_weights]
+
         for epoch in range(self.config.epochs):
             for batch_ind, (batch, ground_truth) in enumerate(self.train_dataloader):
                 batch, ground_truth = batch.to(self.device), ground_truth.to(self.device)
                 optimizer.zero_grad()
 
-                reconstructed_weights = self.predictor.predict_all(positional_embeddings, learnable_weights_shapes, original_norms=original_norms)
+                reconstructed_weights = self.predictor.predict_all(positional_embeddings, original_weights, learnable_weights_shapes)
                 self.reconstructed_model.update_weights(reconstructed_weights)
 
                 original_outputs, original_feature_maps = self.original_model.get_feature_maps(batch)
                 reconstructed_outputs, reconstructed_feature_maps = self.reconstructed_model.get_feature_maps(batch)
 
                 # Compute reconstruction loss
-                original_weights = self.original_model.get_learnable_weights()
                 reconstruction_term = self.config.hand.reconstruction_loss_weight * self.reconstruction_loss(
                     reconstructed_weights, original_weights)
 

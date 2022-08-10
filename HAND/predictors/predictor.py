@@ -2,7 +2,7 @@ import random
 from abc import ABC, abstractmethod
 from typing import List, Tuple
 
-
+import einops
 import numpy as np
 import torch
 from torch import nn, distributions
@@ -49,8 +49,12 @@ class HANDPredictorBase(nn.Module, ABC):
     def output_size(self) -> int:
         raise NotImplementedError()
 
-    def predict_all(self, positional_embeddings: List[torch.Tensor], learnable_weights_shapes: List[torch.Size], original_norms=None) \
-            -> List[torch.Tensor]:
+    @abstractmethod
+    def _get_original_weights_norms(self, original_weights: List[torch.Tensor]) -> List[torch.Tensor]:
+        raise NotImplementedError()
+
+    def predict_all(self, positional_embeddings: List[torch.Tensor], original_weights: List[torch.Tensor],
+                    learnable_weights_shapes: List[torch.Size]) -> List[torch.Tensor]:
         predicted_weights_shapes = [(layer_shape[0], layer_shape[1], self.output_size, self.output_size) for layer_shape
                                     in learnable_weights_shapes]
         reconstructed_weights = []
@@ -62,14 +66,17 @@ class HANDPredictorBase(nn.Module, ABC):
         elif self.cfg.weights_batch_method in ('sequential_layer', 'random_layer'):
             reconstructed_weights = self._predict_all_by_layers(positional_embeddings, predicted_weights_shapes)
         elif self.cfg.weights_batch_method in ('random_batch', 'random_batch_without_replacement', 'random_weighted_batch'):
-            reconstructed_weights = self._predict_all_by_random_batches(positional_embeddings, predicted_weights_shapes)
+            reconstructed_weights = self._predict_all_by_random_batches(positional_embeddings, original_weights,
+                                                                        predicted_weights_shapes)
         else:
             raise ValueError("Unsupported predictor method")
 
         return reconstructed_weights
 
     def _predict_all_by_random_batches(self, positional_embeddings: List[torch.Tensor],
-                                       predicted_weights_shapes: List[Tuple]) -> List[torch.Tensor]:
+                                       original_weights: List[torch.Tensor], predicted_weights_shapes: List[Tuple])  \
+            -> List[torch.Tensor]:
+        original_weights_norms = self._get_original_weights_norms(original_weights)
         stacked_embeddings = torch.vstack(positional_embeddings)
         if self.cfg.weights_batch_method == 'random_batch':
             self.permuted_positional_embeddings = torch.randperm(stacked_embeddings.shape[0],
@@ -77,7 +84,7 @@ class HANDPredictorBase(nn.Module, ABC):
             indices_with_grads = self.permuted_positional_embeddings[:self.cfg.weights_batch_size]
             indices_without_grads = self.permuted_positional_embeddings[self.cfg.weights_batch_size:]
         elif self.cfg.weights_batch_method == 'random_weighted_batch':
-            stacked_norms = torch.concat(original_norms)
+            stacked_norms = torch.concat(original_weights_norms)
             if random.uniform(0, 1) < 0.5:
                 self.permuted_indices = torch.randperm(stacked_embeddings.shape[0], device=stacked_embeddings.device)
                 indices_with_grads = self.permuted_indices[:self.cfg.weights_batch_size]
@@ -171,6 +178,10 @@ class HANDKxKPredictor(HANDPredictorBase):
     @property
     def output_size(self) -> int:
         return self.cfg.output_size
+
+    def _get_original_weights_norms(self, original_weights: List[torch.Tensor]) -> List[torch.Tensor]:
+        return [torch.norm(einops.rearrange(weight, 'cout cin h w -> (cout cin) (h w)'), dim=1)
+                for weight in original_weights]
 
 
 class HANDKxKNerFPredictor(HANDKxKPredictor):
