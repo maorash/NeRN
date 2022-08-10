@@ -155,17 +155,13 @@ def main():
         is_best = prec1 > best_prec1
         best_prec1 = max(prec1, best_prec1)
 
-        # if epoch > 0 and epoch % args.save_every == 0:
-        #     save_checkpoint({
-        #         'epoch': epoch + 1,
-        #         'state_dict': model.state_dict(),
-        #         'best_prec1': best_prec1,
-        #     }, is_best, filename=os.path.join(args.save_dir, 'checkpoint.th'))
-        #
-        # save_checkpoint({
-        #     'state_dict': model.state_dict(),
-        #     'best_prec1': best_prec1,
-        # }, is_best, filename=os.path.join(args.save_dir, 'model.th'))
+        if is_best:
+            save(model, 'best')
+
+    save(model, 'last')
+
+
+def save(model, suffix=""):
     model_kwargs = dict(arch=args.arch)
     model_kwargs.update({
         "smoothness_type": args.smoothness_type,
@@ -177,7 +173,7 @@ def main():
         save_dir = '../../trained_models/original_tasks/mnist'
         os.makedirs(save_dir, exist_ok=True)
         torch.save(model.module.state_dict(), save_dir + "/" + args.exp_name + ".pt")
-        with open(save_dir + '/' + args.exp_name + '.json', 'w') as model_save_path:
+        with open(save_dir + '/' + args.exp_name + ('.json' if not suffix else f'_{suffix}.json'), 'w') as model_save_path:
             json.dump(model_kwargs, model_save_path)
 
 
@@ -325,13 +321,6 @@ def validate(val_loader, model, criterion):
           .format(top1=top1))
 
     return top1.avg
-
-
-def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
-    """
-    Save the training model
-    """
-    torch.save(state, filename)
 
 
 class AverageMeter(object):
