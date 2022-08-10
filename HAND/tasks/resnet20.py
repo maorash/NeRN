@@ -20,13 +20,34 @@ class ReconstructedResNet20(ReconstructedModel):
 
     def _get_tensor_indices(self) -> List[List[Tuple]]:
         indices = []
+        normalize_indices = []
 
-        for layer_idx in range(0, len(self.original_model.get_learnable_weights())):
+        max_index = max([max(weights_shape) for weights_shape in self.get_learnable_weights_shapes()])
+
+        num_layers = len(self.original_model.get_learnable_weights())
+        for layer_idx in range(0, num_layers):
             curr_layer_indices = []
-            for filter_idx in range(self.original_model.num_hidden[layer_idx][0]):
-                for channel_idx in range(self.original_model.num_hidden[layer_idx][1]):
+            curr_normalized_layer_indices = []
+            curr_num_filters = self.original_model.num_hidden[layer_idx][0]
+            for filter_idx in range(curr_num_filters):
+                curr_num_channels = self.original_model.num_hidden[layer_idx][1]
+                for channel_idx in range(curr_num_channels):
                     curr_layer_indices.append((layer_idx, filter_idx, channel_idx))
+                    if self.embeddings_cfg.normalization_mode is None:
+                        curr_normalized_layer_indices.append((layer_idx, filter_idx, channel_idx))
+                    elif self.embeddings_cfg.normalization_mode == "global":
+                        curr_normalized_layer_indices.append(
+                            (layer_idx / max_index, filter_idx / max_index, channel_idx / max_index))
+                    elif self.embeddings_cfg.normalization_mode == "local":
+                        curr_normalized_layer_indices.append(
+                            (layer_idx / num_layers, filter_idx / curr_num_filters, channel_idx / curr_num_channels))
+                    else:
+                        raise ValueError(f"Unsupported normalization mode {self.normalization_mode}")
+
             indices.append(curr_layer_indices)
+            normalize_indices.append(curr_normalized_layer_indices)
+
+        self.normalized_indices = normalize_indices
 
         return indices
 
