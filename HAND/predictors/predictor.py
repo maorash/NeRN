@@ -21,6 +21,8 @@ class HANDPredictorFactory:
             return HANDKxKPredictor(self.cfg, self.input_size)
         elif self.cfg.method == 'nerf':
             return HANDKxKNerFPredictor(self.cfg, self.input_size)
+        elif self.cfg.method == 'residual':
+            return HANDKxKResidualPredictor(self.cfg, self.input_size)
         else:
             raise ValueError(f'Not recognized predictor type {self.cfg.method}')
 
@@ -176,6 +178,41 @@ class HANDKxKNerFPredictor(HANDPredictorBase):
                 x = layer(torch.cat([positional_embedding, x], -1))
             else:
                 x = layer(x)
+            x = self.act_layer(x)
+        x = self.final_linear_layer(x)
+        return x
+
+    @property
+    def output_size(self) -> int:
+        return self.cfg.output_size
+
+
+class HANDKxKResidualPredictor(HANDPredictorBase):
+    """
+    Given 3 positional embeddings: (Layer, Filter, Channel) returns a KxK filter tensor
+    """
+
+    def __init__(self, cfg: HANDConfig, input_size: int):
+        super().__init__(cfg, input_size)
+        self.hidden_size = cfg.hidden_layer_size
+        self.skips = [self.cfg.num_blocks // 2]  # nerf uses a skip in the middle of the blocks
+        self.layers = self._construct_layers()
+        self.final_linear_layer = nn.Linear(self.hidden_size, cfg.output_size ** 2)
+
+    def _construct_layers(self):
+        blocks = [nn.Linear(self.input_size, self.hidden_size)]
+        for i in range(1, self.cfg.num_blocks - 1):
+            layer = nn.Linear(self.hidden_size, self.hidden_size)
+            blocks.append(layer)
+        return nn.ModuleList(blocks)
+
+    def forward(self, positional_embedding: torch.Tensor) -> torch.Tensor:
+        x = self.layers[0](positional_embedding)
+        first_layer_out = x
+        for i in range(1, len(self.layers)):
+            x = self.layers[i](x)
+            if i in self.skips:
+                x += first_layer_out
             x = self.act_layer(x)
         x = self.final_linear_layer(x)
         return x
