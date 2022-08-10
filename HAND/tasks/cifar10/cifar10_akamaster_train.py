@@ -13,12 +13,12 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 
 from HAND.models.regularization import CosineSmoothness, L2Smoothness
-from HAND.tasks import resnet
+from HAND.tasks import cifar_resnet
 
-model_names = sorted(name for name in resnet.__dict__
+model_names = sorted(name for name in cifar_resnet.__dict__
                      if name.islower() and not name.startswith("__")
                      and name.startswith("resnet")
-                     and callable(resnet.__dict__[name]))
+                     and callable(cifar_resnet.__dict__[name]))
 
 print(model_names)
 
@@ -86,7 +86,7 @@ def main():
     # if not os.path.exists(args.save_dir):
     #     os.makedirs(args.save_dir)
 
-    model = MyDataParallel(resnet.__dict__[args.arch](basic_block_option=args.basic_block_option))
+    model = MyDataParallel(cifar_resnet.__dict__[args.arch](basic_block_option=args.basic_block_option))
     # model = resnet.__dict__[args.arch](basic_block_option=args.basic_block_option)
     model.cuda()
 

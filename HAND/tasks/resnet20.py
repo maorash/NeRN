@@ -2,7 +2,7 @@ from typing import List, Tuple
 
 from HAND.models.model import ReconstructedModel
 from HAND.options import EmbeddingsConfig
-from HAND.tasks.resnet import ResNet, BasicBlockA, BasicBlockB
+from HAND.tasks.cifar_resnet import ResNet, BasicBlockA, BasicBlockB
 
 
 class ResNet20(ResNet):
