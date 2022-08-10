@@ -1,9 +1,11 @@
+import random
 from abc import ABC, abstractmethod
 from typing import List
 
+
 import numpy as np
 import torch
-from torch import nn
+from torch import nn, distributions
 
 from HAND.options import HANDConfig
 from HAND.predictors.activations import ActivationsFactory
@@ -47,7 +49,7 @@ class HANDPredictorBase(nn.Module, ABC):
     def output_size(self) -> int:
         raise NotImplementedError()
 
-    def predict_all(self, positional_embeddings: List[torch.Tensor], learnable_weights_shapes: List[torch.Size]) \
+    def predict_all(self, positional_embeddings: List[torch.Tensor], learnable_weights_shapes: List[torch.Size], original_norms=None) \
             -> List[torch.Tensor]:
         predicted_weights_shapes = [(layer_shape[0], layer_shape[1], self.output_size, self.output_size) for layer_shape
                                     in learnable_weights_shapes]
@@ -69,12 +71,26 @@ class HANDPredictorBase(nn.Module, ABC):
                     with torch.no_grad():
                         layer_reconstructed_weights = self._predict_weights(embedding).reshape(shape)
                 reconstructed_weights.append(layer_reconstructed_weights)
-        elif self.cfg.weights_batch_method in ('random_batch', 'random_batch_without_replacement'):
+        elif self.cfg.weights_batch_method in ('random_batch', 'random_batch_without_replacement','random_weighted_batch'):
             stacked_embeddings = torch.vstack(positional_embeddings)
             if self.cfg.weights_batch_method == 'random_batch':
                 self.permuted_indices = torch.randperm(stacked_embeddings.shape[0], device=stacked_embeddings.device)
                 indices_with_grads = self.permuted_indices[:self.cfg.weights_batch_size]
                 indices_without_grads = self.permuted_indices[self.cfg.weights_batch_size:]
+            elif self.cfg.weights_batch_method == 'random_weighted_batch':
+                stacked_norms = torch.concat(original_norms)
+                if random.uniform(0,1) < 0.5:
+                    self.permuted_indices = torch.randperm(stacked_embeddings.shape[0], device=stacked_embeddings.device)
+                    indices_with_grads = self.permuted_indices[:self.cfg.weights_batch_size]
+                    indices_without_grads = self.permuted_indices[self.cfg.weights_batch_size:]
+                else:
+                    # TODO: Think how to choose proportions of weights
+                    indices_with_grads = distributions.Categorical(stacked_norms).sample([self.cfg.weights_batch_size])
+                    indices_without_grads = set(range(stacked_embeddings.shape[0]))-set(indices_with_grads.tolist())
+                    indices_without_grads = torch.Tensor(list(indices_without_grads)).to(
+                        device=stacked_embeddings.device).long()
+                    # indices_with_grads = torch.Tensor(random.choices(range(stacked_embeddings.shape[0]),weights=stacked_norms, k=self.cfg.weights_batch_size)).to(stacked_embeddings.device).long()
+
             else:
                 num_batches = -(stacked_embeddings.shape[0] // -self.cfg.weights_batch_size)
                 if self.permuted_indices is None or self.random_batch_idx >= num_batches:

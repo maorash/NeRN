@@ -3,3 +3,4 @@ torchvision==0.11.2
 pyrallis
 tqdm
 clearml
+einops
