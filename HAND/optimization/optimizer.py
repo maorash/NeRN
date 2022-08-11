@@ -40,4 +40,4 @@ class OptimizerFactory:
     @staticmethod
     def _init_ranger(parameters: List[torch.Tensor], cfg: TrainConfig):
         return Ranger(parameters, lr=cfg.optim.lr, betas=cfg.optim.betas, weight_decay=cfg.optim.weight_decay,
-                      use_gc=cfg.optim.use_gc, gc_conv_only=cfg.optim.gc_conv_only)
+                      use_gc=cfg.optim.ranger_use_gc, gc_conv_only=cfg.optim.gc_conv_only)

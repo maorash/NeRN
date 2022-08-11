@@ -108,9 +108,8 @@ class OptimizationConfig:
     # Apply gradient clipping during training (set None to skip the clipping)
     max_gradient: float = field(default=None)
     # Ranger optimizer - use gradient centralization
-    use_gc: bool = field(default=True)
-    # Ranger optimizer - gradient centralization use convolutions only
-    gc_conv_only: bool = field(default=False)
+    ranger_use_gc: bool = field(default=True)
+
 
 @dataclass
 class TrainConfig:
