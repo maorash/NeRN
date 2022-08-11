@@ -12,5 +12,5 @@ task:
   task_name: cifar10v2
   original_model_name: ResNet20
 optim:
-  optimizer: 'ranger'
+  optimizer: ranger
   lr: 5e-3
