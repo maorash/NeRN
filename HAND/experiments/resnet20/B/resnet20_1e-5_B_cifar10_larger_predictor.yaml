@@ -6,7 +6,8 @@ hand:
   hidden_layer_size: 200
   embeddings:
     enc_levels: 20
-    normalization_mode:
+  weights_batch_method: random_weighted_batch
+  weights_batch_size: 4096
 task:
   task_name: cifar10v2
   original_model_name: ResNet20
