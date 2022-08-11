@@ -78,11 +78,16 @@ class BasicBlock(nn.Module):
             self.option = "C"
 
     def forward(self, x):
-        out = F.relu(self.bn1(self.conv1(x)))
-        out = self.bn2(self.conv2(out))
-        out += self.shortcut(x)
+        activations = []
+        out = self.bn1(self.conv1(x))
+        activations.append(out)
         out = F.relu(out)
-        return out
+        out = self.bn2(self.conv2(out))
+        activations.append(out)
+        out += self.shortcut(x)
+        activations.append(out)
+        out = F.relu(out)
+        return out, activations
 
     def get_learnable_weights(self):
         if self.option == 'A' or self.option == 'C':
@@ -117,25 +122,32 @@ class ResNet(OriginalModel):
         self.apply(_weights_init)
         self.num_hidden = [[weight.shape[0], weight.shape[1]] for weight in self.get_learnable_weights()]
 
-
     def _make_layer(self, block, planes, num_blocks, stride):
         strides = [stride] + [1] * (num_blocks - 1)
         layers = []
         for stride in strides:
             layers.append(block(self.in_planes, planes, stride))
             self.in_planes = planes * block.expansion
-
         return nn.Sequential(*layers)
+
+    def layer_forward(self, layer, x):
+        activations = []
+        for block in layer:
+            x, block_activations = block(x)
+            activations.extend(block_activations)
+        return x, activations
 
     def forward(self, x, extract_feature_maps=False):
         activations = []
-        out = F.relu(self.bn1(self.conv1(x)))
-        out = self.layer1(out)
+        out = self.bn1(self.conv1(x))
         activations.append(out)
-        out = self.layer2(out)
-        activations.append(out)
-        out = self.layer3(out)
-        activations.append(out)
+        out = F.relu(out)
+        out, layer_activations = self.layer_forward(self.layer1, out)
+        activations.extend(layer_activations)
+        out, layer_activations = self.layer_forward(self.layer2, out)
+        activations.extend(layer_activations)
+        out, layer_activations = self.layer_forward(self.layer3, out)
+        activations.extend(layer_activations)
         out = F.avg_pool2d(out, out.size()[3])
         out = out.view(out.size(0), -1)
         out = self.linear(out)
