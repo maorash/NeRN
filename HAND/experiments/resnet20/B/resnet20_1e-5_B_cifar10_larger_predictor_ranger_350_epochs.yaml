@@ -1,5 +1,5 @@
 logging:
-  exp_name: resnet20_1e-5_B_cifar10_larger_predictor_stochastic_weighted_ranger_lr_5e-3_fixactnorm_nogc
+  exp_name: resnet20_1e-5_B_cifar10_larger_predictor_ranger_350_epochs
 original_model_path: trained_models/original_tasks/mnist/resnet20_1e-5_B.pt
 hand:
   num_blocks: 5
@@ -14,4 +14,4 @@ task:
 optim:
   optimizer: ranger
   lr: 5e-3
-  ranger_use_gc: False
+epochs: 350
