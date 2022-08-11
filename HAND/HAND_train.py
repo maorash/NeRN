@@ -3,18 +3,19 @@ import os
 
 import pyrallis
 import torch
-
 from clearml import Task
+
+from HAND import logger
 from HAND.eval_func import EvalFunction
 from HAND.loss.attention_loss import AttentionLossFactory
-from HAND.loss.reconstruction_loss import ReconstructionLossFactory
 from HAND.loss.distillation_loss import DistillationLossFactory
+from HAND.loss.reconstruction_loss import ReconstructionLossFactory
 from HAND.loss.task_loss import TaskLossFactory
 from HAND.options import TrainConfig
 from HAND.predictors.predictor import HANDPredictorFactory
-from HAND.trainer import Trainer
 from HAND.tasks.dataloader_factory import DataloaderFactory
 from HAND.tasks.model_factory import ModelFactory
+from HAND.trainer import Trainer
 
 
 def load_original_model(cfg: TrainConfig, device: torch.device):
@@ -40,6 +41,13 @@ def main(cfg: TrainConfig):
 
     init_predictor(cfg, predictor)
 
+    if not cfg.logging.disable_logging:
+        clearml_task = Task.init(project_name='HAND_compression', task_name=cfg.logging.exp_name, deferred_init=True)
+        clearml_task.connect(logger.flatten(pyrallis.encode(cfg))) #Flatten because of clearml bug
+        clearml_logger = clearml_task.get_logger()
+    else:
+        clearml_logger = None
+
     num_predictor_params = sum([p.numel() for p in predictor.parameters()])
     print(f"Predictor:"
           f"\t-> Number of parameters: {num_predictor_params / 1000}K"
@@ -49,13 +57,6 @@ def main(cfg: TrainConfig):
     print(f"\nOriginal Model:"
           f"\t-> Number of parameters: {num_predicted_params / 1000}K"
           f"\t-> Size: {num_predicted_params * 4 / 1024 / 1024:.2f}Mb")
-
-    if not cfg.logging.disable_logging:
-        clearml_task = Task.init(project_name='HAND_compression', task_name=cfg.logging.exp_name, deferred_init=True)
-        clearml_task.connect(pyrallis.encode(cfg))
-        clearml_logger = clearml_task.get_logger()
-    else:
-        clearml_logger = None
 
     dataloaders = DataloaderFactory.get(cfg.task.task_name, **{'batch_size': cfg.batch_size})
 

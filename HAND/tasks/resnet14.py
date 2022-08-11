@@ -48,18 +48,20 @@ class ResNet14(OriginalModel):
         out = block.conv1(x)
         out = block.bn1(out)
         if extract_feature_maps is True:
-            activations.append(x)
+            activations.append(out)
         out = block.relu(out)
 
         out = block.conv2(out)
         out = block.bn2(out)
         if extract_feature_maps is True:
-            activations.append(x)
+            activations.append(out)
 
         if block.downsample is not None:
             identity = block.downsample(x)
 
         out += identity
+        if extract_feature_maps is True:
+            activations.append(out)
         out = block.relu(out)
 
         return out, activations
@@ -74,6 +76,7 @@ class ResNet14(OriginalModel):
     def forward(self, x, extract_feature_maps=True):
         x = self.model.conv1(x)
         x = self.model.bn1(x)
+        first_activation = [x]
         x = self.model.relu(x)
         x = self.model.maxpool(x)
 
@@ -82,7 +85,7 @@ class ResNet14(OriginalModel):
         x, layer3_activations = self.layer_forward(self.model.layer3, x, extract_feature_maps)
         # x, layer4_activations = self.layer_forward(self.model.layer4, x, extract_feature_maps)
         # activations = layer1_activations + layer2_activations + layer3_activations + layer4_activations
-        activations = layer1_activations + layer2_activations + layer3_activations
+        activations = first_activation + layer1_activations + layer2_activations + layer3_activations
         x = self.model.avgpool(x)
         x = torch.flatten(x, 1)
         x = self.model.fc(x)
@@ -114,7 +117,7 @@ class ReconstructedResNet14(ReconstructedModel):
                 curr_num_channels = self.original_model.num_hidden[layer_idx]
                 for channel_idx in range(curr_num_channels):
                     curr_layer_indices.append((layer_idx, filter_idx, channel_idx))
-                    if self.embeddings_cfg.normalization_mode is None:
+                    if self.embeddings_cfg.normalization_mode == "None":
                         curr_normalized_layer_indices.append((layer_idx, filter_idx, channel_idx))
                     elif self.embeddings_cfg.normalization_mode == "global":
                         curr_normalized_layer_indices.append(
@@ -123,7 +126,7 @@ class ReconstructedResNet14(ReconstructedModel):
                         curr_normalized_layer_indices.append(
                             (layer_idx / num_layers, filter_idx / curr_num_filters, channel_idx / curr_num_channels))
                     else:
-                        raise ValueError(f"Unsupported normalization mode {self.normalization_mode}")
+                        raise ValueError(f"Unsupported normalization mode {self.embeddings_cfg.normalization_mode}")
 
             indices.append(curr_layer_indices)
             normalize_indices.append(curr_normalized_layer_indices)
@@ -131,6 +134,9 @@ class ReconstructedResNet14(ReconstructedModel):
         self.normalized_indices = normalize_indices
 
         return indices
+
+    def __str__(self):
+        return f"{type(self).__name__}"
 
 
 class PermutedResNet14(ResNet14, PermutedModel):

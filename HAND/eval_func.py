@@ -11,13 +11,14 @@ class EvalFunction:
     def eval(self, reconstructed_model: ReconstructedModel,
              dataloader: DataLoader,
              epoch: int,
-             clearml_logger: Logger) -> float:
-        print('\n Starting eval on test set.')
+             clearml_logger: Logger,
+             suffix="") -> float:
+        print(f'\n Starting eval on test set{f" - {suffix}" if suffix else "."}')
         test_loss, correct = self._eval_model(reconstructed_model, dataloader)
         accuracy = 100. * correct / len(dataloader.dataset)
         if clearml_logger is not None:
-            clearml_logger.report_scalar('eval_loss', 'eval_loss', test_loss, epoch)
-            clearml_logger.report_scalar('eval_accuracy', 'eval_accuracy', accuracy, epoch)
+            clearml_logger.report_scalar(f'eval_loss{f"_{suffix}" if suffix else ""}', 'eval_loss', test_loss, epoch)
+            clearml_logger.report_scalar(f'eval_accuracy{f"_{suffix}" if suffix else ""}', 'eval_accuracy', accuracy, epoch)
         print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
             test_loss, correct, len(dataloader.dataset),
             accuracy))
