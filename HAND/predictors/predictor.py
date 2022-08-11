@@ -76,7 +76,7 @@ class HANDPredictorBase(nn.Module, ABC):
     def _predict_all_by_random_batches(self, positional_embeddings: List[torch.Tensor],
                                        original_weights: List[torch.Tensor], predicted_weights_shapes: List[Tuple]) \
             -> List[torch.Tensor]:
-        weights_norms = self._get_original_weights_norms(original_weights)
+        weights_norms = self._get_weights_norms(original_weights)
         stacked_embeddings = torch.vstack(positional_embeddings)
         if self.cfg.weights_batch_method == 'random_batch':
             self.permuted_positional_embeddings = torch.randperm(stacked_embeddings.shape[0],
@@ -85,7 +85,7 @@ class HANDPredictorBase(nn.Module, ABC):
             indices_without_grads = self.permuted_positional_embeddings[self.cfg.weights_batch_size:]
         elif self.cfg.weights_batch_method == 'random_weighted_batch':
             stacked_norms = torch.concat(weights_norms)
-            if random.uniform(0, 1) < 0.5:
+            if random.uniform(0, 1) < 0.8:
                 self.permuted_indices = torch.randperm(stacked_embeddings.shape[0], device=stacked_embeddings.device)
                 indices_with_grads = self.permuted_indices[:self.cfg.weights_batch_size]
                 indices_without_grads = self.permuted_indices[self.cfg.weights_batch_size:]
