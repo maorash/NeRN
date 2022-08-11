@@ -50,7 +50,7 @@ class HANDPredictorBase(nn.Module, ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def _get_original_weights_norms(self, original_weights: List[torch.Tensor]) -> List[torch.Tensor]:
+    def _get_weights_norms(self, original_weights: List[torch.Tensor]) -> List[torch.Tensor]:
         raise NotImplementedError()
 
     def predict_all(self, positional_embeddings: List[torch.Tensor], original_weights: List[torch.Tensor],
@@ -74,9 +74,9 @@ class HANDPredictorBase(nn.Module, ABC):
         return reconstructed_weights
 
     def _predict_all_by_random_batches(self, positional_embeddings: List[torch.Tensor],
-                                       original_weights: List[torch.Tensor], predicted_weights_shapes: List[Tuple])  \
+                                       original_weights: List[torch.Tensor], predicted_weights_shapes: List[Tuple]) \
             -> List[torch.Tensor]:
-        original_weights_norms = self._get_original_weights_norms(original_weights)
+        weights_norms = self._get_original_weights_norms(original_weights)
         stacked_embeddings = torch.vstack(positional_embeddings)
         if self.cfg.weights_batch_method == 'random_batch':
             self.permuted_positional_embeddings = torch.randperm(stacked_embeddings.shape[0],
@@ -84,7 +84,7 @@ class HANDPredictorBase(nn.Module, ABC):
             indices_with_grads = self.permuted_positional_embeddings[:self.cfg.weights_batch_size]
             indices_without_grads = self.permuted_positional_embeddings[self.cfg.weights_batch_size:]
         elif self.cfg.weights_batch_method == 'random_weighted_batch':
-            stacked_norms = torch.concat(original_weights_norms)
+            stacked_norms = torch.concat(weights_norms)
             if random.uniform(0, 1) < 0.5:
                 self.permuted_indices = torch.randperm(stacked_embeddings.shape[0], device=stacked_embeddings.device)
                 indices_with_grads = self.permuted_indices[:self.cfg.weights_batch_size]
@@ -179,9 +179,9 @@ class HANDKxKPredictor(HANDPredictorBase):
     def output_size(self) -> int:
         return self.cfg.output_size
 
-    def _get_original_weights_norms(self, original_weights: List[torch.Tensor]) -> List[torch.Tensor]:
+    def _get_weights_norms(self, weights: List[torch.Tensor]) -> List[torch.Tensor]:
         return [torch.norm(einops.rearrange(weight, 'cout cin h w -> (cout cin) (h w)'), dim=1)
-                for weight in original_weights]
+                for weight in weights]
 
 
 class HANDKxKNerFPredictor(HANDKxKPredictor):
