@@ -76,7 +76,7 @@ class ResNet14(OriginalModel):
     def forward(self, x, extract_feature_maps=True):
         x = self.model.conv1(x)
         x = self.model.bn1(x)
-        first_activation = x
+        first_activation = [x]
         x = self.model.relu(x)
         x = self.model.maxpool(x)
 
