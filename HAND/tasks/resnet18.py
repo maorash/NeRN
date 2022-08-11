@@ -46,23 +46,25 @@ class ResNet18(OriginalModel):
         out = block.conv1(x)
         out = block.bn1(out)
         if extract_feature_maps is True:
-            activations.append(x)
+            activations.append(out)
         out = block.relu(out)
 
         out = block.conv2(out)
         out = block.bn2(out)
         if extract_feature_maps is True:
-            activations.append(x)
+            activations.append(out)
 
         if block.downsample is not None:
             identity = block.downsample(x)
 
         out += identity
+        if extract_feature_maps is True:
+            activations.append(out)
         out = block.relu(out)
 
         return out, activations
 
-    def layer_forward(self,  layer: torch.nn.Sequential, x, extract_feature_maps=False):
+    def layer_forward(self, layer: torch.nn.Sequential, x, extract_feature_maps=False):
         activations = []
         for block in layer:
             x, block_activations = self.block_forward(block, x, extract_feature_maps)
@@ -72,6 +74,7 @@ class ResNet18(OriginalModel):
     def forward(self, x, extract_feature_maps=True):
         x = self.model.conv1(x)
         x = self.model.bn1(x)
+        first_activation = [x]
         x = self.model.relu(x)
         x = self.model.maxpool(x)
 
@@ -79,7 +82,7 @@ class ResNet18(OriginalModel):
         x, layer2_activations = self.layer_forward(self.model.layer2, x, extract_feature_maps)
         x, layer3_activations = self.layer_forward(self.model.layer3, x, extract_feature_maps)
         x, layer4_activations = self.layer_forward(self.model.layer4, x, extract_feature_maps)
-        activations = layer1_activations + layer2_activations + layer3_activations + layer4_activations
+        activations = first_activation + layer1_activations + layer2_activations + layer3_activations + layer4_activations
         x = self.model.avgpool(x)
         x = torch.flatten(x, 1)
         x = self.model.fc(x)
@@ -113,9 +116,11 @@ class ReconstructedResNet18(ReconstructedModel):
                     if self.embeddings_cfg.normalization_mode == "None":
                         curr_normalized_layer_indices.append((layer_idx, filter_idx, channel_idx))
                     elif self.embeddings_cfg.normalization_mode == "global":
-                        curr_normalized_layer_indices.append((layer_idx / max_index, filter_idx / max_index, channel_idx / max_index))
+                        curr_normalized_layer_indices.append(
+                            (layer_idx / max_index, filter_idx / max_index, channel_idx / max_index))
                     elif self.embeddings_cfg.normalization_mode == "local":
-                        curr_normalized_layer_indices.append((layer_idx / num_layers, filter_idx / curr_num_filters, channel_idx / curr_num_channels))
+                        curr_normalized_layer_indices.append(
+                            (layer_idx / num_layers, filter_idx / curr_num_filters, channel_idx / curr_num_channels))
                     else:
                         raise ValueError(f"Unsupported normalization mode {self.embeddings_cfg.normalization_mode}")
 
@@ -128,4 +133,3 @@ class ReconstructedResNet18(ReconstructedModel):
 
     def __str__(self):
         return f"{type(self).__name__}"
-
