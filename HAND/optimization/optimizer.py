@@ -6,6 +6,7 @@ from torch.optim.sgd import SGD
 from torch.optim.adamw import AdamW
 from torch.optim.adadelta import Adadelta
 
+from .ranger import Ranger
 from HAND.options import TrainConfig
 
 
@@ -18,6 +19,8 @@ class OptimizerFactory:
             return OptimizerFactory._init_adamw(parameters, cfg)
         elif cfg.optim.optimizer == "adadelta":
             return OptimizerFactory._init_adadelta(parameters, cfg)
+        elif cfg.optim.optimizer == "ranger":
+            return OptimizerFactory._init_ranger(parameters, cfg)
         else:
             raise ValueError("Unknown Optimizer Type")
 
@@ -33,3 +36,8 @@ class OptimizerFactory:
     @staticmethod
     def _init_adadelta(parameters: List[torch.Tensor], cfg: TrainConfig):
         return Adadelta(parameters, lr=cfg.optim.lr, weight_decay=cfg.optim.weight_decay)
+
+    @staticmethod
+    def _init_ranger(parameters: List[torch.Tensor], cfg: TrainConfig):
+        return Ranger(parameters, lr=cfg.optim.lr, betas=cfg.optim.betas, weight_decay=cfg.optim.weight_decay,
+                      use_gc=cfg.optim.use_gc, gc_conv_only=cfg.optim.gc_conv_only)
