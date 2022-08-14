@@ -25,9 +25,10 @@ class ModelFactory:
 
         model = ModelFactory.models[cfg.task.original_model_name][0](**kwargs).to(device)
         model.load_state_dict(torch.load(cfg.original_model_path, map_location=device))
-        if cfg.task.original_model_name == "PermutedResNet20":
+        if cfg.task.original_model_name == "PermutedResNet20":  # TODO: find an abstraction for this
             model.calculate_permutation()
         reconstructed_model = ModelFactory.models[cfg.task.original_model_name][1](model, cfg.hand.embeddings,
-                                                                                   sampling_mode=cfg.hand.sampling_mode).to(device)
+                                                                                   sampling_mode=cfg.hand.sampling_mode).to(
+            device)
 
         return model, reconstructed_model

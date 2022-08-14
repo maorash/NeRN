@@ -1,6 +1,7 @@
 from typing import Tuple, List
 import os
 
+import numpy as np
 import torch
 from clearml import Logger
 from torch.utils.data import DataLoader
@@ -17,6 +18,7 @@ from HAND.loss.task_loss import TaskLossBase
 from HAND.optimization.optimizer import OptimizerFactory
 from HAND.optimization.scheduler import GenericScheduler, LRSchedulerFactory
 from HAND.options import TrainConfig
+from HAND.tsp.tsp import get_max_sim_order
 
 
 class Trainer:
@@ -61,13 +63,23 @@ class Trainer:
 
         training_step = 0
         original_weights = self.original_model.get_learnable_weights()
+        max_sim_order = [
+            get_max_sim_order(layer_weights.detach().cpu().numpy().reshape((-1, learnable_weights_shapes[i][-1] ** 2)),
+                              False)
+            for
+            i, layer_weights in
+            enumerate(original_weights)]
+        positional_embeddings = [positional_embeddings[i][max_sim_order[i]] for i in
+                                 range(len(positional_embeddings))]
 
         for epoch in range(self.config.epochs):
             for batch_ind, (batch, ground_truth) in enumerate(self.train_dataloader):
                 batch, ground_truth = batch.to(self.device), ground_truth.to(self.device)
                 optimizer.zero_grad()
 
-                reconstructed_weights = self.predictor.predict_all(positional_embeddings, original_weights, learnable_weights_shapes)
+                reconstructed_weights = self.predictor.predict_all(positional_embeddings, original_weights,
+                                                                   learnable_weights_shapes)
+
                 self.reconstructed_model.update_weights(reconstructed_weights)
 
                 original_outputs, original_feature_maps = self.original_model.get_feature_maps(batch)

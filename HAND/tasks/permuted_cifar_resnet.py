@@ -3,6 +3,7 @@ from typing import Tuple, List
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
 
 from HAND.models.model import OriginalModel
 from HAND.tasks.cifar_resnet import _weights_init
@@ -27,6 +28,7 @@ class PermutedResNet(OriginalModel):
         self.num_hidden = [[weight.shape[0], weight.shape[1]] for weight in original_learnable_weights]
         self.kernel_sizes = [layer_weights.shape[-1] for layer_weights in original_learnable_weights]
         self.max_sim_order = None
+        self.inverse_permutation = None
 
     def _make_layer(self, block, planes, num_blocks, stride):
         strides = [stride] + [1] * (num_blocks - 1)
@@ -82,14 +84,16 @@ class PermutedResNet(OriginalModel):
         learnable_weights = self.get_original_learnable_weights()
         num_layers = len(learnable_weights)
         original_weights_shapes = [learnable_weights[i].shape for i in range(num_layers)]
-        return [
-            learnable_weights[i].reshape((-1, self.kernel_sizes[i], self.kernel_sizes[i]))[
-                self.max_sim_order[i]].reshape(original_weights_shapes[i])
-            for i in range(num_layers)]
+        return [learnable_weights[i].view(-1, self.kernel_sizes[i], self.kernel_sizes[i]).permute(
+            self.max_sim_order[i]).view(original_weights_shapes[i]) for i in range(num_layers)]
 
     def calculate_permutation(self):
         self.max_sim_order = [
-            get_max_sim_order(layer_weights.detach().numpy().reshape((-1, self.kernel_sizes[i] ** 2)), False)
+            get_max_sim_order(layer_weights.detach().cpu().numpy().reshape((-1, self.kernel_sizes[i] ** 2)), False)
             for
             i, layer_weights in
             enumerate(self.get_original_learnable_weights())]
+        self.inverse_permutation = self.calculate_inverse_permutation(self.max_sim_order)
+
+    def calculate_inverse_permutation(self, permutation: List[np.array]):
+        return [np.argsort(permutation[i]) for i in range(len(permutation))]
