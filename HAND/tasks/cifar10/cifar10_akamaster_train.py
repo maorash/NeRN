@@ -173,7 +173,7 @@ def save(model, suffix=""):
         save_dir = '../../trained_models/original_tasks/mnist'
         os.makedirs(save_dir, exist_ok=True)
         torch.save(model.module.state_dict(), save_dir + "/" + args.exp_name + ('.pt' if not suffix else f'_{suffix}.pt'))
-        with open(save_dir + '/' + args.exp_name + '.json', 'w') as model_save_path:
+        with open(save_dir + '/' + args.exp_name + ('.json' if not suffix else f'_{suffix}.json'), 'w') as model_save_path:
             json.dump(model_kwargs, model_save_path)
 
 

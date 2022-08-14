@@ -1,9 +1,9 @@
 logging:
-  exp_name: resnet20_1e-5_B_cifar10_larger_predictor_ranger_350_epochs
-original_model_path: trained_models/original_tasks/mnist/resnet20_1e-5_B.pt
+  exp_name: resnet20_5e-6_A_cifar10_ranger_nogc_350_epochs_0.46MB
+original_model_path: trained_models/original_tasks/mnist/resnet20_5e-6.pt
 hand:
   num_blocks: 5
-  hidden_layer_size: 200
+  hidden_layer_size: 180
   embeddings:
     enc_levels: 20
   weights_batch_method: random_weighted_batch
@@ -14,4 +14,5 @@ task:
 optim:
   optimizer: ranger
   lr: 5e-3
+  ranger_use_gc: False
 epochs: 350
