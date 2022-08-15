@@ -326,6 +326,9 @@ group.add_argument('--log-wandb', action='store_true', default=False,
                     help='log training and validation metrics to wandb')
 
 
+group.add_argument('--cosine_smoothness', type=float, default=1e-5)
+
+
 def _parse_args():
     # Do we have a config file to parse?
     args_config, remaining = config_parser.parse_known_args()
@@ -396,19 +399,24 @@ def main():
     if args.fuser:
         utils.set_jit_fuser(args.fuser)
 
-    model = create_model(
-        args.model,
-        pretrained=args.pretrained,
-        num_classes=args.num_classes,
-        drop_rate=args.drop,
-        drop_connect_rate=args.drop_connect,  # DEPRECATED, use drop_path
-        drop_path_rate=args.drop_path,
-        drop_block_rate=args.drop_block,
-        global_pool=args.gp,
-        bn_momentum=args.bn_momentum,
-        bn_eps=args.bn_eps,
-        scriptable=args.torchscript,
-        checkpoint_path=args.initial_checkpoint)
+    from HAND.tasks.resnet18 import ResNet18
+    from HAND.tasks.imagenet_timm.timm.models.resnet import default_cfgs
+    model = ResNet18(num_classes=1000)
+    default_cfg = default_cfgs['resnet18']
+
+    # model = create_model(
+    #     args.model,
+    #     pretrained=args.pretrained,
+    #     num_classes=args.num_classes,
+    #     drop_rate=args.drop,
+    #     drop_connect_rate=args.drop_connect,  # DEPRECATED, use drop_path
+    #     drop_path_rate=args.drop_path,
+    #     drop_block_rate=args.drop_block,
+    #     global_pool=args.gp,
+    #     bn_momentum=args.bn_momentum,
+    #     bn_eps=args.bn_eps,
+    #     scriptable=args.torchscript,
+    #     checkpoint_path=args.initial_checkpoint)
     if args.num_classes is None:
         assert hasattr(model, 'num_classes'), 'Model must have `num_classes` attr if not set on cmd line/config.'
         args.num_classes = model.num_classes  # FIXME handle model default vs config num_classes more elegantly
@@ -420,7 +428,7 @@ def main():
         _logger.info(
             f'Model {safe_model_name(args.model)} created, param count:{sum([m.numel() for m in model.parameters()])}')
 
-    data_config = resolve_data_config(vars(args), model=model, verbose=args.local_rank == 0)
+    data_config = resolve_data_config(vars(args), default_cfg=default_cfg, model=model, verbose=args.local_rank == 0)
 
     # setup augmentation batch splits for contrastive loss or split bn
     num_aug_splits = 0
@@ -485,7 +493,7 @@ def main():
     resume_epoch = None
     if args.resume:
         resume_epoch = resume_checkpoint(
-            model, args.resume,
+            model.model, args.resume,
             optimizer=None if args.no_resume_opt else optimizer,
             loss_scaler=None if args.no_resume_opt else loss_scaler,
             log_info=args.local_rank == 0)
@@ -699,6 +707,10 @@ def train_one_epoch(
         lr_scheduler=None, saver=None, output_dir=None, amp_autocast=suppress,
         loss_scaler=None, model_ema=None, mixup_fn=None):
 
+    print("Using Cosine Smoothness")
+    from HAND.models.regularization import CosineSmoothness
+    smoothness_loss_fn = CosineSmoothness()
+
     if args.mixup_off_epoch and epoch >= args.mixup_off_epoch:
         if args.prefetcher and loader.mixup_enabled:
             loader.mixup_enabled = False
@@ -727,7 +739,10 @@ def train_one_epoch(
 
         with amp_autocast():
             output = model(input)
-            loss = loss_fn(output, target)
+            cosine_smoothness, l2_smoothness = smoothness_loss_fn(model.module)
+            cosine_smoothness_loss = -cosine_smoothness
+            l2_smoothness_loss = -l2_smoothness
+            loss = loss_fn(output, target) + (args.cosine_smoothness * l2_smoothness_loss) + (args.cosine_smoothness * cosine_smoothness_loss)
 
         if not args.distributed:
             losses_m.update(loss.item(), input.size(0))
@@ -765,6 +780,7 @@ def train_one_epoch(
                 _logger.info(
                     'Train: {} [{:>4d}/{} ({:>3.0f}%)]  '
                     'Loss: {loss.val:#.4g} ({loss.avg:#.3g})  '
+                    'Smoothness: {smoothness}  '
                     'Time: {batch_time.val:.3f}s, {rate:>7.2f}/s  '
                     '({batch_time.avg:.3f}s, {rate_avg:>7.2f}/s)  '
                     'LR: {lr:.3e}  '
@@ -773,6 +789,7 @@ def train_one_epoch(
                         batch_idx, len(loader),
                         100. * batch_idx / last_idx,
                         loss=losses_m,
+                        smoothness=cosine_smoothness_loss.item(),
                         batch_time=batch_time_m,
                         rate=input.size(0) * args.world_size / batch_time_m.val,
                         rate_avg=input.size(0) * args.world_size / batch_time_m.avg,

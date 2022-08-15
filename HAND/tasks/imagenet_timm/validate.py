@@ -152,19 +152,23 @@ def validate(args):
         set_jit_fuser(args.fuser)
 
     # create model
-    model = create_model(
-        args.model,
-        pretrained=args.pretrained,
-        num_classes=args.num_classes,
-        in_chans=3,
-        global_pool=args.gp,
-        scriptable=args.torchscript)
+    from HAND.tasks.resnet18 import ResNet18
+    from HAND.tasks.imagenet_timm.timm.models.resnet import default_cfgs
+    model = ResNet18(num_classes=1000)
+    default_cfg = default_cfgs['resnet18']
+    # model = create_model(
+    #     args.model,
+    #     pretrained=args.pretrained,
+    #     num_classes=args.num_classes,
+    #     in_chans=3,
+    #     global_pool=args.gp,
+    #     scriptable=args.torchscript)
     if args.num_classes is None:
         assert hasattr(model, 'num_classes'), 'Model must have `num_classes` attr if not set on cmd line/config.'
         args.num_classes = model.num_classes
 
     if args.checkpoint:
-        load_checkpoint(model, args.checkpoint, args.use_ema)
+        load_checkpoint(model.model, args.checkpoint, args.use_ema)
 
     param_count = sum([m.numel() for m in model.parameters()])
     _logger.info('Model %s created, param count: %d' % (args.model, param_count))
@@ -172,6 +176,7 @@ def validate(args):
     data_config = resolve_data_config(
         vars(args),
         model=model,
+        default_cfg=default_cfg,
         use_test_size=not args.use_train_size,
         verbose=True
     )
