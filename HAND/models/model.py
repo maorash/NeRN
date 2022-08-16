@@ -6,13 +6,13 @@ from torch import nn
 from typing import List, Tuple
 from torch.nn import functional as F
 
-from abc import abstractmethod, ABC
+from abc import abstractmethod
 
 from HAND.options import EmbeddingsConfig
 from HAND.positional_embedding import MyPositionalEncoding
 
 
-class OriginalModel(nn.Module, ABC):
+class OriginalModel(nn.Module):
     @abstractmethod
     def get_feature_maps(self, batch: torch.Tensor) -> Tuple[torch.Tensor, List[torch.Tensor]]:
         pass
