@@ -109,5 +109,3 @@ class ReconstructedModel(OriginalModel):
 
     def forward(self, x):
         return self.reconstructed_model(x)
-
-
