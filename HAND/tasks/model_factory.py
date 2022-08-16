@@ -4,7 +4,7 @@ from HAND.tasks.simple_net import SimpleNet, ReconstructedSimpleNet
 from HAND.tasks.vgg8 import VGG8, ReconstructedVGG8
 from HAND.tasks.resnet18 import ResNet18, ReconstructedResNet18
 from HAND.tasks.resnet14 import ResNet14, ReconstructedResNet14
-from HAND.tasks.resnet20 import ResNet20, ReconstructedResNet20, PermutedResNet20
+from HAND.tasks.resnet20 import ResNet20, ReconstructedResNet20
 from HAND.tasks.resnet56 import ResNet56, ReconstructedResNet56
 from HAND.options import TrainConfig
 
@@ -16,7 +16,6 @@ class ModelFactory:
         "ResNet18": (ResNet18, ReconstructedResNet18),
         "ResNet14": (ResNet14, ReconstructedResNet14),
         "ResNet20": (ResNet20, ReconstructedResNet20),
-        "PermutedResNet20": (PermutedResNet20, ReconstructedResNet20),
         "ResNet56": (ResNet56, ReconstructedResNet56)
     }
 
@@ -27,8 +26,6 @@ class ModelFactory:
 
         model = ModelFactory.models[cfg.task.original_model_name][0](**kwargs).to(device)
         model.load_state_dict(torch.load(cfg.original_model_path, map_location=device))
-        if cfg.task.original_model_name == "PermutedResNet20":  # TODO: find an abstraction for this
-            model.calculate_permutation()
         reconstructed_model = ModelFactory.models[cfg.task.original_model_name][1](model, cfg.hand.embeddings,
                                                                                    sampling_mode=cfg.hand.sampling_mode).to(
             device)

@@ -1,13 +1,8 @@
-from collections import OrderedDict
-from typing import List, Tuple, Union
+from typing import List, Tuple
 
-import torch
-from torch import Tensor
-
-from HAND.models.model import ReconstructedModel, PermutedModel
+from HAND.models.model import ReconstructedModel
 from HAND.options import EmbeddingsConfig
 from HAND.tasks.cifar_resnet import ResNet, BasicBlockA, BasicBlockB
-from HAND.tasks.permuted_cifar_resnet import PermutedResNet
 
 
 class ResNet20(ResNet):
@@ -17,15 +12,8 @@ class ResNet20(ResNet):
         super(ResNet20, self).__init__(basic_block, [3, 3, 3])
 
 
-class  PermutedResNet20(PermutedResNet):
-    def __init__(self, basic_block_option='A', **kwargs):
-        self.basic_block_option = basic_block_option
-        basic_block = BasicBlockA if self.basic_block_option == 'A' else BasicBlockB
-        super(PermutedResNet20, self).__init__(basic_block, [3, 3, 3])
-
-
 class ReconstructedResNet20(ReconstructedModel):
-    def __init__(self, original_model: Union[ResNet20, PermutedResNet20], embeddings_cfg: EmbeddingsConfig,
+    def __init__(self, original_model: ResNet20, embeddings_cfg: EmbeddingsConfig,
                  sampling_mode: str = None):
         super(ReconstructedResNet20, self).__init__(original_model, embeddings_cfg, sampling_mode)
         self.indices = self._get_tensor_indices()

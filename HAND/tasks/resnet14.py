@@ -4,7 +4,7 @@ from typing import List, Tuple
 import torch
 import torchvision.models
 
-from HAND.models.model import OriginalModel, ReconstructedModel, PermutedModel
+from HAND.models.model import OriginalModel, ReconstructedModel
 from HAND.options import EmbeddingsConfig
 from HAND.positional_embedding import MyPositionalEncoding
 
@@ -138,7 +138,3 @@ class ReconstructedResNet14(ReconstructedModel):
     def __str__(self):
         return f"{type(self).__name__}"
 
-
-class PermutedResNet14(ResNet14, PermutedModel):
-    def __init__(self, num_classes: int = 10, **kwargs):
-        super().__init__(num_classes, **kwargs)

@@ -7,7 +7,6 @@ from typing import List, Tuple
 from torch.nn import functional as F
 
 from abc import abstractmethod, ABC
-from HAND.tsp.tsp import get_max_sim_order
 
 from HAND.options import EmbeddingsConfig
 from HAND.positional_embedding import MyPositionalEncoding
@@ -112,28 +111,3 @@ class ReconstructedModel(OriginalModel):
         return self.reconstructed_model(x)
 
 
-class PermutedModel:
-    def __init__(self, original_model: OriginalModel):
-        super().__init__()
-        self.original_model = original_model
-        self.kernel_sizes = [layer_weights.shape[-1] for layer_weights in self.original_model.get_learnable_weights()]
-        self.max_sim_order = [
-            get_max_sim_order(layer_weights.detach().numpy().reshape((-1, self.kernel_sizes[i] ** 2)).astype('int8'))
-            for
-            i, layer_weights in
-            enumerate(self.original_model.get_learnable_weights())]
-
-    def get_learnable_weights(self) -> List[torch.Tensor]:
-        original_learnable_weights = self.original_model.get_learnable_weights()
-        num_layers = len(original_learnable_weights)
-        original_weights_shapes = [original_learnable_weights[i].shape for i in range(num_layers)]
-        return [
-            original_learnable_weights[i].reshape((-1, self.kernel_sizes[i], self.kernel_sizes[i]))[
-                self.max_sim_order[i]].reshape(original_weights_shapes[i])
-            for i in range(num_layers)]
-
-    def get_fully_connected_weights(self) -> torch.Tensor:
-        return self.original_model.get_fully_connected_weights()
-
-    def get_feature_maps(self, batch: torch.Tensor) -> Tuple[torch.Tensor, List[torch.Tensor]]:
-        return self.original_model.get_feature_maps(batch)
