@@ -177,7 +177,7 @@ def save(model, suffix=""):
             json.dump(model_kwargs, model_save_path)
 
 
-def get_dataloaders(test_kwargs, train_kwargs, use_workers=False):
+def get_dataloaders(test_kwargs, train_kwargs, use_workers=False, **kwargs):
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
     train_loader = torch.utils.data.DataLoader(

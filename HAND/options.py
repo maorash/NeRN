@@ -80,6 +80,8 @@ class LogConfig:
 class TaskConfig:
     # Task name
     task_name: str = field(default='mnist')
+    # ImageNet path
+    imagenet_path: str = field(default=None)
     # Original network type
     original_model_name: str = field(default='SimpleNet')
 

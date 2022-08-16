@@ -16,7 +16,7 @@ from HAND.models.regularization import CosineSmoothness, L2Smoothness
 from HAND.tasks.vgg8 import VGG8
 
 
-def get_dataloaders(test_kwargs, train_kwargs):
+def get_dataloaders(test_kwargs, train_kwargs, **kwargs):
     transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.1307,), (0.3081,))
