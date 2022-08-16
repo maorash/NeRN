@@ -60,6 +60,8 @@ class HANDConfig:
     distillation_loss_type: str = field(default='KLDivLoss')
     # The sampling mode for the reconstruction model (center/average/max)
     sampling_mode: str = field(default='center')
+    # The permutation smoothing mode (none/joint/separate)
+    permute_mode: str = field(default='separate')
 
 
 @dataclass

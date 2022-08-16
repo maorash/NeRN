@@ -1,7 +1,6 @@
 from typing import Tuple, List
 import os
 
-import numpy as np
 import torch
 from clearml import Logger
 from torch.utils.data import DataLoader
@@ -9,6 +8,7 @@ from torch.utils.data import DataLoader
 from HAND.eval_func import EvalFunction
 from HAND.logger import log_scalar_dict
 from HAND.models.model import OriginalModel, ReconstructedModel
+import HAND.permutations.utils as permutations_utils
 from HAND.predictors.predictor import HANDPredictorBase
 from HAND.logger import create_experiment_dir, log_scalar_list, compute_grad_norms
 from HAND.loss.attention_loss import AttentionLossBase
@@ -18,7 +18,6 @@ from HAND.loss.task_loss import TaskLossBase
 from HAND.optimization.optimizer import OptimizerFactory
 from HAND.optimization.scheduler import GenericScheduler, LRSchedulerFactory
 from HAND.options import TrainConfig
-from HAND.tsp.tsp import get_max_sim_order
 
 
 class Trainer:
@@ -63,14 +62,9 @@ class Trainer:
 
         training_step = 0
         original_weights = self.original_model.get_learnable_weights()
-        max_sim_order = [
-            get_max_sim_order(layer_weights.detach().cpu().numpy().reshape((-1, learnable_weights_shapes[i][-1] ** 2)),
-                              False)
-            for
-            i, layer_weights in
-            enumerate(original_weights)]
-        positional_embeddings = [positional_embeddings[i][max_sim_order[i]] for i in
-                                 range(len(positional_embeddings))]
+
+        positional_embeddings = permutations_utils.permute(positional_embeddings, original_weights,
+                                                           self.config.hand.permute_mode)
 
         for epoch in range(self.config.epochs):
             for batch_ind, (batch, ground_truth) in enumerate(self.train_dataloader):

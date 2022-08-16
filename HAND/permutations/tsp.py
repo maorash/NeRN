@@ -44,6 +44,7 @@ def get_one_cosine_sim(source_weights: np.array, weights: np.array) -> np.array:
 
 def get_all_cosine_sim(weights: np.array) -> np.array:
     normed_weights = weights / np.expand_dims(np.linalg.norm(weights, axis=-1), -1)
+    normed_weights = normed_weights.reshape(normed_weights.shape[0], -1)
     return np.dot(normed_weights, normed_weights.T)
 
 
