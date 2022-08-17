@@ -58,7 +58,9 @@ def main(cfg: TrainConfig):
           f"\t-> Number of parameters: {num_predicted_params / 1000}K"
           f"\t-> Size: {num_predicted_params * 4 / 1024 / 1024:.2f}Mb")
 
-    dataloaders = DataloaderFactory.get(cfg.task.task_name, **{'batch_size': cfg.batch_size})
+    dataloaders = DataloaderFactory.get(cfg.task.task_name,
+                                        cfg.task.use_random_inputs,
+                                        **{'batch_size': cfg.batch_size})
 
     trainer = Trainer(config=cfg,
                       predictor=predictor,

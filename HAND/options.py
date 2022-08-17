@@ -82,6 +82,8 @@ class TaskConfig:
     task_name: str = field(default='mnist')
     # Original network type
     original_model_name: str = field(default='SimpleNet')
+    # Whether to use random inputs
+    use_random_inputs: bool = field(default=False)
 
 
 @dataclass
