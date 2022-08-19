@@ -8,11 +8,15 @@ from HAND.tasks.cifar10.cifar10_akamaster_train import get_dataloaders as cifar1
 
 
 class RandomDataset(Dataset):
-    def __init__(self, input_shape):
+    def __init__(self, input_shape, num_samples=1e5):
         self.input_shape = input_shape
+        self.num_samples = int(num_samples)
 
     def __getitem__(self, item):
-        return torch.randn(self.input_shape)
+        return torch.randn(self.input_shape), -1  # no labels for random inputs
+
+    def __len__(self):
+        return self.num_samples
 
 
 class DataloaderFactory:
@@ -40,7 +44,8 @@ class DataloaderFactory:
             if use_random_inputs:
                 random_dataset = RandomDataset(task_data["input_shape"])
                 random_dataloder = DataLoader(random_dataset, **kwargs)
-                dataloaders = random_dataloder, dataloaders['test']
+                new_dataloaders = dataloaders[0], random_dataloder  # wtf why is 0 the test loader?
+                dataloaders = new_dataloaders
         except KeyError:
             raise ValueError("Unsupported task")
         return dataloaders

@@ -43,7 +43,7 @@ def main(cfg: TrainConfig):
 
     if not cfg.logging.disable_logging:
         clearml_task = Task.init(project_name='HAND_compression', task_name=cfg.logging.exp_name, deferred_init=True)
-        clearml_task.connect(logger.flatten(pyrallis.encode(cfg))) #Flatten because of clearml bug
+        clearml_task.connect(logger.flatten(pyrallis.encode(cfg)))  # Flatten because of clearml bug
         clearml_logger = clearml_task.get_logger()
     else:
         clearml_logger = None
