@@ -197,7 +197,7 @@ def get_dataloaders(test_kwargs, train_kwargs, use_workers=False):
         ])),
         batch_size=128, shuffle=False,
         num_workers=test_kwargs["workers"] if use_workers else 0, pin_memory=True)
-    return val_loader, train_loader
+    return train_loader, val_loader
 
 
 def train(train_loader, model, criterion, optimizer, epoch, smoothness):
