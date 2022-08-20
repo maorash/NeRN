@@ -8,7 +8,7 @@ from HAND.tasks.cifar10.cifar10_akamaster_train import get_dataloaders as cifar1
 
 
 class RandomDataset(Dataset):
-    def __init__(self, input_shape, num_samples=1e5):
+    def __init__(self, input_shape, num_samples=5e4):
         self.input_shape = input_shape
         self.num_samples = int(num_samples)
 
