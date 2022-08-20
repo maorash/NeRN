@@ -123,6 +123,8 @@ class TrainConfig:
     batch_size: int = field(default=256)
     # Number of epochs to train for
     epochs: int = field(default=250)
+    # Number of iterations to train for, mutually exclusive with epochs
+    max_steps: int = field(default=1.75e7)
     # How often to test the reconstructed model on the original task
     eval_epochs_interval: int = field(default=1)
     # Best losses window size for evaluating the reconstructed model on the original task
@@ -143,6 +145,12 @@ class TrainConfig:
     optim: OptimizationConfig = field(default_factory=OptimizationConfig)
     # Num epochs to run with reconstruction loss only at the beginning of training
     loss_warmup_epochs: int = field(default=1)
+
+    def __post_init__(self):
+        if (self.epochs is not None) and (self.max_steps is not None):
+            raise ValueError('Both epochs and max_steps cannot be set')
+        elif self.epochs is None and self.max_steps is None:
+            raise ValueError('Either epochs or max_steps must be set')
 
 
 @pyrallis.wrap()

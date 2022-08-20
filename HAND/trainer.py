@@ -51,6 +51,8 @@ class Trainer:
     def train(self):
         self._set_grads_for_training()
 
+        self._set_training_length()
+
         optimizer, scheduler = self._initialize_optimizer_and_scheduler()
 
         learnable_weights_shapes = self.reconstructed_model.get_learnable_weights_shapes()
@@ -59,15 +61,18 @@ class Trainer:
 
         self.exp_dir_path = create_experiment_dir(self.config.logging.log_dir, self.config.logging.exp_name)
 
-        training_step = 0
         original_weights = self.original_model.get_learnable_weights()
 
-        for epoch in range(self.config.epochs):
+        training_step = 0
+        epoch = 0
+
+        while True:
             for batch_ind, (batch, ground_truth) in enumerate(self.train_dataloader):
                 batch, ground_truth = batch.to(self.device), ground_truth.to(self.device)
                 optimizer.zero_grad()
 
-                reconstructed_weights = self.predictor.predict_all(positional_embeddings, original_weights, learnable_weights_shapes)
+                reconstructed_weights = self.predictor.predict_all(positional_embeddings, original_weights,
+                                                                   learnable_weights_shapes)
                 self.reconstructed_model.update_weights(reconstructed_weights)
 
                 original_outputs, original_feature_maps = self.original_model.get_feature_maps(batch)
@@ -115,6 +120,9 @@ class Trainer:
                 scheduler.step_batch()
                 training_step += 1
 
+                if training_step >= self.config.max_steps:
+                    break
+
             scheduler.step_epoch()
 
             if epoch % self.config.eval_epochs_interval == 0:
@@ -122,6 +130,11 @@ class Trainer:
 
             if epoch % self.config.save_epoch_interval == 0:
                 self._save_checkpoint(f"epoch_{epoch}")
+
+            epoch += 1
+
+            if epoch >= self.config.epochs:
+                break
 
     def _eval(self, epoch, log_suffix=None):
         accuracy = self.original_task_eval_fn.eval(self.reconstructed_model, self.test_dataloader, epoch, self.logger,
@@ -200,3 +213,9 @@ class Trainer:
         scheduler = LRSchedulerFactory.get(optimizer, len(self.train_dataloader), self.config)
 
         return optimizer, scheduler
+
+    def _set_training_length(self):
+        if self.config.epochs is not None:
+            self.config.max_steps = self.config.epochs * len(self.train_dataloader) * self.config.batch_size
+        elif self.config.max_steps is not None:
+            self.config.epochs = self.config.max_steps // (len(self.train_dataloader) * self.config.batch_size)
