@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 from typing import List
 
+import numpy as np
 from clearml import Logger
 from torch import Tensor
 
@@ -37,3 +38,15 @@ def flatten(d, parent_key='', sep='.'):
         else:
             items.append((new_key, v))
     return dict(items)
+
+
+def log_first_image_in_batch(logger, batch, batch_ind):
+    image = batch[0]
+    image = image.cpu().numpy()
+    image = np.transpose(image, (1, 2, 0))
+    image = np.clip(image, 0, 1)
+    image = (image * 255).astype(np.uint8)
+    logger.report_image(title='train_batch',
+                        series='train_image',
+                        iteration=batch_ind,
+                        image=np.atleast_3d(image))

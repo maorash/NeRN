@@ -6,7 +6,7 @@ from clearml import Logger
 from torch.utils.data import DataLoader
 
 from HAND.eval_func import EvalFunction
-from HAND.logger import log_scalar_dict
+from HAND.logger import log_scalar_dict, log_first_image_in_batch
 from HAND.models.model import OriginalModel, ReconstructedModel
 from HAND.predictors.predictor import HANDPredictorBase
 from HAND.logger import create_experiment_dir, log_scalar_list, compute_grad_norms
@@ -65,9 +65,16 @@ class Trainer:
         for epoch in range(self.config.epochs):
             for batch_ind, (batch, ground_truth) in enumerate(self.train_dataloader):
                 batch, ground_truth = batch.to(self.device), ground_truth.to(self.device)
+                if batch_ind % self.config.logging.log_interval == 0 and \
+                        not self.config.logging.disable_logging and \
+                        not self.config.logging.disable_image_logging:
+                    log_first_image_in_batch(self.logger, batch, batch_ind)
+
                 optimizer.zero_grad()
 
-                reconstructed_weights = self.predictor.predict_all(positional_embeddings, original_weights, learnable_weights_shapes)
+                reconstructed_weights = self.predictor.predict_all(positional_embeddings,
+                                                                   original_weights,
+                                                                   learnable_weights_shapes)
                 self.reconstructed_model.update_weights(reconstructed_weights)
 
                 original_outputs, original_feature_maps = self.original_model.get_feature_maps(batch)
@@ -80,8 +87,13 @@ class Trainer:
                 if self._loss_warmup(epoch):
                     task_term, attention_term, distillation_term = 0, 0, 0
                 else:
-                    # Compute task loss
-                    task_term = self.config.hand.task_loss_weight * self.task_loss(reconstructed_outputs, ground_truth)
+
+                    if self.config.task.use_random_inputs:
+                        task_term = 0
+                    else:
+                        # Compute task loss
+                        task_term = self.config.hand.task_loss_weight * self.task_loss(reconstructed_outputs,
+                                                                                       ground_truth)
 
                     # Compute attention loss
                     attention_term = self.config.hand.attention_loss_weight * self.attention_loss(
