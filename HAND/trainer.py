@@ -42,7 +42,7 @@ class Trainer:
         self.reconstructed_model = reconstructed_model
         self.original_task_eval_fn = original_task_eval_fn
         self.device = device
-        self.test_dataloader, self.train_dataloader = task_dataloaders
+        self.train_dataloader, self.test_dataloader = task_dataloaders
         self.logger = logger
         self.exp_dir_path = None
         self.max_eval_accuracy = 0
@@ -87,7 +87,8 @@ class Trainer:
                         task_term = 0
                     else:
                         # Compute task loss
-                        task_term = self.config.hand.task_loss_weight * self.task_loss(reconstructed_outputs, ground_truth)
+                        task_term = self.config.hand.task_loss_weight * self.task_loss(reconstructed_outputs,
+                                                                                       ground_truth)
 
                     # Compute attention loss
                     attention_term = self.config.hand.attention_loss_weight * self.attention_loss(

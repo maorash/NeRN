@@ -41,10 +41,10 @@ class DataloaderFactory:
         try:
             task_data = DataloaderFactory.tasks_data[task_name]
             dataloaders = task_data["loader"](test_kwargs=kwargs, train_kwargs=kwargs)
-            if use_random_inputs:
+            if use_random_inputs is True:
                 random_dataset = RandomDataset(task_data["input_shape"])
                 random_dataloder = DataLoader(random_dataset, **kwargs)
-                new_dataloaders = dataloaders[0], random_dataloder  # wtf why is 0 the test loader?
+                new_dataloaders = random_dataloder, dataloaders[1]
                 dataloaders = new_dataloaders
         except KeyError:
             raise ValueError("Unsupported task")
