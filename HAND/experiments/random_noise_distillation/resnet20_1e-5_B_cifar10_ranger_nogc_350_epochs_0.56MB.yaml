@@ -11,7 +11,7 @@ hand:
 task:
   task_name: cifar10v2
   original_model_name: ResNet20
-  use_random_inputs: true
+  use_random_inputs: True
 optim:
   optimizer: ranger
   lr: 5e-3
