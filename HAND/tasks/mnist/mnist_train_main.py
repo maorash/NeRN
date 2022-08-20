@@ -27,7 +27,7 @@ def get_dataloaders(test_kwargs, train_kwargs):
                               transform=transform)
     train_loader = torch.utils.data.DataLoader(dataset1, **train_kwargs)
     test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
-    return test_loader, train_loader
+    return train_loader, test_loader
 
 
 def train(args, model, device, train_loader, optimizer, epoch, smoothness):
