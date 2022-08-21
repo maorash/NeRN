@@ -20,12 +20,12 @@ def permute(embeddings: List[torch.Tensor], weights: List[torch.Tensor], permuta
 
 
 def joint_permutations(embeddings: List[torch.Tensor], weights: List[np.array]) -> List[torch.Tensor]:
-    embeddings = [embedding.cpu().numpy() for embedding in embeddings]
     permutations = [
         get_max_sim_order(layer_weights.reshape((-1, weights[i].shape[-1] ** 2)),
                           False)
         for i, layer_weights in enumerate(weights)]
-    return [embeddings[i][permutations[i]] for i in range(len(embeddings))]
+    return [embeddings[i][permutations[i]] for i in
+            range(len(embeddings))]
 
 
 def separate_permutations(embeddings: List[torch.Tensor], weights: List[np.array]) -> List[np.array]:
@@ -52,5 +52,7 @@ def separate_permutations(embeddings: List[torch.Tensor], weights: List[np.array
     permuted_embeddings = [filter_permuted_embeddings[i][channel_permutations[i]].transpose(1, 0, 2) for i in
                            range(num_layers)]
 
-    return [torch.Tensor(permuted_embeddings[i]).reshape(embeddings[i].shape).to(embeddings[i].device) for i in
-            range(len(embeddings))]
+    return [
+        torch.Tensor(permuted_embeddings[i].transpose(1, 0, 2)).reshape(embeddings[i].shape).to(embeddings[i].device)
+        for i in
+        range(len(embeddings))]
