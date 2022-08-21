@@ -32,7 +32,7 @@ def get_dataloaders(test_kwargs, train_kwargs):
                                            download=True, transform=transform)
     test_loader = torch.utils.data.DataLoader(testset, **test_kwargs)
 
-    return test_loader, train_loader
+    return train_loader, test_loader
 
 
 def train(args, model, device, train_loader, optimizer, epoch, smoothness):

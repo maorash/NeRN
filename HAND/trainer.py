@@ -43,7 +43,7 @@ class Trainer:
         self.reconstructed_model = reconstructed_model
         self.original_task_eval_fn = original_task_eval_fn
         self.device = device
-        self.test_dataloader, self.train_dataloader = task_dataloaders
+        self.train_dataloader, self.test_dataloader = task_dataloaders
         self.logger = logger
         self.exp_dir_path = None
         self.max_eval_accuracy = 0
@@ -71,9 +71,9 @@ class Trainer:
                 batch, ground_truth = batch.to(self.device), ground_truth.to(self.device)
                 optimizer.zero_grad()
 
-                reconstructed_weights = self.predictor.predict_all(positional_embeddings, original_weights,
+                reconstructed_weights = self.predictor.predict_all(positional_embeddings,
+                                                                   original_weights,
                                                                    learnable_weights_shapes)
-
                 self.reconstructed_model.update_weights(reconstructed_weights)
 
                 original_outputs, original_feature_maps = self.original_model.get_feature_maps(batch)
@@ -86,8 +86,13 @@ class Trainer:
                 if self._loss_warmup(epoch):
                     task_term, attention_term, distillation_term = 0, 0, 0
                 else:
-                    # Compute task loss
-                    task_term = self.config.hand.task_loss_weight * self.task_loss(reconstructed_outputs, ground_truth)
+
+                    if self.config.task.use_random_inputs:
+                        task_term = 0
+                    else:
+                        # Compute task loss
+                        task_term = self.config.hand.task_loss_weight * self.task_loss(reconstructed_outputs,
+                                                                                       ground_truth)
 
                     # Compute attention loss
                     attention_term = self.config.hand.attention_loss_weight * self.attention_loss(
