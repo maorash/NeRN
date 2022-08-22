@@ -41,9 +41,9 @@ class LRSchedulerFactory:
                                 step_interval=cfg.optim.step_interval)
 
     @staticmethod
-    def _init_exponential(optimizer: Optimizer, cfg: TrainConfig):
+    def _init_exponential(optimizer: Optimizer, cfg: TrainConfig, default_steps=100):
         # If not explicitly set, automatically compute exponential factor to achieve min_lr at final iteration
-        step_interval = cfg.optim.step_interval if cfg.optim.step_interval > 0 else cfg.num_iterations // 100
+        step_interval = cfg.optim.step_interval if cfg.optim.step_interval > 0 else cfg.num_iterations // default_steps
         approx_num_steps = cfg.num_iterations / step_interval
         gamma = np.power(cfg.optim.min_lr / cfg.optim.lr, 1 / approx_num_steps) if cfg.optim.gamma == 0 else cfg.optim.gamma
         return GenericScheduler(ExponentialLR(optimizer, gamma),

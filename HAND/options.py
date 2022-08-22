@@ -66,7 +66,7 @@ class HANDConfig:
 class LogConfig:
     # Task name
     exp_name: str = field(default='HAND_Train')
-    # How often to log metrics in iterations/batches
+    # How often to log metrics in iterations (batches)
     log_interval: int = field(default=20)
     # Log dir
     log_dir: str = field(default='outputs')
@@ -89,7 +89,7 @@ class TaskConfig:
 @dataclass
 class OptimizationConfig:
     # Optimizer to use, should be a member of `torch.optim`, default is `AdamW`
-    optimizer: str = field(default='adamw')
+    optimizer_type: str = field(default='adamw')
     # Learning rate
     lr: float = field(default=1e-4)
     # Beta for adam/ranger. default=0.5
@@ -125,7 +125,7 @@ class TrainConfig:
     # workers: int = field(default=4)
     # Input batch size
     batch_size: int = field(default=256)
-    # Number of epochs to train for
+    # Number of epochs to train for, mutually exclusive with num_iterations
     epochs: Optional[int] = field(default=250)
     # Number of iterations to train for, mutually exclusive with epochs
     num_iterations: Optional[int] = field(default=None)
@@ -133,13 +133,13 @@ class TrainConfig:
     eval_epochs_interval: Optional[int] = field(default=1)
     # How often to save the learned model (in epochs)
     save_epochs_interval: Optional[int] = field(default=10)
-    # How often to test the reconstructed model on the original task (in iterations/batches)
+    # How often to test the reconstructed model on the original task, in iterations (batches)
     eval_iterations_interval: Optional[int] = field(default=None)
-    # How often to save the learned model (in iterations/batches)
+    # How often to save the learned model, in iterations (batches)
     save_iterations_interval: Optional[int] = field(default=None)
     # Loss window size (in iterations), used for a greedy selection for triggering evaluation
     eval_loss_window_size: int = field(default=20)
-    # How often to add the loss to the window (number of iterations/batches)
+    # How often to add the loss to the window, number of iterations (batches)
     eval_loss_window_interval: int = field(default=10)
     # Number of iterations to optimize only using reconstruction loss at the beginning of training
     loss_warmup_iterations: int = field(default=100)
