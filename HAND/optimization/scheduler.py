@@ -24,19 +24,17 @@ class GenericScheduler:
 
 class LRSchedulerFactory:
     @staticmethod
-    def get(optimizer: Optimizer, num_steps: int, cfg: TrainConfig) -> GenericScheduler:
+    def get(optimizer: Optimizer, cfg: TrainConfig) -> GenericScheduler:
         if cfg.optim.lr_scheduler_type == "cosine":
-            return LRSchedulerFactory._init_cosine(optimizer, num_steps, cfg)
+            return LRSchedulerFactory._init_cosine(optimizer, cfg)
         elif cfg.optim.lr_scheduler_type == "exponential":
             return LRSchedulerFactory._init_exponential(optimizer, cfg)
         else:
             raise ValueError("Unknown LR Scheduler Type")
 
     @staticmethod
-    def _init_cosine(optimizer: Optimizer, num_iterations: int, cfg: TrainConfig):
-        return GenericScheduler(CosineAnnealingLR(optimizer,
-                                                  T_max=(cfg.epochs * num_iterations),
-                                                  eta_min=cfg.optim.min_lr),
+    def _init_cosine(optimizer: Optimizer, cfg: TrainConfig):
+        return GenericScheduler(CosineAnnealingLR(optimizer, T_max=cfg.num_iterations, eta_min=cfg.optim.min_lr),
                                 min_lr=cfg.optim.min_lr,
                                 step_interval=cfg.optim.step_interval)
 

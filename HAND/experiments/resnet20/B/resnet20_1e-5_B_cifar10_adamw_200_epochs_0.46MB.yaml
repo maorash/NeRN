@@ -12,6 +12,6 @@ task:
   task_name: cifar10v2
   original_model_name: ResNet20
 optim:
-  optimizer: adamw
+  optimizer_type: adamw
   lr: 5e-4
 epochs: 200

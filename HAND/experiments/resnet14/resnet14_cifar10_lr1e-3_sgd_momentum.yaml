@@ -9,4 +9,4 @@ task:
   original_model_name: ResNet14
 optim:
   lr: 1e-3
-  optimizer: sgd
+  optimizer_type: sgd

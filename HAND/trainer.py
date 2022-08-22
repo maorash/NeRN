@@ -218,7 +218,7 @@ class Trainer:
             parameters_for_optimizer.append(self.reconstructed_model.get_fully_connected_weights())
 
         optimizer = OptimizerFactory.get(parameters_for_optimizer, self.config)
-        scheduler = LRSchedulerFactory.get(optimizer, len(self.train_dataloader), self.config)
+        scheduler = LRSchedulerFactory.get(optimizer, self.config)
 
         return optimizer, scheduler
 

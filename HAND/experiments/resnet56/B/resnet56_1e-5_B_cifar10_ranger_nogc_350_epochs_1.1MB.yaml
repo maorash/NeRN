@@ -12,7 +12,7 @@ task:
   task_name: cifar10v2
   original_model_name: ResNet56
 optim:
-  optimizer: ranger
+  optimizer_type: ranger
   lr: 5e-3
   ranger_use_gc: False
 epochs: 350
