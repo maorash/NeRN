@@ -9,3 +9,9 @@ task:
   original_model_name: SimpleNet
 optim:
   lr: 5e-4
+  lr_scheduler_type: exponential
+  step_interval: 0
+epochs: null
+eval_epochs_interval: null
+eval_iterations_interval: 20
+num_iterations: 100
