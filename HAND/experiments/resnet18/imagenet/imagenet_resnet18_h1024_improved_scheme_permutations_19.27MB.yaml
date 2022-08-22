@@ -21,10 +21,10 @@ optim:
 batch_size: 32
 loss_warmup_iterations: 0
 eval_loss_window_size: 100
-eval_loss_window_interval: 10
+eval_loss_window_interval: 20
 num_gpus: 2
 num_workers: 12
 epochs: null
 num_iterations: 110000
-eval_iterations_interval: 2000
+eval_iterations_interval: 2750
 save_iterations_interval: 10000
