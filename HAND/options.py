@@ -137,7 +137,7 @@ class TrainConfig:
     eval_iterations_interval: Optional[int] = field(default=None)
     # How often to save the learned model (in iterations/batches)
     save_iterations_interval: Optional[int] = field(default=None)
-    # Loss window size, used for a greedy selection for triggering evaluation
+    # Loss window size (in iterations), used for a greedy selection for triggering evaluation
     eval_loss_window_size: int = field(default=20)
     # How often to add the loss to the window (number of iterations/batches)
     eval_loss_window_interval: int = field(default=10)
