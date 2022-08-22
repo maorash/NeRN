@@ -56,7 +56,7 @@ mixup_args = dict(
     label_smoothing=0, num_classes=1000)
 
 
-def get_dataloaders(test_kwargs, train_kwargs, task_cfg):
+def get_dataloaders(train_kwargs, test_kwargs, task_cfg):
     print("Creating ImageNet train dataloader")
     dataset_train = create_dataset(
         '', root=task_cfg.imagenet_path, split='train', is_training=True,
@@ -131,7 +131,7 @@ def get_dataloaders(test_kwargs, train_kwargs, task_cfg):
         use_multi_epochs_loader=train_args["use_multi_epochs_loader"],
         worker_seeding=train_args["worker_seeding"],
     )
-    return loader_eval, loader_train
+    return loader_train, loader_eval
 
 
 def validate(model, loader, loss_fn, amp_autocast=suppress, log_suffix=''):

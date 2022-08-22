@@ -13,13 +13,13 @@ from HAND.options import TrainConfig
 class OptimizerFactory:
     @staticmethod
     def get(parameters: List[torch.Tensor], cfg: TrainConfig) -> Optimizer:
-        if cfg.optim.optimizer == "sgd":
+        if cfg.optim.optimizer_type == "sgd":
             return OptimizerFactory._init_sgd(parameters, cfg)
-        elif cfg.optim.optimizer == "adamw":
+        elif cfg.optim.optimizer_type == "adamw":
             return OptimizerFactory._init_adamw(parameters, cfg)
-        elif cfg.optim.optimizer == "adadelta":
+        elif cfg.optim.optimizer_type == "adadelta":
             return OptimizerFactory._init_adadelta(parameters, cfg)
-        elif cfg.optim.optimizer == "ranger":
+        elif cfg.optim.optimizer_type == "ranger":
             return OptimizerFactory._init_ranger(parameters, cfg)
         else:
             raise ValueError("Unknown Optimizer Type")

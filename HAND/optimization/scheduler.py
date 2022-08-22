@@ -9,28 +9,24 @@ from HAND.options import TrainConfig
 
 
 class GenericScheduler:
-    def __init__(self, scheduler: _LRScheduler, step_on_epoch=True, step_on_batch=False):
+    def __init__(self, scheduler: _LRScheduler, min_lr: float, step_interval: int):
         self.scheduler = scheduler
-        self._step_on_epoch = step_on_epoch
-        self._step_on_batch = step_on_batch
+        self.min_lr = min_lr
+        self.step_interval = step_interval
 
-    def step_epoch(self):
-        if self._step_on_epoch:
+    def check_and_step(self, step: int):
+        if step % self.step_interval == 0 and self.min_lr < self.get_last_lr():
             self.scheduler.step()
 
-    def step_batch(self):
-        if self._step_on_batch:
-            self.scheduler.step()
-
-    def get_last_lr(self) -> List[float]:
-        return self.scheduler.get_last_lr()
+    def get_last_lr(self) -> float:
+        return self.scheduler.get_last_lr()[-1]
 
 
 class LRSchedulerFactory:
     @staticmethod
-    def get(optimizer: Optimizer, num_iterations: int, cfg: TrainConfig) -> GenericScheduler:
+    def get(optimizer: Optimizer, num_steps: int, cfg: TrainConfig) -> GenericScheduler:
         if cfg.optim.lr_scheduler_type == "cosine":
-            return LRSchedulerFactory._init_cosine(optimizer, num_iterations, cfg)
+            return LRSchedulerFactory._init_cosine(optimizer, num_steps, cfg)
         elif cfg.optim.lr_scheduler_type == "exponential":
             return LRSchedulerFactory._init_exponential(optimizer, cfg)
         else:
@@ -41,13 +37,15 @@ class LRSchedulerFactory:
         return GenericScheduler(CosineAnnealingLR(optimizer,
                                                   T_max=(cfg.epochs * num_iterations),
                                                   eta_min=cfg.optim.min_lr),
-                                step_on_epoch=False,
-                                step_on_batch=True)
+                                min_lr=cfg.optim.min_lr,
+                                step_interval=cfg.optim.step_interval)
 
     @staticmethod
-    def _init_exponential(optimizer: Optimizer, cfg: TrainConfig):
+    def _init_exponential(optimizer: Optimizer, cfg: TrainConfig, default_steps=100):
         # If not explicitly set, automatically compute exponential factor to achieve min_lr at final iteration
-        gamma = np.power(cfg.optim.min_lr / cfg.optim.lr, 1 / cfg.epochs) if cfg.optim.gamma == 0 else cfg.optim.gamma
+        step_interval = cfg.optim.step_interval if cfg.optim.step_interval > 0 else cfg.num_iterations // default_steps
+        approx_num_steps = cfg.num_iterations / step_interval
+        gamma = np.power(cfg.optim.min_lr / cfg.optim.lr, 1 / approx_num_steps) if cfg.optim.gamma == 0 else cfg.optim.gamma
         return GenericScheduler(ExponentialLR(optimizer, gamma),
-                                step_on_epoch=True,
-                                step_on_batch=False)
+                                min_lr=cfg.optim.min_lr,
+                                step_interval=step_interval)

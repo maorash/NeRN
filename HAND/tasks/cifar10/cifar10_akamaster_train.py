@@ -115,7 +115,7 @@ def main():
 
     cudnn.benchmark = True
 
-    val_loader, train_loader = get_dataloaders({'workers': args.workers}, {'batch_size': args.batch_size, 'workers': args.workers}, use_workers=True)
+    train_loader, val_loader = get_dataloaders({'workers': args.workers}, {'batch_size': args.batch_size, 'workers': args.workers}, use_workers=True)
 
     # define loss function (criterion) and optimizer
     criterion = nn.CrossEntropyLoss().cuda()
@@ -177,7 +177,7 @@ def save(model, suffix=""):
             json.dump(model_kwargs, model_save_path)
 
 
-def get_dataloaders(test_kwargs, train_kwargs, use_workers=True, **kwargs):
+def get_dataloaders(train_kwargs, test_kwargs, use_workers=True, **kwargs):
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
     train_loader = torch.utils.data.DataLoader(
@@ -197,7 +197,7 @@ def get_dataloaders(test_kwargs, train_kwargs, use_workers=True, **kwargs):
         ])),
         batch_size=128, shuffle=False,
         num_workers=test_kwargs["num_workers"] if use_workers else 0, pin_memory=True)
-    return val_loader, train_loader
+    return train_loader, val_loader
 
 
 def train(train_loader, model, criterion, optimizer, epoch, smoothness):

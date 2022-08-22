@@ -1,6 +1,8 @@
 import torch
 from torch import nn
 from torch.nn import functional as F
+
+from HAND.options import HANDConfig
 from HAND.loss.loss import LossBase
 
 
@@ -43,8 +45,8 @@ class DistillationLossFactory:
     }
 
     @staticmethod
-    def get(loss_type: str = "KLDivLoss") -> DistillationLossBase:
+    def get(cfg: HANDConfig) -> DistillationLossBase:
         try:
-            return DistillationLossFactory.losses[loss_type]()
+            return DistillationLossFactory.losses[cfg.distillation_loss_type]()
         except KeyError:
             raise ValueError("Unknown Distillation Loss Type")

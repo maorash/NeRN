@@ -8,7 +8,7 @@ hand:
   hidden_layer_size: 1024
   weights_batch_method: random_weighted_batch
   embeddings:
-    enc_levels: 5
+    enc_levels: 40
   task_loss_weight: 0
 task:
   task_name: imagenet
@@ -18,9 +18,12 @@ optim:
   lr: 5e-4
   lr_scheduler_type: exponential
 batch_size: 32
-loss_warmup_epochs: 0
-epochs: 5
-eval_loss_window_size: 200
-eval_loss_window_interval: 20
+loss_warmup_iterations: 0
+eval_loss_window_size: 100
+eval_loss_window_interval: 10
 num_gpus: 4
 num_workers: 48
+epochs: null
+num_iterations: 100000
+eval_iterations_interval: 2000
+save_iterations_interval: 10000

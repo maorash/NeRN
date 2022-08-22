@@ -3,6 +3,7 @@ from typing import List
 import torch
 from torch import nn
 
+from HAND.options import HANDConfig
 from HAND.loss.loss import LossBase
 
 
@@ -57,9 +58,8 @@ class ReconstructionLossFactory:
     }
 
     @staticmethod
-    def get(loss_type: str = "MSELoss") -> ReconstructionLossBase:
+    def get(cfg: HANDConfig) -> ReconstructionLossBase:
         try:
-            return ReconstructionLossFactory.losses[loss_type]()
+            return ReconstructionLossFactory.losses[cfg.reconstruction_loss_type]()
         except KeyError:
             raise ValueError("Unknown Reconstruction Loss Type")
-

@@ -19,7 +19,7 @@ from HAND.tasks.vgg8 import VGG8
 from HAND.models.regularization import CosineSmoothness, L2Smoothness
 
 
-def get_dataloaders(test_kwargs, train_kwargs, **kwargs):
+def get_dataloaders(train_kwargs, test_kwargs, **kwargs):
     transform = transforms.Compose(
         [transforms.ToTensor(),
          transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
@@ -32,7 +32,7 @@ def get_dataloaders(test_kwargs, train_kwargs, **kwargs):
                                            download=True, transform=transform)
     test_loader = torch.utils.data.DataLoader(testset, **test_kwargs)
 
-    return test_loader, train_loader
+    return train_loader, test_loader
 
 
 def train(args, model, device, train_loader, optimizer, epoch, smoothness):
@@ -146,7 +146,7 @@ def main():
         train_kwargs.update(cuda_kwargs)
         test_kwargs.update(cuda_kwargs)
 
-    test_loader, train_loader = get_dataloaders(test_kwargs, train_kwargs)
+    train_loader, test_loader = get_dataloaders(test_kwargs, train_kwargs)
 
     if args.model_arch == "SimpleNet":
         model_kwargs = dict(input_size=32, num_hidden=args.num_hidden, input_channels=3, num_layers=args.num_layers,
