@@ -53,7 +53,7 @@ class L2ReconstructionLoss(ReconstructionLossBase):
 class ReconstructionLossFactory:
     losses = {
         "MSELoss": MSEReconstructionLoss,
-        "L2": L2ReconstructionLoss
+        "L2Loss": L2ReconstructionLoss
     }
 
     @staticmethod

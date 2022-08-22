@@ -1,9 +1,9 @@
 logging:
-  exp_name: resnet56_1e-6_B_cifar10_ranger_nogc_350_epochs_1.1MB_2
-original_model_path: trained_models/original_tasks/mnist/resnet56_1e-6_B2_best.pt
+  exp_name: resnet56_0_B_cifar10_ranger_nogc_350_epochs_0.9MB_2
+original_model_path: trained_models/original_tasks/mnist/resnet56_0_B.pt
 hand:
   num_blocks: 5
-  hidden_layer_size: 288
+  hidden_layer_size: 260
   embeddings:
     enc_levels: 20
   weights_batch_method: random_weighted_batch

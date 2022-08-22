@@ -13,7 +13,6 @@ from typing import Callable
 import torch.utils.data
 import numpy as np
 
-from . import create_dataset
 from .transforms_factory import create_transform
 from .constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
 from .distributed_sampler import OrderedDistributedSampler, RepeatAugSampler
@@ -275,117 +274,6 @@ def create_loader(
         )
 
     return loader
-
-
-def get_dataloaders(test_kwargs, train_kwargs, task_cfg):
-    dataset_train = create_dataset(
-        '', root=task_cfg.imagenet_path, split='train', is_training=True,
-        class_map='', download=False,
-        batch_size=128, repeats=0)
-
-    dataset_eval = create_dataset(
-        '', root=task_cfg.imagenet_path, split='val', is_training=False,
-        class_map='', download=False,
-        batch_size=128)
-
-    if task_cfg.original_model_name != 'resnet18':
-        raise ValueError("Data config for ResNet18 is hard coded, make sure the data_config is updated to the new model")
-
-    data_config = {
-        "input_size": (3, 224, 224),
-        "interpolation": "bilinear",
-        "mean": IMAGENET_DEFAULT_MEAN,
-        "std": IMAGENET_DEFAULT_STD,
-        "crop_pct": 0.95
-    }
-
-    eval_args = {
-        "batch_size": 128,
-        "prefetcher": True,
-        "workers": 4,
-        "pin_mem": False,
-        "distributed": False,
-    }
-
-    train_args = {
-        "batch_size": 128,
-        "prefetcher": True,
-        "no_aug": False,
-        "reprob": 0.0,
-        "remode": "pixel",
-        "recount": 1,
-        "resplit": False,
-        "scale": [0.08, 1.0],
-        "ratio": [3. / 4., 4. / 3.],
-        "hflip": 0.5,
-        "vflip": 0,
-        "color_jitter": 0.4,
-        "aa": "rand-m7-mstd0.5-inc1",
-        "aug_repeats": 3,
-        "num_aug_splits": 0,
-        "workers": 4,
-        "distributed": False,
-        "pin_mem": False,
-        "use_multi_epochs_loader": False,
-        "worker_seeding": "all"
-    }
-
-    mixup_args = dict(
-        mixup_alpha=0.1, cutmix_alpha=1, cutmix_minmax=None,
-        prob=1, switch_prob=0.5, mode='batch',
-        label_smoothing=0, num_classes=1000)
-    collate_fn = FastCollateMixup(**mixup_args)
-
-    if test_kwargs is not None:
-        eval_args.update(test_kwargs)
-    if train_kwargs is not None:
-        train_args.update(train_kwargs)
-
-    loader_eval = create_loader(
-        dataset_eval,
-        input_size=data_config['input_size'],
-        batch_size=eval_args["batch_size"],
-        is_training=False,
-        use_prefetcher=eval_args["prefetcher"],
-        interpolation=data_config['interpolation'],
-        mean=data_config['mean'],
-        std=data_config['std'],
-        num_workers=eval_args["workers"],
-        distributed=eval_args["distributed"],
-        crop_pct=data_config['crop_pct'],
-        pin_memory=eval_args["pin_mem"],
-    )
-
-    loader_train = create_loader(
-        dataset_train,
-        input_size=data_config['input_size'],
-        batch_size=train_args["batch_size"],
-        is_training=True,
-        use_prefetcher=train_args["prefetcher"],
-        no_aug=train_args["no_aug"],
-        re_prob=train_args["reprob"],
-        re_mode=train_args["remode"],
-        re_count=train_args["recount"],
-        re_split=train_args["resplit"],
-        scale=train_args["scale"],
-        ratio=train_args["ratio"],
-        hflip=train_args["hflip"],
-        vflip=train_args["vflip"],
-        color_jitter=train_args["color_jitter"],
-        auto_augment=train_args["aa"],
-        num_aug_repeats=train_args["aug_repeats"],
-        num_aug_splits=train_args["num_aug_splits"],
-        interpolation='random',
-        mean=data_config['mean'],
-        std=data_config['std'],
-        num_workers=train_args["workers"],
-        distributed=train_args["distributed"],
-        collate_fn=collate_fn,
-        pin_memory=train_args["pin_mem"],
-        use_multi_epochs_loader=train_args["use_multi_epochs_loader"],
-        worker_seeding=train_args["worker_seeding"],
-    )
-    return loader_eval, loader_train
 
 
 class MultiEpochsDataLoader(torch.utils.data.DataLoader):

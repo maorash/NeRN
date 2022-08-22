@@ -1,0 +1,26 @@
+logging:
+  exp_name: imagenet_resnet18_h1024_old_scheme
+  log_interval: 10
+original_model_path: trained_models/original_tasks/imagenet/resnet18-5c106cde.pt
+hand:
+  distillation_loss_type: StableKLDivLoss
+  num_blocks: 5
+  hidden_layer_size: 1024
+  weights_batch_method: random_weighted_batch
+  embeddings:
+    enc_levels: 5
+  task_loss_weight: 0
+task:
+  task_name: imagenet
+  original_model_name: ResNet18
+  imagenet_path: /nfs/datasets/classification/imagenet/ILSVRC/Data/CLS-LOC/
+optim:
+  lr: 5e-4
+  lr_scheduler_type: exponential
+batch_size: 32
+loss_warmup_epochs: 0
+epochs: 5
+eval_loss_window_size: 200
+eval_loss_window_interval: 20
+num_gpus: 4
+num_workers: 48

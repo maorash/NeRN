@@ -53,9 +53,9 @@ class HANDConfig:
     # Task loss type, should be a member of `torch.nn.functional`, default is `nll_loss`
     task_loss_type: str = field(default='CELoss')
     # Reconstruction loss type, should be a member of `torch.nn`, default is `MSELoss`
-    reconstruction_loss_type: str = field(default='L2')
+    reconstruction_loss_type: str = field(default='L2Loss')
     # Feature maps distillation loss type, should be a member of `torch.nn`, default is `MSELoss`
-    attention_loss_type: str = field(default='L2')
+    attention_loss_type: str = field(default='L2AttentionLoss')
     # Output distillation loss type, should be a member of `torch.nn`, default is `KLDivLoss`
     distillation_loss_type: str = field(default='KLDivLoss')
     # The sampling mode for the reconstruction model (center/average/max)
@@ -120,7 +120,9 @@ class TrainConfig:
     # HAND config
     hand: HANDConfig = field(default_factory=HANDConfig)
     # Number of data loading workers
-    # workers: int = field(default=4)
+    num_workers: int = field(default=0)
+    # Number of available GPUs
+    num_gpus: int = field(default=1)
     # Input batch size
     batch_size: int = field(default=256)
     # Number of epochs to train for

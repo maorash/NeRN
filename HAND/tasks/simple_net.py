@@ -6,7 +6,6 @@ from torch.nn import functional as F
 
 from HAND.options import EmbeddingsConfig
 from HAND.models.model import OriginalModel, ReconstructedModel
-from HAND.positional_embedding import MyPositionalEncoding
 
 
 class SimpleNet(OriginalModel):

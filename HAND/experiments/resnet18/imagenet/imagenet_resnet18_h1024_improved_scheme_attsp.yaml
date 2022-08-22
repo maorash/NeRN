@@ -1,0 +1,28 @@
+logging:
+  exp_name: imagenet_resnet18_h1024_improved_scheme_multgpu_attsp
+  log_interval: 10
+original_model_path: trained_models/original_tasks/imagenet/resnet18-5c106cde.pt
+hand:
+  distillation_loss_type: StableKLDivLoss
+  attention_loss_type: SPAttentionLoss
+  num_blocks: 5
+  hidden_layer_size: 1024
+  weights_batch_method: random_weighted_batch
+  embeddings:
+    enc_levels: 40
+  task_loss_weight: 0
+task:
+  task_name: imagenet
+  original_model_name: ResNet18
+  imagenet_path: /nfs/datasets/classification/imagenet/ILSVRC/Data/CLS-LOC/
+optim:
+  optimizer: ranger
+  lr: 5e-3
+  ranger_use_gc: False
+batch_size: 32
+loss_warmup_epochs: 0
+epochs: 3
+eval_loss_window_size: 100
+eval_loss_window_interval: 10
+num_gpus: 4
+num_workers: 48

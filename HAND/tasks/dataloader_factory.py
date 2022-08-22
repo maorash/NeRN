@@ -1,8 +1,9 @@
 from HAND.tasks.mnist.mnist_train_main import get_dataloaders as mnist_dataloaders
 from HAND.tasks.cifar10.cifar10_basic_train import get_dataloaders as cifar10_dataloaders
 from HAND.tasks.cifar10.cifar10_akamaster_train import get_dataloaders as cifar10v2_dataloaders
-from HAND.tasks.imagenet_timm.timm.data.loader import get_dataloaders as imagenet_timm_dataloaders
+from HAND.tasks.imagenet_helpers import get_dataloaders as imagenet_timm_dataloaders
 from HAND.options import TaskConfig
+
 
 class DataloaderFactory:
     task_dataloaders = {

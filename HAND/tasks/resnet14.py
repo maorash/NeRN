@@ -1,4 +1,3 @@
-import pickle
 from typing import List, Tuple
 
 import torch
@@ -6,7 +5,6 @@ import torchvision.models
 
 from HAND.models.model import OriginalModel, ReconstructedModel
 from HAND.options import EmbeddingsConfig
-from HAND.positional_embedding import MyPositionalEncoding
 
 
 class ResNet14(OriginalModel):
