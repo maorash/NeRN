@@ -50,6 +50,7 @@ class Trainer:
 
     def train(self):
         self._set_grads_for_training()
+        self._set_training_steps()
 
         optimizer, scheduler = self._initialize_optimizer_and_scheduler()
 
@@ -59,11 +60,13 @@ class Trainer:
 
         self.exp_dir_path = create_experiment_dir(self.config.logging.log_dir, self.config.logging.exp_name)
 
-        training_step = 0
         original_weights = self.original_model.get_learnable_weights()
 
-        for epoch in range(self.config.epochs):
-            for batch_ind, (batch, ground_truth) in enumerate(self.train_dataloader):
+        training_step = 0
+        epoch = 0
+
+        while True:
+            for batch, ground_truth in self.train_dataloader:
                 batch, ground_truth = batch.to(self.device), ground_truth.to(self.device)
                 optimizer.zero_grad()
 
@@ -79,16 +82,11 @@ class Trainer:
                 reconstruction_term = self.config.hand.reconstruction_loss_weight * self.reconstruction_loss(
                     reconstructed_weights, original_weights)
 
-                if self._loss_warmup(epoch):
+                if self._loss_warmup(training_step):
                     task_term, attention_term, distillation_term = 0, 0, 0
                 else:
-
-                    if self.config.task.use_random_inputs:
-                        task_term = 0
-                    else:
-                        # Compute task loss
-                        task_term = self.config.hand.task_loss_weight * self.task_loss(reconstructed_outputs,
-                                                                                       ground_truth)
+                    # Compute task loss
+                    task_term = self.config.hand.task_loss_weight * self.task_loss(reconstructed_outputs, ground_truth)
 
                     # Compute attention loss
                     attention_term = self.config.hand.attention_loss_weight * self.attention_loss(
@@ -101,38 +99,44 @@ class Trainer:
                 loss = reconstruction_term + task_term + attention_term + distillation_term
                 loss.backward()
 
-                if batch_ind % self.config.logging.log_interval == 0 and not self.config.logging.disable_logging:
+                if training_step % self.config.logging.log_interval == 0 and not self.config.logging.disable_logging:
                     loss_dict = dict(loss=loss,
                                      original_task_loss=task_term,
                                      reconstruction_loss=reconstruction_term,
                                      attention_loss=attention_term,
                                      distillation_loss=distillation_term)
-                    self._log_training(training_step, reconstructed_weights, loss_dict, self.config.logging.verbose)
-                    log_scalar_dict(dict(learning_rate=scheduler.get_last_lr()[-1]),
-                                    title="learning_rate",
-                                    iteration=epoch,
-                                    logger=self.logger)
-                if batch_ind % self.config.eval_loss_window_interval == 0 and not self.config.logging.disable_logging:
-                    if len(self.loss_window) == self.config.eval_loss_window_size and loss <= min(self.loss_window):
-                        self._eval(epoch * len(self.train_dataloader) + batch_ind, "greedy")
-                    self._add_to_loss_window(loss.item())
+                    self._log_training(training_step, reconstructed_weights, loss_dict, scheduler.get_last_lr(),
+                                       self.config.logging.verbose)
 
                 self._clip_grad_norm()
                 optimizer.step()
-                scheduler.step_batch()
+                scheduler.check_and_step(training_step)
                 training_step += 1
 
-            scheduler.step_epoch()
+                if training_step % self.config.eval_loss_window_interval == 0:
+                    self._add_to_loss_window(loss.item())
+                    if len(self.loss_window) == self.config.eval_loss_window_size and loss <= min(self.loss_window):
+                        self._eval(training_step, "greedy")
+                if self.config.eval_iterations_interval is not None \
+                        and training_step % self.config.eval_iterations_interval == 0:
+                    self._eval(training_step)
+                if self.config.save_iterations_interval is not None \
+                        and training_step % self.config.save_iterations_interval == 0:
+                    self._save_checkpoint(f"step_{training_step}")
 
-            if epoch % self.config.eval_epochs_interval == 0:
-                self._eval(epoch)
+                if training_step >= self.config.num_iterations:
+                    return
 
-            if epoch % self.config.save_epoch_interval == 0:
+            epoch += 1
+
+            if self.config.eval_epochs_interval is not None and epoch % self.config.eval_epochs_interval == 0:
+                self._eval(training_step)
+            if self.config.save_epochs_interval is not None and epoch % self.config.save_epochs_interval == 0:
                 self._save_checkpoint(f"epoch_{epoch}")
 
-    def _eval(self, epoch, log_suffix=None):
-        accuracy = self.original_task_eval_fn.eval(self.reconstructed_model, self.test_dataloader, epoch, self.logger,
-                                                   log_suffix)
+    def _eval(self, iteration, log_suffix=None):
+        accuracy = self.original_task_eval_fn.eval(self.reconstructed_model, self.test_dataloader, iteration,
+                                                   self.logger, log_suffix)
         if accuracy > self.max_eval_accuracy:
             self.max_eval_accuracy = accuracy
             self._save_checkpoint(f"best")
@@ -142,8 +146,9 @@ class Trainer:
             self.loss_window.pop(0)
         self.loss_window.append(loss)
 
-    def _save_checkpoint(self, suffix: str):
-        torch.save(self.predictor, os.path.join(self.exp_dir_path, f"hand_{self.config.logging.exp_name}_{suffix}.pth"))
+    def _save_checkpoint(self, checkpoint_suffix: str):
+        torch.save(self.predictor, os.path.join(self.exp_dir_path,
+                                                f"hand_{self.config.logging.exp_name}_{checkpoint_suffix}.pth"))
 
     def _clip_grad_norm(self):
         if self.config.optim.max_gradient_norm is not None:
@@ -153,38 +158,47 @@ class Trainer:
             for predictor_param in self.predictor.parameters():
                 torch.nn.utils.clip_grad_value_(predictor_param, clip_value=self.config.optim.max_gradient)
 
-    def _loss_warmup(self, epoch: int):
-        return epoch < self.config.loss_warmup_epochs
+    def _loss_warmup(self, training_step: int):
+        return training_step < self.config.loss_warmup_iterations
 
-    def _log_training(self, epoch: int, reconstructed_weights: List[torch.Tensor], loss_dict: dict, verbose: bool):
+    def _log_training(self, training_step: int,
+                      reconstructed_weights: List[torch.Tensor],
+                      loss_dict: dict,
+                      lr: float,
+                      verbose: bool):
         log_scalar_dict(loss_dict,
                         title='training_loss',
-                        iteration=epoch,
+                        iteration=training_step,
+                        logger=self.logger)
+        log_scalar_dict(dict(learning_rate=lr),
+                        title="learning_rate",
+                        iteration=training_step,
                         logger=self.logger)
         print(f'\nTraining loss is: {loss_dict["loss"]}')
 
         # logging norms
         if verbose is True:
-            original_weights_norms = self.original_model.get_learnable_weights_norms()
-            log_scalar_list(original_weights_norms,
-                            title='weight_norms',
-                            series_name='original',
-                            iteration=epoch,
-                            logger=self.logger)
+            self._log_training_verbose(reconstructed_weights, training_step)
 
-            reconstructed_weights_norms = self.reconstructed_model.get_learnable_weights_norms()
-            log_scalar_list(reconstructed_weights_norms,
-                            title='weight_norms',
-                            series_name='reconstructed',
-                            iteration=epoch,
-                            logger=self.logger)
-
-            reconstructed_weights_grad_norms = compute_grad_norms(reconstructed_weights)
-            log_scalar_list(reconstructed_weights_grad_norms,
-                            title='reconstructed_weights_grad_norms',
-                            series_name='layer',
-                            iteration=epoch,
-                            logger=self.logger)
+    def _log_training_verbose(self, reconstructed_weights, training_step):
+        original_weights_norms = self.original_model.get_learnable_weights_norms()
+        log_scalar_list(original_weights_norms,
+                        title='weight_norms',
+                        series_name='original',
+                        iteration=training_step,
+                        logger=self.logger)
+        reconstructed_weights_norms = self.reconstructed_model.get_learnable_weights_norms()
+        log_scalar_list(reconstructed_weights_norms,
+                        title='weight_norms',
+                        series_name='reconstructed',
+                        iteration=training_step,
+                        logger=self.logger)
+        reconstructed_weights_grad_norms = compute_grad_norms(reconstructed_weights)
+        log_scalar_list(reconstructed_weights_grad_norms,
+                        title='reconstructed_weights_grad_norms',
+                        series_name='layer',
+                        iteration=training_step,
+                        logger=self.logger)
 
     def _set_grads_for_training(self):
         self.original_model.eval()
@@ -207,3 +221,7 @@ class Trainer:
         scheduler = LRSchedulerFactory.get(optimizer, len(self.train_dataloader), self.config)
 
         return optimizer, scheduler
+
+    def _set_training_steps(self):
+        if self.config.num_iterations is None:
+            self.config.num_iterations = self.config.epochs * len(self.train_dataloader)

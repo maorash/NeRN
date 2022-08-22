@@ -15,4 +15,4 @@ optim:
   lr: 1e-4
 batch_size: 100
 epochs: 100
-loss_warmup_epochs: 0
+loss_warmup_steps: 0

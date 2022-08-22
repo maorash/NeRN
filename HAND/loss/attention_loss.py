@@ -2,6 +2,7 @@ from typing import List
 
 import torch
 
+from HAND.options import HANDConfig
 from HAND.loss.loss import LossBase
 
 
@@ -37,8 +38,8 @@ class AttentionLossFactory:
     }
 
     @staticmethod
-    def get(loss_type: str = "L2") -> AttentionLossBase:
+    def get(cfg: HANDConfig) -> AttentionLossBase:
         try:
-            return AttentionLossFactory.losses[loss_type]()
+            return AttentionLossFactory.losses[cfg.attention_loss_type]()
         except KeyError:
             raise ValueError("Unknown Attention Loss Type")

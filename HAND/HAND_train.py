@@ -59,15 +59,15 @@ def main(cfg: TrainConfig):
           f"\t-> Size: {num_predicted_params * 4 / 1024 / 1024:.2f}Mb")
 
     dataloaders = DataloaderFactory.get(cfg.task.task_name,
-                                        cfg.task.use_random_inputs,
+                                        cfg.task.use_random_data,
                                         **{'batch_size': cfg.batch_size})
 
     trainer = Trainer(config=cfg,
                       predictor=predictor,
-                      task_loss=TaskLossFactory.get(cfg.hand.task_loss_type),
-                      reconstruction_loss=ReconstructionLossFactory.get(cfg.hand.reconstruction_loss_type),
-                      attention_loss=AttentionLossFactory.get(cfg.hand.attention_loss_type),
-                      distillation_loss=DistillationLossFactory.get(cfg.hand.distillation_loss_type),
+                      task_loss=TaskLossFactory.get(cfg.hand, cfg.task),
+                      reconstruction_loss=ReconstructionLossFactory.get(cfg.hand),
+                      attention_loss=AttentionLossFactory.get(cfg.hand),
+                      distillation_loss=DistillationLossFactory.get(cfg.hand),
                       original_model=original_model,
                       reconstructed_model=reconstructed_model,
                       original_task_eval_fn=EvalFunction(),
