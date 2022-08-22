@@ -10,15 +10,15 @@ from HAND.models.model import ReconstructedModel
 class EvalFunction:
     def eval(self, reconstructed_model: ReconstructedModel,
              dataloader: DataLoader,
-             epoch: int,
+             iteration: int,
              clearml_logger: Logger,
              suffix="") -> float:
         print(f'\n Starting eval on test set{f" - {suffix}" if suffix else "."}')
         test_loss, correct = self._eval_model(reconstructed_model, dataloader)
         accuracy = 100. * correct / len(dataloader.dataset)
         if clearml_logger is not None:
-            clearml_logger.report_scalar(f'eval_loss{f"_{suffix}" if suffix else ""}', 'eval_loss', test_loss, epoch)
-            clearml_logger.report_scalar(f'eval_accuracy{f"_{suffix}" if suffix else ""}', 'eval_accuracy', accuracy, epoch)
+            clearml_logger.report_scalar(f'eval_loss{f"_{suffix}" if suffix else ""}', 'eval_loss', test_loss, iteration)
+            clearml_logger.report_scalar(f'eval_accuracy{f"_{suffix}" if suffix else ""}', 'eval_accuracy', accuracy, iteration)
         print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
             test_loss, correct, len(dataloader.dataset),
             accuracy))

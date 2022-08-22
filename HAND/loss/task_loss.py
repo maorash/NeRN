@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 
+from HAND.options import HANDConfig, TaskConfig
 from HAND.loss.loss import LossBase
 
 
@@ -46,17 +47,30 @@ class StableCELoss(TaskLossBase):
         return nn.NLLLoss()(prediction_log_softmax, target)
 
 
+class NoLoss(TaskLossBase):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self,
+                prediction: torch.Tensor,
+                target: torch.Tensor,
+                **kwargs) -> torch.Tensor:
+        return torch.tensor(0.).to(prediction.device)
+
+
 class TaskLossFactory:
     losses = {
         "NLLLoss": NLLTaskLoss,
         "CELoss": CELoss,
-        "StableCELoss": StableCELoss
+        "StableCELoss": StableCELoss,
+        "NoLoss": NoLoss
     }
 
     @staticmethod
-    def get(loss_type: str = "NLLLoss") -> NLLTaskLoss:
+    def get(hand_cfg: HANDConfig, task_cfg: TaskConfig) -> TaskLossBase:
         try:
-            return TaskLossFactory.losses[loss_type]()
+            if task_cfg.use_random_inputs:
+                return TaskLossFactory.losses["NoLoss"]()
+            return TaskLossFactory.losses[hand_cfg.task_loss_type]()
         except KeyError:
             raise ValueError("Unknown Task Loss Type")
-
