@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 from HAND.eval_func import EvalFunction
 from HAND.logger import log_scalar_dict
 from HAND.models.model import OriginalModel, OriginalDataParallel, ReconstructedModel, ReconstructedDataParallel
+from HAND.permutations import utils as permutations_utils
 from HAND.predictors.predictor import HANDPredictorBase
 from HAND.predictors.factory import PredictorDataParallel
 from HAND.logger import create_experiment_dir, log_scalar_list, compute_grad_norms
@@ -62,6 +63,10 @@ class Trainer:
         self.exp_dir_path = create_experiment_dir(self.config.logging.log_dir, self.config.logging.exp_name)
 
         original_weights = self.original_model.get_learnable_weights()
+
+        positional_embeddings = permutations_utils.permute(positional_embeddings,
+                                                           original_weights,
+                                                           self.config.hand.permute_mode)
 
         training_step = 0
         epoch = 0
