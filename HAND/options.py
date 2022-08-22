@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List, Any
 
 import pyrallis
 from dataclasses import dataclass, field
@@ -82,8 +82,8 @@ class TaskConfig:
     task_name: str = field(default='mnist')
     # Original network type
     original_model_name: str = field(default='SimpleNet')
-    # Whether to use random inputs
-    use_random_inputs: bool = field(default=False)
+    # Whether to use random input data
+    use_random_data: bool = field(default=False)
 
 
 @dataclass
@@ -155,11 +155,12 @@ class TrainConfig:
     optim: OptimizationConfig = field(default_factory=OptimizationConfig)
 
     def __post_init__(self):
-        if self.epochs is not None and self.num_iterations is not None:
-            raise ValueError('Both epochs and num_iterations cannot be set')
-        elif self.epochs is None and self.num_iterations is None:
-            raise ValueError('Either epochs or num_iterations must be set')
+        def _assert_mutex(vals: List[Any], desc: str, min_set: int = 1, max_set: int = 1):
+            num_set = len([v for v in vals if v is not None])
+            if num_set < min_set or num_set > max_set:
+                raise ValueError(f'Mutex options error: {desc}')
 
+        _assert_mutex([self.epochs, self.num_iterations], 'epochs/num_iterations')
         if self.optim.lr_scheduler_type == 'cosine' and self.optim.step_interval != 1:
             print('WARNING: step_interval is enforced to 1 for cosine lr scheduler')
 

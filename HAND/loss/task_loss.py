@@ -69,7 +69,7 @@ class TaskLossFactory:
     @staticmethod
     def get(hand_cfg: HANDConfig, task_cfg: TaskConfig) -> TaskLossBase:
         try:
-            if task_cfg.use_random_inputs:
+            if task_cfg.use_random_data:
                 return TaskLossFactory.losses["NoLoss"]()
             return TaskLossFactory.losses[hand_cfg.task_loss_type]()
         except KeyError:

@@ -134,9 +134,9 @@ class Trainer:
             if self.config.save_epochs_interval is not None and epoch % self.config.save_epochs_interval == 0:
                 self._save_checkpoint(f"epoch_{epoch}")
 
-    def _eval(self, step, log_suffix=None):
-        accuracy = self.original_task_eval_fn.eval(self.reconstructed_model, self.test_dataloader, step, self.logger,
-                                                   log_suffix)
+    def _eval(self, iteration, log_suffix=None):
+        accuracy = self.original_task_eval_fn.eval(self.reconstructed_model, self.test_dataloader, iteration,
+                                                   self.logger, log_suffix)
         if accuracy > self.max_eval_accuracy:
             self.max_eval_accuracy = accuracy
             self._save_checkpoint(f"best")
@@ -161,7 +161,10 @@ class Trainer:
     def _loss_warmup(self, training_step: int):
         return training_step < self.config.loss_warmup_iterations
 
-    def _log_training(self, training_step: int, reconstructed_weights: List[torch.Tensor], loss_dict: dict, lr: float,
+    def _log_training(self, training_step: int,
+                      reconstructed_weights: List[torch.Tensor],
+                      loss_dict: dict,
+                      lr: float,
                       verbose: bool):
         log_scalar_dict(loss_dict,
                         title='training_loss',
