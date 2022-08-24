@@ -1,0 +1,23 @@
+pruning_factor: 0.1
+predictor_path: outputs/resnet56_0_B_cifar10_ranger_nogc_350_epochs_1.1MB_3_24_08_2022_105818/hand_resnet56_0_B_cifar10_ranger_nogc_350_epochs_1.1MB_3_best.pth
+train_cfg:
+  logging:
+    exp_name: resnet56_1e-6_B_cifar10_ranger_nogc_350_epochs_1.1MB_3
+  original_model_path: checkpoints_for_pruning/resnet56_1e-6_B2_best.pt
+  hand:
+    distillation_loss_type: StableKLDivLoss
+    num_blocks: 5
+    hidden_layer_size: 288
+    embeddings:
+      enc_levels: 20
+    weights_batch_method: random_weighted_batch
+    weights_batch_size: 4096
+    task_loss_weight: 0
+  task:
+    task_name: cifar10v2
+    original_model_name: ResNet56
+  optim:
+    optimizer_type: ranger
+    lr: 5e-3
+    ranger_use_gc: False
+  epochs: 350
