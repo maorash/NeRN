@@ -25,6 +25,7 @@ class ResNet18(OriginalModel):
 
     def get_learnable_weights(self):
         tensors = []
+        # tensors.append(self.model.conv1.weight)
         for layer_name in self.layers_names:
             module = self.model._modules[layer_name]
             for block in module:

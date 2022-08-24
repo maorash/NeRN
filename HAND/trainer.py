@@ -112,16 +112,16 @@ class Trainer:
                                      distillation_loss=distillation_term)
                     self._log_training(training_step, reconstructed_weights, loss_dict, scheduler.get_last_lr(),
                                        self.config.logging.verbose)
+                if training_step % self.config.eval_loss_window_interval == 0:
+                    self._add_to_loss_window(loss.item())
+                    if len(self.loss_window) == self.config.eval_loss_window_size and loss <= min(self.loss_window):
+                        self._eval(training_step, "greedy")
 
                 self._clip_grad_norm()
                 optimizer.step()
                 scheduler.check_and_step(training_step)
                 training_step += 1
 
-                if training_step % self.config.eval_loss_window_interval == 0:
-                    self._add_to_loss_window(loss.item())
-                    if len(self.loss_window) == self.config.eval_loss_window_size and loss <= min(self.loss_window):
-                        self._eval(training_step, "greedy")
                 if self.config.eval_iterations_interval is not None \
                         and training_step % self.config.eval_iterations_interval == 0:
                     self._eval(training_step)

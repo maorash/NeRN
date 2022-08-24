@@ -25,31 +25,32 @@ def joint_permutations(embeddings: List[torch.Tensor], weights: List[np.array]) 
         get_max_sim_order(layer_weights.reshape((-1, weights[i].shape[-1] ** 2)),
                           False)
         for i, layer_weights in enumerate(weights)]
-    return [embeddings[i][permutations[i]] for i in range(len(embeddings))]
+    return [embeddings[i][np.argsort(permutations[i])] for i in range(len(embeddings))]
 
 
 def separate_permutations(embeddings: List[torch.Tensor], weights: List[np.array]) -> List[np.array]:
     reshaped_embeddings = [
         embeddings[i].cpu().numpy().reshape(weights[i].shape[0], weights[i].shape[1], -1) for i in
         range(len(weights))]
-    channel_first_weights = [layer_weights.transpose(1, 0, 2, 3) for layer_weights in weights]
+    cin_first_weights = [layer_weights.transpose(1, 0, 2, 3) for layer_weights in weights]
     num_layers = len(weights)
     filter_permutations = [
         [get_max_sim_order(filter_weights.reshape((-1, layer_weights.shape[-1] ** 2)), True) for
-         filter_weights in layer_weights] for layer_weights in channel_first_weights]
+         filter_weights in layer_weights] for layer_weights in cin_first_weights]
     filter_permuted_weights = [np.array([channel_weights[filter_permutation] for channel_weights, filter_permutation in
-                                         zip(channel_first_weights[i], filter_permutations[i])]) for i in
+                                         zip(cin_first_weights[i], filter_permutations[i])]) for i in
                                range(num_layers)]
     channel_permutations = [
         get_max_sim_order(layer_weights.reshape((-1, layer_weights.shape[1], layer_weights.shape[-1] ** 2)), True)
         for layer_weights in filter_permuted_weights]
-    channel_first_embeddings = [reshaped_embeddings[i].transpose(1, 0, 2) for i in range(len(reshaped_embeddings))]
+    cin_first_embeddings = [reshaped_embeddings[i].transpose(1, 0, 2) for i in range(len(reshaped_embeddings))]
 
+    # The argsort is necessary because we need the inverse permutation to get the original order
     filter_permuted_embeddings = [
-        np.array([channel_embeddings[filter_permutation] for channel_embeddings, filter_permutation in
-                  zip(channel_first_embeddings[i], filter_permutations[i])]) for i in
+        np.array([channel_embeddings[inverse_permutations] for channel_embeddings, inverse_permutations in
+                  zip(cin_first_embeddings[i], np.argsort(filter_permutations[i]))]) for i in
         range(num_layers)]
-    permuted_embeddings = [filter_permuted_embeddings[i][channel_permutations[i]].transpose(1, 0, 2) for i in
+    permuted_embeddings = [filter_permuted_embeddings[i][np.argsort(channel_permutations[i])].transpose(1, 0, 2) for i in
                            range(num_layers)]
 
     return [torch.Tensor(permuted_embeddings[i]).reshape(embeddings[i].shape).to(embeddings[i].device) for i in
