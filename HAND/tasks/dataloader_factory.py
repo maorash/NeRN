@@ -5,6 +5,8 @@ from torch.utils.data.dataset import Dataset
 from HAND.tasks.mnist.mnist_train_main import get_dataloaders as mnist_dataloaders
 from HAND.tasks.cifar10.cifar10_basic_train import get_dataloaders as cifar10_dataloaders
 from HAND.tasks.cifar10.cifar10_akamaster_train import get_dataloaders as cifar10v2_dataloaders
+from HAND.tasks.imagenet_helpers import get_dataloaders as imagenet_timm_dataloaders
+from HAND.options import TaskConfig
 
 
 class RandomDataset(Dataset):
@@ -29,19 +31,22 @@ class DataloaderFactory:
             "loader": cifar10_dataloaders,
             "input_shape": (3, 32, 32)
         },
-
         "cifar10v2": {
             "loader": cifar10v2_dataloaders,
             "input_shape": (3, 32, 32)
+        },
+        "imagenet": {
+            "loader": imagenet_timm_dataloaders,
+            "input_shape": (3, 224, 224)
         }
     }
 
     @staticmethod
-    def get(task_name, use_random_inputs, **kwargs):
+    def get(task_cfg: TaskConfig, **kwargs):
         try:
-            task_data = DataloaderFactory.tasks_data[task_name]
-            dataloaders = task_data["loader"](test_kwargs=kwargs, train_kwargs=kwargs)
-            if use_random_inputs is True:
+            task_data = DataloaderFactory.tasks_data[task_cfg.task_name]
+            dataloaders = task_data["loader"](test_kwargs=kwargs, train_kwargs=kwargs, task_cfg=task_cfg)
+            if task_cfg.use_random_data is True:
                 random_dataset = RandomDataset(task_data["input_shape"])
                 random_dataloder = DataLoader(random_dataset, **kwargs)
                 new_dataloaders = random_dataloder, dataloaders[1]

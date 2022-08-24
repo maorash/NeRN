@@ -5,7 +5,6 @@ import torchvision.models
 
 from HAND.models.model import OriginalModel, ReconstructedModel
 from HAND.options import EmbeddingsConfig
-from HAND.positional_embedding import MyPositionalEncoding
 
 
 class ResNet18(OriginalModel):
@@ -26,6 +25,7 @@ class ResNet18(OriginalModel):
 
     def get_learnable_weights(self):
         tensors = []
+        # tensors.append(self.model.conv1.weight)
         for layer_name in self.layers_names:
             module = self.model._modules[layer_name]
             for block in module:
@@ -90,6 +90,9 @@ class ResNet18(OriginalModel):
         if extract_feature_maps is True:
             self.feature_maps = activations
         return x
+
+    def load(self, path: str, device: torch.device):
+        self.model.load_state_dict(torch.load(path, map_location=device))
 
 
 class ReconstructedResNet18(ReconstructedModel):

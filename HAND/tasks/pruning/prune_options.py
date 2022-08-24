@@ -13,6 +13,8 @@ class PruneConfig:
     pruning_factor: float = field(default=0.1)
     # Train config
     train_cfg: TrainConfig = field(default_factory=TrainConfig)
+    #Is predictor wraped with data parallel
+    is_data_parallel: bool = field(default=True)
 
 @pyrallis.wrap()
 def get_prune_config(cfg: PruneConfig):

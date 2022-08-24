@@ -1,5 +1,5 @@
 logging:
-  exp_name: resnet56_1e-6_B_cifar10_ranger_nogc_350_epochs_1.1MB
+  exp_name: resnet56_1e-6_B_cifar10_ranger_nogc_350_epochs_1.1MB_2
 original_model_path: trained_models/original_tasks/mnist/resnet56_1e-6_B2_best.pt
 hand:
   num_blocks: 5
@@ -12,7 +12,7 @@ task:
   task_name: cifar10v2
   original_model_name: ResNet56
 optim:
-  optimizer: ranger
+  optimizer_type: ranger
   lr: 5e-3
   ranger_use_gc: False
 epochs: 350

@@ -34,7 +34,7 @@ class StableKLDivLoss(DistillationLossBase):
                 reconstructed_outputs: torch.Tensor,
                 original_outputs: torch.Tensor) \
             -> torch.Tensor:
-        return nn.KLDivLoss(reduction="batchmean")(torch.log(F.softmax(reconstructed_outputs, dim=1) + 1e-3),
+        return nn.KLDivLoss(reduction="batchmean")(torch.log(F.softmax(reconstructed_outputs, dim=1) + 1e-4),
                                                    F.softmax(original_outputs, dim=1))
 
 
