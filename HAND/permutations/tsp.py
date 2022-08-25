@@ -1,6 +1,35 @@
 from typing import List
 import numpy as np
 from tqdm import tqdm
+import numpy as np
+
+# Calculate the euclidian distance in n-space of the route r traversing cities c, ending at the path start.
+# path_distance = lambda r, c:
+# path_distance = lambda r, w: get_pair_cosine_sim() for weight in w[r]
+# Reverse the order of all elements from element i to element k in array r.
+two_opt_swap = lambda r, i, k: np.concatenate((r[0:i], r[k:-len(r) + i - 1:-1], r[k + 1:len(r)]))
+
+def path_distance(route, weights):
+    permuted_weights = weights[route]
+    normed_weights = permuted_weights / np.expand_dims(np.linalg.norm(permuted_weights, axis=-1), -1)
+    return 1 - (normed_weights[:-1]*normed_weights[1:]).mean()
+
+def two_opt(weights, improvement_threshold):  # 2-opt Algorithm adapted from https://en.wikipedia.org/wiki/2-opt
+    route = np.arange(weights.shape[0])  # Make an array of row numbers corresponding to cities.
+    improvement_factor = 1  # Initialize the improvement factor.
+    best_distance = path_distance(route, weights)  # Calculate the distance of the initial path.
+    while improvement_factor > improvement_threshold:  # If the route is still improving, keep going!
+        print(improvement_factor)
+        distance_to_beat = best_distance  # Record the distance at the beginning of the loop.
+        for swap_first in range(1, len(route) - 2):  # From each city except the first and last,
+            for swap_last in range(swap_first + 1, len(route)):  # to each of the cities following,
+                new_route = two_opt_swap(route, swap_first, swap_last)  # try reversing the order of these cities
+                new_distance = path_distance(new_route, weights)  # and check the total distance with this modification.
+                if new_distance < best_distance:  # If the path distance is an improvement,
+                    route = new_route  # make this the accepted best route
+                    best_distance = new_distance  # and update the distance corresponding to this route.
+        improvement_factor = 1 - best_distance / distance_to_beat  # Calculate how much the route has improved.
+    return route  # When the route is no longer improving substantially, stop searching and return the route.
 
 
 def get_max_sim_order(weights: np.array, calc_all=True) -> List[int]:
@@ -36,6 +65,12 @@ def get_max_sim_order(weights: np.array, calc_all=True) -> List[int]:
     return max_sims_order
 
 
+def get_pair_cosine_sim(source: np.array, target: np.array) -> np.array:
+    source_normed = source / np.expand_dims(np.linalg.norm(source), -1)
+    target_normed = target / np.expand_dims(np.linalg.norm(target), -1)
+    return np.dot(source_normed, target_normed.T)
+
+
 def get_one_cosine_sim(source_weights: np.array, weights: np.array) -> np.array:
     normed_weights = weights / np.expand_dims(np.linalg.norm(weights, axis=-1), -1)
     source_normed_weights = source_weights / np.expand_dims(np.linalg.norm(source_weights), -1)
@@ -59,9 +94,12 @@ def get_tot_sim(sim_matrix, order):
 
 
 if __name__ == '__main__':
-    # weights = np.random.normal(0, 1, (10000, 9))
-    weights = np.array([[1, 2, 3], [3, 6, 12.1], [2, 4, 6], [3, 6, 12.2], [3, 6, 12.1]])
+    weights = np.random.normal(0, 1, (500, 9))
+    # weights = np.array([[1, 2, 3], [3, 6, 12.1], [2, 4, 6], [3, 6, 12.2], [3, 6, 12.1]])
     # weights = np.array([[1, 2, 3], [3, 6, 12.9], [1, 4, 6], [4, 6, 12.2], [3, 6, 12.1]])
     max_sims_order = get_max_sim_order(weights, False)
+    two_opt_order = two_opt(weights, 0.001)
+    # print(max_sims_order)
     print(f"Prev tot sim: {get_tot_sim(get_all_cosine_sim(weights), list(range(1, len(weights))))}")
-    print(f"Curr tot sim: {get_tot_sim(get_all_cosine_sim(weights), max_sims_order)}")
+    print(f"two opt tot sim: {get_tot_sim(get_all_cosine_sim(weights), two_opt_order)}")
+    print(f"max_sim tot sim: {get_tot_sim(get_all_cosine_sim(weights), max_sims_order)}")
