@@ -74,13 +74,14 @@ class Trainer:
                                                                    original_weights,
                                                                    learnable_weights_shapes)
                 self.reconstructed_model.update_weights(reconstructed_weights)
+                updated_reconstructed_weights = self.reconstructed_model.get_learnable_weights()
 
                 original_outputs, original_feature_maps = self.original_model.get_feature_maps(batch)
                 reconstructed_outputs, reconstructed_feature_maps = self.reconstructed_model.get_feature_maps(batch)
 
                 # Compute reconstruction loss
                 reconstruction_term = self.config.hand.reconstruction_loss_weight * self.reconstruction_loss(
-                    reconstructed_weights, original_weights)
+                    updated_reconstructed_weights, original_weights)
 
                 if self._loss_warmup(training_step):
                     task_term, attention_term, distillation_term = 0, 0, 0
