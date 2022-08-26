@@ -58,9 +58,11 @@ def main(cfg: TrainConfig):
           f"\t-> Size: {num_predictor_params * 4 / 1024 / 1024:.2f}Mb")
 
     num_predicted_params = sum([p.numel() for p in original_model.get_learnable_weights()])
+    num_total_params = sum([p.numel() for p in original_model.parameters()])
     print(f"\nOriginal Model:"
-          f"\t-> Number of parameters: {num_predicted_params / 1000}K"
-          f"\t-> Size: {num_predicted_params * 4 / 1024 / 1024:.2f}Mb")
+          f"\t-> Number of learnable parameters: {num_predicted_params / 1000}K"
+          f"\t-> Size of learnable parameters: {num_predicted_params * 4 / 1024 / 1024:.2f}Mb",
+          f"\n\t-> Total model size: {num_total_params * 4 / 1024 / 1024:.2f}Mb")
 
     dataloaders = DataloaderFactory.get(cfg.task, **{'batch_size': cfg.batch_size,
                                                      'num_workers': cfg.num_workers})

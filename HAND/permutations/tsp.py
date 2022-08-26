@@ -9,17 +9,19 @@ import numpy as np
 # Reverse the order of all elements from element i to element k in array r.
 two_opt_swap = lambda r, i, k: np.concatenate((r[0:i], r[k:-len(r) + i - 1:-1], r[k + 1:len(r)]))
 
+
 def path_distance(route, weights):
     permuted_weights = weights[route]
     normed_weights = permuted_weights / np.expand_dims(np.linalg.norm(permuted_weights, axis=-1), -1)
-    return 1 - (normed_weights[:-1]*normed_weights[1:]).mean()
+    return 1 - (normed_weights[:-1] * normed_weights[1:]).mean()
+
 
 def two_opt(weights, improvement_threshold):  # 2-opt Algorithm adapted from https://en.wikipedia.org/wiki/2-opt
     route = np.arange(weights.shape[0])  # Make an array of row numbers corresponding to cities.
     improvement_factor = 1  # Initialize the improvement factor.
     best_distance = path_distance(route, weights)  # Calculate the distance of the initial path.
     while improvement_factor > improvement_threshold:  # If the route is still improving, keep going!
-        print(improvement_factor)
+        # print(improvement_factor)
         distance_to_beat = best_distance  # Record the distance at the beginning of the loop.
         for swap_first in range(1, len(route) - 2):  # From each city except the first and last,
             for swap_last in range(swap_first + 1, len(route)):  # to each of the cities following,
@@ -78,6 +80,9 @@ def get_one_cosine_sim(source_weights: np.array, weights: np.array) -> np.array:
 
 
 def get_all_cosine_sim(weights: np.array) -> np.array:
+    if weights.shape[1] == 1:
+        normalized_weights = weights / np.linalg.norm(weights, keepdims=True)
+        return -(normalized_weights-normalized_weights.T)**2
     normed_weights = weights / np.expand_dims(np.linalg.norm(weights, axis=-1), -1)
     normed_weights = normed_weights.reshape(normed_weights.shape[0], -1)
     return np.dot(normed_weights, normed_weights.T)

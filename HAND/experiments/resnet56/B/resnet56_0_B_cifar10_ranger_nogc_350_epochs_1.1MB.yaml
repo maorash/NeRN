@@ -1,8 +1,8 @@
 logging:
-  exp_name: resnet56_0_B_cifar10_ranger_nogc_350_epochs_1.1MB_base0.76_3
+  exp_name: resnet56_0_B_cifar10_ranger_nogc_350_epochs_1.1MB_base0.76_tempkd_4
 original_model_path: trained_models/original_tasks/mnist/resnet56_0_B.pt
 hand:
-  distillation_loss_type: StableKLDivLoss
+  distillation_loss_type: TempStableKLDivLoss
   num_blocks: 5
   hidden_layer_size: 288
   embeddings:
