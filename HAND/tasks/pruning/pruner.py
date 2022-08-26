@@ -1,15 +1,14 @@
-import json
-import os
 from typing import List
 
 import pyrallis
 import torch
-from clearml import Task
 
 from HAND.HAND_train import load_original_model
-from HAND.models.model import OriginalDataParallel
-from HAND.predictors.factory import HANDPredictorFactory
+from HAND.eval_func import EvalFunction
+from HAND.predictors.factory import HANDPredictorFactory, PredictorDataParallel
 from HAND.predictors.predictor import HANDPredictorBase
+from HAND.tasks.dataloader_factory import DataloaderFactory
+from HAND.tasks.model_factory import ModelFactory
 from HAND.tasks.pruning.prune_options import PruneConfig
 
 
@@ -21,21 +20,30 @@ def get_reconstruction_errors(reconstructed_weights, original_weights):
     return reconstruction_errors
 
 
-def get_smallest_error_indices(reconstruction_errors: List[torch.tensor()], pruning_factor: float):
-    all_sorted, all_sorted_idx = torch.sort(torch.cat([t.view(-1) for t in reconstruction_errors]))
+def get_largest_error_indices(reconstruction_errors: List[torch.Tensor], pruning_factor: float):
+    all_sorted, all_sorted_idx = torch.sort(torch.cat([-1 * t.view(-1) for t in reconstruction_errors]))
     cum_num_elements = torch.cumsum(torch.tensor([t.numel() for t in reconstruction_errors]), dim=0)
     cum_num_elements = torch.cat([torch.tensor([0]), cum_num_elements])
 
-    n = cum_num_elements[-1].item() * pruning_factor
-    split_indeces_lt = [all_sorted_idx[:n] < cum_num_elements[i + 1] for i, _ in enumerate(cum_num_elements[1:])]
-    split_indeces_ge = [all_sorted_idx[:n] >= cum_num_elements[i] for i, _ in enumerate(cum_num_elements[:-1])]
-    smallest_error_indices = [all_sorted_idx[:n][torch.logical_and(lt, ge)] - c for lt, ge, c in
-                     zip(split_indeces_lt, split_indeces_ge, cum_num_elements[:-1])]
+    n = int(cum_num_elements[-1].item() * pruning_factor)
+    split_indices_lt = [all_sorted_idx[:n] < cum_num_elements[i + 1] for i, _ in enumerate(cum_num_elements[1:])]
+    split_indices_ge = [all_sorted_idx[:n] >= cum_num_elements[i] for i, _ in enumerate(cum_num_elements[:-1])]
+    largest_error_indices = [all_sorted_idx[:n][torch.logical_and(lt, ge)] - c for lt, ge, c in
+                             zip(split_indices_lt, split_indices_ge, cum_num_elements[:-1])]
 
-    # n_smallest_errors = [t.view(-1)[idx] for t, idx in zip(reconstruction_errors, smallest_error_indices)]
+    # n_largest_errors = [t.view(-1)[idx] for t, idx in zip(reconstruction_errors, smallest_error_indices)]
 
     # returns list of tensors with linear indices in each tensor
-    return smallest_error_indices
+    return largest_error_indices
+
+
+def prune_weights(original_weights: List[torch.Tensor], indices_to_prune: List[torch.Tensor]):
+    with torch.no_grad():
+        pruned_weights = original_weights
+        for original_layer, layer_indices_to_prune in zip(pruned_weights, indices_to_prune):
+            original_layer.view(-1)[layer_indices_to_prune] = 0
+    return pruned_weights
+
 
 @pyrallis.wrap()
 def main(cfg: PruneConfig):
@@ -49,7 +57,7 @@ def main(cfg: PruneConfig):
     pos_embedding = reconstructed_model.positional_encoder.output_size
     predictor = HANDPredictorFactory(cfg.train_cfg, input_size=pos_embedding).get_predictor().to(device)
     if cfg.is_data_parallel:
-        predictor = OriginalDataParallel(predictor)
+        predictor = PredictorDataParallel(predictor)
         predictor.load_state_dict(torch.load(cfg.predictor_path).state_dict())
         predictor = predictor.module
     else:
@@ -70,10 +78,24 @@ def main(cfg: PruneConfig):
     # calculate reconstruction error
     reconstruction_errors = get_reconstruction_errors(updated_reconstructed_weights, original_weights)
 
-    # flat all errors of the network and sort (or get indexes of top precentile numpy)
-    # zero weights
-    # evaluate pruned model without fine tuning
+    # get indices of weights to prune - those with the largest reconstruction  errors
+    largest_error_indices = get_largest_error_indices(reconstruction_errors, cfg.pruning_factor)
 
+    # prune original weights
+    pruned_original_weights = prune_weights(original_weights, largest_error_indices)
+
+    # create new model with pruned weights
+    pruned_model = ModelFactory.models[cfg.train_cfg.task.original_model_name][1](original_model,
+                                                                                  cfg.train_cfg.hand.embeddings,
+                                                                                  sampling_mode=cfg.train_cfg.hand.sampling_mode).to(device)
+    pruned_model.update_weights(pruned_original_weights)
+
+    # evaluate pruned model without fine-tuning
+    _, test_dataloader = DataloaderFactory.get(cfg.train_cfg.task, **{'batch_size': cfg.train_cfg.batch_size,
+                                                                      'num_workers': cfg.train_cfg.num_workers})
+    eval_fn = EvalFunction(cfg.train_cfg)
+    pruned_model_accuracy = eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
+    original_model_accuracy = eval_fn.eval(original_model, test_dataloader, 0, None, '')
 
 if __name__ == '__main__':
     main()
