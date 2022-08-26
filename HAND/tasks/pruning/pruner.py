@@ -1,5 +1,6 @@
 from typing import List
 
+import copy
 import pyrallis
 import torch
 
@@ -39,7 +40,7 @@ def get_largest_error_indices(reconstruction_errors: List[torch.Tensor], pruning
 
 def prune_weights(original_weights: List[torch.Tensor], indices_to_prune: List[torch.Tensor]):
     with torch.no_grad():
-        pruned_weights = original_weights
+        pruned_weights = copy.deepcopy(original_weights)
         for original_layer, layer_indices_to_prune in zip(pruned_weights, indices_to_prune):
             original_layer.view(-1)[layer_indices_to_prune] = 0
     return pruned_weights
@@ -96,6 +97,6 @@ def main(cfg: PruneConfig):
     eval_fn = EvalFunction(cfg.train_cfg)
     pruned_model_accuracy = eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
     original_model_accuracy = eval_fn.eval(original_model, test_dataloader, 0, None, '')
-
+    # the accuracys both equal to 69%. why is the original model changing ??? it was on 93%. happens in line 85 somehow
 if __name__ == '__main__':
     main()

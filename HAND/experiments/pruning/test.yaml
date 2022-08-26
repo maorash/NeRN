@@ -2,7 +2,7 @@ pruning_factor: 0.1
 predictor_path: outputs/resnet56_0_B_cifar10_ranger_nogc_350_epochs_1.1MB_3_24_08_2022_105818/hand_resnet56_0_B_cifar10_ranger_nogc_350_epochs_1.1MB_3_best.pth
 train_cfg:
   logging:
-    exp_name: resnet56_1e-6_B_cifar10_ranger_nogc_350_epochs_1.1MB_3
+    exp_name: resnet56_0_B_cifar10_ranger_nogc_350_epochs_1.1MB_3
   original_model_path: trained_models/original_tasks/mnist/resnet56_0_B.pt
   hand:
     distillation_loss_type: StableKLDivLoss
