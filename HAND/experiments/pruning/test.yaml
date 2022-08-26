@@ -3,7 +3,7 @@ predictor_path: outputs/resnet56_0_B_cifar10_ranger_nogc_350_epochs_1.1MB_3_24_0
 train_cfg:
   logging:
     exp_name: resnet56_1e-6_B_cifar10_ranger_nogc_350_epochs_1.1MB_3
-  original_model_path: checkpoints_for_pruning/resnet56_1e-6_B2_best.pt
+  original_model_path: trained_models/original_tasks/mnist/resnet56_0_B.pt
   hand:
     distillation_loss_type: StableKLDivLoss
     num_blocks: 5
