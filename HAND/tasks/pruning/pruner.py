@@ -1,14 +1,11 @@
-from typing import List
+from typing import List, Union, Tuple
 
 import copy
-import pyrallis
 import torch
 
-from HAND.HAND_train import load_original_model
-from HAND.eval_func import EvalFunction
-from HAND.predictors.factory import HANDPredictorFactory, PredictorDataParallel
+from HAND.models.model import OriginalModel, OriginalDataParallel, ReconstructedModel, ReconstructedDataParallel
+from HAND.predictors.factory import PredictorDataParallel
 from HAND.predictors.predictor import HANDPredictorBase
-from HAND.tasks.dataloader_factory import DataloaderFactory
 from HAND.tasks.model_factory import ModelFactory
 from HAND.tasks.pruning.prune_options import PruneConfig
 
@@ -46,57 +43,45 @@ def prune_weights(original_weights: List[torch.Tensor], indices_to_prune: List[t
     return pruned_weights
 
 
-@pyrallis.wrap()
-def main(cfg: PruneConfig):
-    use_cuda = not cfg.train_cfg.no_cuda and torch.cuda.is_available()
-    device = torch.device("cuda" if use_cuda else "cpu")
+class Pruner:
+    def __init__(self, config: PruneConfig,
+                 predictor: Union[HANDPredictorBase, PredictorDataParallel],
+                 original_model: Union[OriginalModel, OriginalDataParallel],
+                 reconstructed_model: Union[ReconstructedModel, ReconstructedDataParallel],
+                 device):
+        self.cfg = config
+        self.predictor = predictor
+        self.original_model = original_model
+        self.reconstructed_model = reconstructed_model
+        self.device = device
 
-    # import original model
-    original_model, reconstructed_model = load_original_model(cfg.train_cfg, device)
+    def prune(self, pruning_factor: float):
+        learnable_weights_shapes = self.reconstructed_model.get_learnable_weights_shapes()
+        indices, positional_embeddings = self.reconstructed_model.get_indices_and_positional_embeddings()
+        positional_embeddings = [torch.stack(layer_emb).to(self.device) for layer_emb in positional_embeddings]
 
-    # import predictor
-    pos_embedding = reconstructed_model.positional_encoder.output_size
-    predictor = HANDPredictorFactory(cfg.train_cfg, input_size=pos_embedding).get_predictor().to(device)
-    if cfg.is_data_parallel:
-        predictor = PredictorDataParallel(predictor)
-        predictor.load_state_dict(torch.load(cfg.predictor_path).state_dict())
-        predictor = predictor.module
-    else:
-        predictor.load_state_dict(torch.load(cfg.predictor_path).state_dict())
+        # get original weights and predict reconstructed weights
+        original_weights = self.original_model.get_learnable_weights()
+        reconstructed_weights = HANDPredictorBase.predict_all(self.predictor, positional_embeddings,
+                                                              original_weights,
+                                                              learnable_weights_shapes)
+        self.reconstructed_model.update_weights(reconstructed_weights)
+        updated_reconstructed_weights = self.reconstructed_model.get_learnable_weights()
 
-    learnable_weights_shapes = reconstructed_model.get_learnable_weights_shapes()
-    indices, positional_embeddings = reconstructed_model.get_indices_and_positional_embeddings()
-    positional_embeddings = [torch.stack(layer_emb).to(device) for layer_emb in positional_embeddings]
+        # calculate reconstruction error
+        reconstruction_errors = get_reconstruction_errors(updated_reconstructed_weights, original_weights)
 
-    # get original weights and predict reconstructed weights
-    original_weights = original_model.get_learnable_weights()
-    reconstructed_weights = HANDPredictorBase.predict_all(predictor, positional_embeddings,
-                                                          original_weights,
-                                                          learnable_weights_shapes)
-    reconstructed_model.update_weights(reconstructed_weights)
-    updated_reconstructed_weights = reconstructed_model.get_learnable_weights()
+        # get indices of weights to prune - those with the largest reconstruction  errors
+        largest_error_indices = get_largest_error_indices(reconstruction_errors, pruning_factor)
 
-    # calculate reconstruction error
-    reconstruction_errors = get_reconstruction_errors(updated_reconstructed_weights, original_weights)
+        # prune original weights
+        pruned_original_weights = prune_weights(original_weights, largest_error_indices)
 
-    # get indices of weights to prune - those with the largest reconstruction  errors
-    largest_error_indices = get_largest_error_indices(reconstruction_errors, cfg.pruning_factor)
+        # create new model with pruned weights
+        pruned_model = ModelFactory.models[self.cfg.train_cfg.task.original_model_name][1](self.original_model,
+                                                                                           self.cfg.train_cfg.hand.embeddings,
+                                                                                           sampling_mode=self.cfg.train_cfg.hand.sampling_mode).to(
+            self.device)
+        pruned_model.update_weights(pruned_original_weights)
 
-    # prune original weights
-    pruned_original_weights = prune_weights(original_weights, largest_error_indices)
-
-    # create new model with pruned weights
-    pruned_model = ModelFactory.models[cfg.train_cfg.task.original_model_name][1](original_model,
-                                                                                  cfg.train_cfg.hand.embeddings,
-                                                                                  sampling_mode=cfg.train_cfg.hand.sampling_mode).to(device)
-    pruned_model.update_weights(pruned_original_weights)
-
-    # evaluate pruned model without fine-tuning
-    _, test_dataloader = DataloaderFactory.get(cfg.train_cfg.task, **{'batch_size': cfg.train_cfg.batch_size,
-                                                                      'num_workers': cfg.train_cfg.num_workers})
-    eval_fn = EvalFunction(cfg.train_cfg)
-    pruned_model_accuracy = eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
-    original_model_accuracy = eval_fn.eval(original_model, test_dataloader, 0, None, '')
-    # the accuracys both equal to 69%. why is the original model changing ??? it was on 93%. happens in line 85 somehow
-if __name__ == '__main__':
-    main()
+        return pruned_model

@@ -1,3 +1,7 @@
+import numpy as np
+import pandas as pd
+import plotly.express as px
+
 import torch
 
 n = 5
@@ -13,3 +17,9 @@ split_indeces_ge = [all_sorted_idx[:n] >= cum_num_elements[i] for i, _ in enumer
 split_indeces = [all_sorted_idx[:n][torch.logical_and(lt, ge)] - c for lt, ge, c in zip(split_indeces_lt, split_indeces_ge, cum_num_elements[:-1])]
 
 n_smallest = [t.view(-1)[idx] for t, idx in zip(tensor_list, split_indeces)]
+
+x = np.linspace(0, 10, 10)
+df = pd.DataFrame({'x_data': x, 'y_data': x})
+print(df)
+fig = px.line(df, x='x_data', y='y_data', title="Testing")
+fig.show()
