@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 
 @dataclass
 class EmbeddingsConfig:
+    # Type of positional embedding to use (basic/ffn)
+    type: str = field(default='basic')
     # Number of indices to encode
     num_idxs: int = field(default=3)
     # Encoding levels
@@ -16,6 +18,8 @@ class EmbeddingsConfig:
     fusion_mode: str = field(default='concat')
     # Indices normalization mode, if None don't normalize indices (None/local/global)
     normalization_mode: str = field(default='local')
+    # Gaussian kernel scale for ffn (fourier feature network)
+    gauss_scale: float = field(default=10)
 
 
 @dataclass

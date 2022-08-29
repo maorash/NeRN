@@ -24,6 +24,12 @@ def joint_permutations(embeddings: List[torch.Tensor], weights: List[np.array]) 
         get_max_sim_order(layer_weights.reshape((-1, weights[i].shape[-1] ** 2)),
                           False)
         for i, layer_weights in enumerate(weights)]
+    # Do not remove this - currently used for debugging
+    permuted_weights = [
+        weights[i].reshape((-1, weights[i].shape[-1], weights[i].shape[-1]))[permutations[i]].reshape(weights[i].shape)
+        for i in range(len(weights))]
+    permuted_weights = [torch.Tensor(permuted_weights[i]).reshape(permuted_weights[i].shape) for i in
+                        range(len(permuted_weights))]
     return [embeddings[i][np.argsort(permutations[i])] for i in range(len(embeddings))]
 
 
