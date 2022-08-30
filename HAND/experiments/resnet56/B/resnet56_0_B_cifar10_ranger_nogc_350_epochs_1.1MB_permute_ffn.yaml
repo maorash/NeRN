@@ -8,7 +8,7 @@ hand:
   embeddings:
     enc_levels: 20
     type: ffn
-    gauss_scale: 0.2
+    gauss_scale: [0.2, 0.2, 0.2]
   weights_batch_method: random_weighted_batch
   weights_batch_size: 4096
   task_loss_weight: 0

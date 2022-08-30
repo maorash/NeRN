@@ -65,11 +65,11 @@ class MyPositionalEncoding(nn.Module):
         self.num_idxs = config.num_idxs
         self.base = config.base
         self.levels = config.enc_levels
-        self.output_size = self._calculate_output_size()
         self.gauss_scale = config.gauss_scale
+        self.output_size = self._calculate_output_size()
         # TODO: save the ffn B matrix on disk (cache)
-        self.ffn_B = nn.Parameter(torch.randn((self.levels * self.num_idxs, self.num_idxs)) * self.gauss_scale,
-                                  requires_grad=False)
+        self.ffn_B = nn.Parameter(torch.randn((self.levels * self.num_idxs, self.num_idxs))
+                                  * torch.Tensor(self.gauss_scale), requires_grad=False)
 
     def _calculate_output_size(self):
         if self.embedding_fusion_mode == 'concat':
@@ -116,5 +116,6 @@ class MyPositionalEncoding(nn.Module):
             'basic': 0,
             'ffn': 1
         }
-        return hash((self.base, self.levels, self.num_idxs, self.output_size, pe_type[self.type], self.gauss_scale))
+        return hash((self.base, self.levels, self.num_idxs, self.output_size, pe_type[self.type],
+                     *tuple(self.gauss_scale)))
 

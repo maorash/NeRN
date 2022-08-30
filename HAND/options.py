@@ -19,7 +19,7 @@ class EmbeddingsConfig:
     # Indices normalization mode, if None don't normalize indices (None/local/global)
     normalization_mode: str = field(default='local')
     # Gaussian kernel scale for ffn (fourier feature network)
-    gauss_scale: float = field(default=10)
+    gauss_scale: List[float] = field(default_factory=lambda: [1, 0.1, 0.1])
 
 
 @dataclass

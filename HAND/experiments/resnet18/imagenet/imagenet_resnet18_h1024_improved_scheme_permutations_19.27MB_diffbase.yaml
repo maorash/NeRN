@@ -1,5 +1,5 @@
 logging:
-  exp_name: imagenet_resnet18_h1024_improved_scheme_19.27MB_ffn
+  exp_name: imagenet_resnet18_h1024_improved_scheme_permutations_19.27MB_diffbase
 original_model_path: trained_models/original_tasks/imagenet/resnet18-5c106cde.pt
 hand:
   distillation_loss_type: StableKLDivLoss
@@ -8,9 +8,9 @@ hand:
   weights_batch_method: random_weighted_batch
   embeddings:
     enc_levels: 40
-    type: ffn
-    gauss_scale: [10, 10, 10]
+    base: 0.76
   task_loss_weight: 0
+  permute_mode: separate
 task:
   task_name: imagenet
   original_model_name: ResNet18
@@ -26,5 +26,5 @@ eval_loss_window_interval: 20
 num_gpus: 2
 num_workers: 12
 epochs: null
-num_iterations: 110000
+num_iterations: 100000
 eval_iterations_interval: 4000

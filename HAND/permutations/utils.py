@@ -58,10 +58,10 @@ def separate_permutations(embeddings: List[torch.Tensor], weights: List[np.array
     permuted_embeddings = [filter_permuted_embeddings[i][np.argsort(channel_permutations[i])].transpose(1, 0, 2) for i in
                            range(num_layers)]
     # Do not remove this - currently used for debugging
-    permuted_weights = [filter_permuted_weights[i][np.argsort(channel_permutations[i])] for i in
-                        range(num_layers)]
+    permuted_weights = [filter_permuted_weights[i][channel_permutations[i]] for i in range(num_layers)]
 
-    return [torch.Tensor(permuted_embeddings[i].transpose(1, 0, 2)).reshape(embeddings[i].shape).to(embeddings[i].device) for i in range(len(embeddings))]
+    return [torch.Tensor(permuted_embeddings[i]).reshape(embeddings[i].shape).to(embeddings[i].device) for i in range(len(embeddings))]
+
 
 def separate_permutations_two_opt(embeddings: List[torch.Tensor], weights: List[np.array]) -> List[np.array]:
     from HAND.permutations.tsp import two_opt
