@@ -18,21 +18,41 @@ def get_reconstruction_errors(reconstructed_weights, original_weights):
     return reconstruction_errors
 
 
-def get_largest_error_indices(reconstruction_errors: List[torch.Tensor], pruning_factor: float):
-    all_sorted, all_sorted_idx = torch.sort(torch.cat([-1 * t.view(-1) for t in reconstruction_errors]))
-    cum_num_elements = torch.cumsum(torch.tensor([t.numel() for t in reconstruction_errors]), dim=0)
+# def get_largest_error_indices(reconstruction_errors: List[torch.Tensor], pruning_factor: float):
+#     all_sorted, all_sorted_idx = torch.sort(torch.cat([-1 * t.view(-1) for t in reconstruction_errors]))
+#     cum_num_elements = torch.cumsum(torch.tensor([t.numel() for t in reconstruction_errors]), dim=0)
+#     cum_num_elements = torch.cat([torch.tensor([0]), cum_num_elements])
+#
+#     n = int(cum_num_elements[-1].item() * pruning_factor)
+#     split_indices_lt = [all_sorted_idx[:n] < cum_num_elements[i + 1] for i, _ in enumerate(cum_num_elements[1:])]
+#     split_indices_ge = [all_sorted_idx[:n] >= cum_num_elements[i] for i, _ in enumerate(cum_num_elements[:-1])]
+#     largest_error_indices = [all_sorted_idx[:n][torch.logical_and(lt, ge)] - c for lt, ge, c in
+#                              zip(split_indices_lt, split_indices_ge, cum_num_elements[:-1])]
+#
+#     # returns list of tensors with linear indices in each tensor
+#     return largest_error_indices
+
+def get_prune_indices(tensor_list: List[torch.Tensor], pruning_method: str, pruning_factor: float):
+    if pruning_method == 'reconstruction':
+        # the function finds n_smallest so for *largest* errors multiply by -1
+        all_sorted, all_sorted_idx = torch.sort(torch.cat([-1 * t.view(-1) for t in tensor_list]))
+    elif pruning_method == 'magnitude':
+        # the function finds n_smallest so for smallest magnitudes use abs values of the weights
+        all_sorted, all_sorted_idx = torch.sort(torch.cat([torch.abs(t.view(-1)) for t in tensor_list]))
+    else:
+        raise ValueError(f"Unsupported pruning method: {pruning_method}")
+
+    cum_num_elements = torch.cumsum(torch.tensor([t.numel() for t in tensor_list]), dim=0)
     cum_num_elements = torch.cat([torch.tensor([0]), cum_num_elements])
 
     n = int(cum_num_elements[-1].item() * pruning_factor)
     split_indices_lt = [all_sorted_idx[:n] < cum_num_elements[i + 1] for i, _ in enumerate(cum_num_elements[1:])]
     split_indices_ge = [all_sorted_idx[:n] >= cum_num_elements[i] for i, _ in enumerate(cum_num_elements[:-1])]
-    largest_error_indices = [all_sorted_idx[:n][torch.logical_and(lt, ge)] - c for lt, ge, c in
+    largest_value_indices = [all_sorted_idx[:n][torch.logical_and(lt, ge)] - c for lt, ge, c in
                              zip(split_indices_lt, split_indices_ge, cum_num_elements[:-1])]
 
-    # n_largest_errors = [t.view(-1)[idx] for t, idx in zip(reconstruction_errors, smallest_error_indices)]
-
     # returns list of tensors with linear indices in each tensor
-    return largest_error_indices
+    return largest_value_indices
 
 
 def prune_weights(original_weights: List[torch.Tensor], indices_to_prune: List[torch.Tensor]):
@@ -72,7 +92,7 @@ class Pruner:
         reconstruction_errors = get_reconstruction_errors(updated_reconstructed_weights, original_weights)
 
         # get indices of weights to prune - those with the largest reconstruction  errors
-        largest_error_indices = get_largest_error_indices(reconstruction_errors, pruning_factor)
+        largest_error_indices = get_prune_indices(reconstruction_errors, 'reconstruction', pruning_factor)
 
         # prune original weights
         pruned_original_weights = prune_weights(original_weights, largest_error_indices)
@@ -84,4 +104,15 @@ class Pruner:
             self.device)
         pruned_model.update_weights(pruned_original_weights)
 
+        return pruned_model
+
+    def magnitude_prune(self, pruning_factor: float):
+        original_weights = self.original_model.get_learnable_weights()
+        smallest_magnitude_weight_indices = get_prune_indices(original_weights, 'magnitude', pruning_factor)
+        pruned_original_weights = prune_weights(original_weights, smallest_magnitude_weight_indices)
+        pruned_model = ModelFactory.models[self.cfg.train_cfg.task.original_model_name][1](self.original_model,
+                                                                                           self.cfg.train_cfg.hand.embeddings,
+                                                                                           sampling_mode=self.cfg.train_cfg.hand.sampling_mode).to(
+            self.device)
+        pruned_model.update_weights(pruned_original_weights)
         return pruned_model

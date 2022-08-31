@@ -13,6 +13,8 @@ class PruneConfig:
     train_cfg: TrainConfig = field(default_factory=TrainConfig)
     # Is predictor wraped with data parallel
     is_data_parallel: bool = field(default=True)
+    # pruning method: 'reconstruction', 'magnitude' or 'random'
+    pruning_method: str = field(default='reconstruction')
 
 
 @pyrallis.wrap()
