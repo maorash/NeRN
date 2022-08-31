@@ -46,8 +46,10 @@ def main(cfg: PruneConfig):
         predictor.load_state_dict(torch.load(cfg.predictor_path).state_dict())
 
     pruner = Pruner(cfg, predictor, original_model, reconstructed_model, device)
-    reconstruction_pruned_model = pruner.prune(cfg.pruning_factor)
-    magnitude_pruned_model = pruner.magnitude_prune(0.5)
+    # absolute_nern_pruned_model = pruner.prune(0.8, absolute=True)
+    relative_nern_pruned_model = pruner.prune(0.6, absolute=False)
+    magnitude_pruned_model = pruner.magnitude_prune(0.6)
+    # random_pruned_model = pruner.random_prune(0.8)
     print(f'total weight number: {get_num_weights(original_model.get_learnable_weights())}\n')
     print(f'tzero weights: {get_num_zero_weights(magnitude_pruned_model.get_learnable_weights())}\n')
 
@@ -65,13 +67,18 @@ def main(cfg: PruneConfig):
     # plt.show()
 
     # evaluate pruned model without fine-tuning
-    print('evaluating reconstruction pruned model')
-    pruned_model_accuracy = eval_fn.eval(reconstruction_pruned_model, test_dataloader, 0, None, '')
-    print('evaluating magnitude pruned model')
-    pruned_model_accuracy = eval_fn.eval(magnitude_pruned_model, test_dataloader, 0, None, '')
+    # print('evaluating absolute nern pruned model')
+    # eval_fn.eval(absolute_nern_pruned_model, test_dataloader, 0, None, '')
+    print(f'evaluating relative nern pruned model: {get_num_zero_weights(relative_nern_pruned_model.get_learnable_weights())} zeros')
+    eval_fn.eval(relative_nern_pruned_model, test_dataloader, 0, None, '')
+    print(f'evaluating magnitude pruned model: {get_num_zero_weights(magnitude_pruned_model.get_learnable_weights())} zeros')
+    eval_fn.eval(magnitude_pruned_model, test_dataloader, 0, None, '')
+    # print('evaluating random pruned model')
+    # original_model_accuracy = eval_fn.eval(random_pruned_model, test_dataloader, 0, None, '')
     print('evaluating original model')
-    original_model_accuracy = eval_fn.eval(original_model, test_dataloader, 0, None, '')
-
+    eval_fn.eval(original_model, test_dataloader, 0, None, '')
+    print('evaluating reconstructed model')
+    eval_fn.eval(reconstructed_model, test_dataloader, 0, None, '')
 
 if __name__ == '__main__':
     main()

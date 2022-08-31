@@ -2,6 +2,7 @@ from typing import List, Union, Tuple
 
 import copy
 import torch
+import numpy as np
 
 from HAND.models.model import OriginalModel, OriginalDataParallel, ReconstructedModel, ReconstructedDataParallel
 from HAND.predictors.factory import PredictorDataParallel
@@ -10,10 +11,18 @@ from HAND.tasks.model_factory import ModelFactory
 from HAND.tasks.pruning.prune_options import PruneConfig
 
 
-def get_reconstruction_errors(reconstructed_weights, original_weights):
+def get_absolute_reconstruction_errors(reconstructed_weights, original_weights):
     reconstruction_errors = list()
     for original_weight, reconstructed_weight in zip(original_weights, reconstructed_weights):
         error = (original_weight - reconstructed_weight) ** 2
+        reconstruction_errors.append(error)
+    return reconstruction_errors
+
+def get_relative_reconstruction_errors(reconstructed_weights, original_weights):
+    reconstruction_errors = list()
+    for original_weight, reconstructed_weight in zip(original_weights, reconstructed_weights):
+        error = (original_weight - reconstructed_weight).abs()
+        error = error / (original_weight.abs())
         reconstruction_errors.append(error)
     return reconstruction_errors
 
@@ -75,7 +84,7 @@ class Pruner:
         self.reconstructed_model = reconstructed_model
         self.device = device
 
-    def prune(self, pruning_factor: float):
+    def prune(self, pruning_factor: float, absolute: bool = False):
         learnable_weights_shapes = self.reconstructed_model.get_learnable_weights_shapes()
         indices, positional_embeddings = self.reconstructed_model.get_indices_and_positional_embeddings()
         positional_embeddings = [torch.stack(layer_emb).to(self.device) for layer_emb in positional_embeddings]
@@ -89,7 +98,10 @@ class Pruner:
         updated_reconstructed_weights = self.reconstructed_model.get_learnable_weights()
 
         # calculate reconstruction error
-        reconstruction_errors = get_reconstruction_errors(updated_reconstructed_weights, original_weights)
+        if absolute:
+            reconstruction_errors = get_absolute_reconstruction_errors(updated_reconstructed_weights, original_weights)
+        else:
+            reconstruction_errors = get_relative_reconstruction_errors(updated_reconstructed_weights, original_weights)
 
         # get indices of weights to prune - those with the largest reconstruction  errors
         largest_error_indices = get_prune_indices(reconstruction_errors, 'reconstruction', pruning_factor)
@@ -116,3 +128,24 @@ class Pruner:
             self.device)
         pruned_model.update_weights(pruned_original_weights)
         return pruned_model
+
+    def random_prune(self, pruning_factor: float):
+        original_weights = self.original_model.get_learnable_weights()
+        previous_shapes = [w.shape for w in original_weights]
+        pruned_original_weights = copy.deepcopy(original_weights)
+        flattened_original_weights = [w.reshape(-1) for w in pruned_original_weights]
+        flattened_original_sizes = [w.shape for w in flattened_original_weights]
+        concat_flattened_pruned_weights = torch.cat(flattened_original_weights)
+        indices_to_prune = torch.randperm(concat_flattened_pruned_weights.shape[0])[:int(concat_flattened_pruned_weights.shape[0] * pruning_factor)]
+        concat_flattened_pruned_weights[indices_to_prune] = 0
+        split_indices = np.cumsum([0] + [s[0] for s in flattened_original_sizes])
+        split_flattened_pruned_weights = [concat_flattened_pruned_weights[split_indices[i]:split_indices[i + 1]] for i in range(len(split_indices) - 1)]
+        pruned_weights = [w.reshape(s) for w, s in zip(split_flattened_pruned_weights, previous_shapes)]
+        pruned_model = ModelFactory.models[self.cfg.train_cfg.task.original_model_name][1](self.original_model,
+                                                                                           self.cfg.train_cfg.hand.embeddings,
+                                                                                           sampling_mode=self.cfg.train_cfg.hand.sampling_mode).to(
+            self.device)
+        pruned_model.update_weights(pruned_weights)
+        return pruned_model
+
+
