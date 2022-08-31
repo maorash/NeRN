@@ -45,6 +45,8 @@ class ReconstructedModel(OriginalModel):
         self.embeddings_cfg = embeddings_cfg
         self.positional_encoder = MyPositionalEncoding(embeddings_cfg)
         self.sampling_mode = sampling_mode
+        self.indices = self._get_tensor_indices()
+        self.positional_embeddings = self._calculate_position_embeddings()
 
     def get_feature_maps(self, batch: torch.Tensor) -> Tuple[torch.Tensor, List[torch.Tensor]]:
         return self.reconstructed_model.get_feature_maps(batch)
