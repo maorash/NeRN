@@ -19,11 +19,15 @@ def permute(embeddings: List[torch.Tensor], weights: List[torch.Tensor], permuta
         raise ValueError("Unsupported permutations mode")
 
 
+def calculate_layer_joint_permutation(layer_weights: np.array) -> np.array:
+    return get_max_sim_order(layer_weights.reshape((-1, layer_weights.shape[-1] ** 2)), False)
+
+
 def joint_permutations(embeddings: List[torch.Tensor], weights: List[np.array]) -> List[torch.Tensor]:
-    permutations = [
-        get_max_sim_order(layer_weights.reshape((-1, weights[i].shape[-1] ** 2)),
-                          False)
-        for i, layer_weights in enumerate(weights)]
+    from multiprocessing import Pool
+    with Pool(5) as p:
+        permutations = p.map(calculate_layer_joint_permutation, weights)
+
     # Do not remove this - currently used for debugging
     permuted_weights = [
         weights[i].reshape((-1, weights[i].shape[-1], weights[i].shape[-1]))[permutations[i]].reshape(weights[i].shape)
@@ -54,7 +58,8 @@ def separate_permutations(embeddings: List[torch.Tensor], weights: List[np.array
     # Step 2: apply channel (in-filter) permutations
     in_filter_permuted_embeddings = [
         np.array([filter_embeddings[inverse_permutation] for filter_embeddings, inverse_permutation in
-                  zip(filter_permuted_embeddings[i], np.argsort(in_filter_permutations[i]))]) for i in range(num_layers)]
+                  zip(filter_permuted_embeddings[i], np.argsort(in_filter_permutations[i]))]) for i in
+        range(num_layers)]
     # Do not remove this - currently used for debugging
     permuted_weights = [in_filter_permuted_weights[i][filter_permutations[i]] for i in range(num_layers)]
 
