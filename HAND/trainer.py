@@ -2,16 +2,17 @@ from typing import Tuple, List, Union
 import os
 
 import torch
+from torch.utils.tensorboard import SummaryWriter
 from clearml import Logger
 from torch.utils.data import DataLoader
 
 from HAND.eval_func import EvalFunction
-from HAND.logger import log_scalar_dict
+from HAND.log_utils import log_scalar_dict
 from HAND.models.model import OriginalModel, OriginalDataParallel, ReconstructedModel, ReconstructedDataParallel
 from HAND.permutations import utils as permutations_utils
 from HAND.predictors.predictor import HANDPredictorBase
 from HAND.predictors.factory import PredictorDataParallel
-from HAND.logger import create_experiment_dir, log_scalar_list, compute_grad_norms
+from HAND.log_utils import create_experiment_dir, log_scalar_list, compute_grad_norms
 from HAND.loss.attention_loss import AttentionLossBase
 from HAND.loss.reconstruction_loss import ReconstructionLossBase
 from HAND.loss.distillation_loss import DistillationLossBase
@@ -31,7 +32,7 @@ class Trainer:
                  original_model: Union[OriginalModel, OriginalDataParallel],
                  reconstructed_model: Union[ReconstructedModel, ReconstructedDataParallel],
                  original_task_eval_fn: EvalFunction,
-                 logger: Logger,
+                 logger: Union[Logger, SummaryWriter],
                  task_dataloaders: Tuple[DataLoader, DataLoader],
                  device):
         self.config = config
