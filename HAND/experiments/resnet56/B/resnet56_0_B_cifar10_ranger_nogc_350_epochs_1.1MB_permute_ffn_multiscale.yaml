@@ -1,5 +1,5 @@
 logging:
-  exp_name: resnet56_0_B_cifar10_ranger_nogc_350_epochs_1.1MB_permute_ffn_multiscale
+  exp_name: resnet56_0_B_cifar10_ranger_nogc_350_epochs_1.1MB_permute_ffn_multiscale_4
 original_model_path: trained_models/original_tasks/mnist/resnet56_0_B.pt
 hand:
   distillation_loss_type: StableKLDivLoss
@@ -21,5 +21,5 @@ optim:
   lr: 5e-3
   ranger_use_gc: False
 epochs: 350
-num_gpus: 2
+num_gpus: 1
 num_workers: 4

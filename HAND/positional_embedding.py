@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import numpy as np
 import torch
 from torch import nn
@@ -67,9 +68,9 @@ class MyPositionalEncoding(nn.Module):
         self.levels = config.enc_levels
         self.gauss_scale = config.gauss_scale
         self.output_size = self._calculate_output_size()
-        # TODO: save the ffn B matrix on disk (cache)
-        self.ffn_B = nn.Parameter(torch.randn((self.levels * self.num_idxs, self.num_idxs))
-                                  * torch.Tensor(self.gauss_scale), requires_grad=False)
+        with zero_seed():
+            self.ffn_B = nn.Parameter(torch.randn((self.levels * self.num_idxs, self.num_idxs))
+                                      * torch.Tensor(self.gauss_scale), requires_grad=False)
 
     def _calculate_output_size(self):
         if self.embedding_fusion_mode == 'concat':
@@ -119,3 +120,13 @@ class MyPositionalEncoding(nn.Module):
         return hash((self.base, self.levels, self.num_idxs, self.output_size, pe_type[self.type],
                      *tuple(self.gauss_scale)))
 
+
+@contextmanager
+def zero_seed():
+    seed = 0
+    try:
+        seed = torch.random.get_rng_state()
+        torch.manual_seed(0)
+        yield
+    finally:
+        torch.random.set_rng_state(seed)

@@ -1,5 +1,5 @@
 logging:
-  exp_name: imagenet_resnet18_h1024_improved_scheme_19.27MB_ffn
+  exp_name: imagenet_resnet18_ffn_multiscale_19.27MB
 original_model_path: trained_models/original_tasks/imagenet/resnet18-5c106cde.pt
 hand:
   distillation_loss_type: StableKLDivLoss
@@ -9,7 +9,7 @@ hand:
   embeddings:
     enc_levels: 40
     type: ffn
-    gauss_scale: [10, 10, 10]
+    gauss_scale: [1, 0.1, 0.1]
   task_loss_weight: 0
 task:
   task_name: imagenet

@@ -1,10 +1,10 @@
 logging:
-  exp_name: imagenet_resnet18_h1024_improved_scheme_19.27MB
+  exp_name: imagenet_resnet18
 original_model_path: trained_models/original_tasks/imagenet/resnet18-5c106cde.pt
 hand:
   distillation_loss_type: StableKLDivLoss
   num_blocks: 5
-  hidden_layer_size: 1256
+  hidden_layer_size: 1024
   weights_batch_method: random_weighted_batch
   embeddings:
     enc_levels: 40
