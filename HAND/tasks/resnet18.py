@@ -4,7 +4,7 @@ import torch
 import torchvision.models
 
 from HAND.models.model import OriginalModel, ReconstructedModel
-from HAND.options import EmbeddingsConfig
+from HAND.options import TrainConfig
 
 
 class ResNet18(OriginalModel):
@@ -96,8 +96,8 @@ class ResNet18(OriginalModel):
 
 
 class ReconstructedResNet18(ReconstructedModel):
-    def __init__(self, original_model: ResNet18, embeddings_cfg: EmbeddingsConfig, sampling_mode: str = None):
-        super().__init__(original_model, embeddings_cfg, sampling_mode)
+    def __init__(self, original_model: ResNet18, train_cfg: TrainConfig, device: str, sampling_mode: str = None):
+        super().__init__(original_model, train_cfg, device, sampling_mode)
 
     def _get_tensor_indices(self) -> List[List[Tuple]]:
         indices = []

@@ -48,7 +48,7 @@ def calculate_separate_permutations(weights: List[np.array]) -> List[Tuple[List[
 def seperate_permute(embeddings: List[torch.Tensor], permutations: List[Tuple[List[int], List[List[int]]]],
                      weights_shapes) -> List[torch.Tensor]:
 
-    reshaped_embeddings = [embeddings[i].cpu().numpy().reshape(weights_shapes[i][0], weights_shapes[i].shape[1], -1) for
+    reshaped_embeddings = [embeddings[i].cpu().numpy().reshape(weights_shapes[i][0], weights_shapes[i][1], -1) for
                            i in
                            range(len(weights_shapes))]
     num_layers = len(weights_shapes)

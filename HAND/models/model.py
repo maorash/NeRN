@@ -1,6 +1,7 @@
 import copy
 import os
 from pathlib import Path
+import hashlib
 
 import torch
 from torch import nn
@@ -38,13 +39,15 @@ class OriginalModel(nn.Module):
 
 
 class ReconstructedModel(OriginalModel):
-    def __init__(self, original_model: OriginalModel, train_cfg: TrainConfig, sampling_mode: str = "center"):
+    def __init__(self, original_model: OriginalModel, train_cfg: TrainConfig, device: str,
+                 sampling_mode: str = "center"):
         super().__init__()
+        self.device = device
         self.original_model = original_model
         self.reconstructed_model = copy.deepcopy(original_model)
         self.reinitialize_learnable_weights()
         self.embeddings_cfg = train_cfg.hand.embeddings
-        self.permutations_cfg = train_cfg.hand.embeddings.permutations_config
+        self.permutations_cfg = train_cfg.hand.embeddings.permutations
         self.original_model_path = train_cfg.original_model_path
         self.positional_encoder = MyPositionalEncoding(train_cfg.hand.embeddings)
         self.sampling_mode = sampling_mode
@@ -102,9 +105,10 @@ class ReconstructedModel(OriginalModel):
                                             unpermuted_positional_embeddings]
         if self.permutations_cfg.permute_mode is None:
             return unpermuted_positional_embeddings
-
+        s1 = self._hash_str(self.original_model_path)
+        s2 = self._hash_str(self.permutations_cfg.permute_mode)
         permutations_cache_folder = Path(
-            __file__).parent / f"{str(self)}_permutations_{hash((self.original_model_path, self.permutations_cfg.permute_mode))}"
+            __file__).parent / f"{str(self)}_permutations_{hash((s1, s2))}"
         os.makedirs(permutations_cache_folder, exist_ok=True)
         try:
             print("Trying to load precomputed permutations")
@@ -134,7 +138,7 @@ class ReconstructedModel(OriginalModel):
             return permutations_utils.joint_permute(unpermuted_positional_embeddings, permutations)
         elif self.permutations_cfg.permute_mode == "separate":
             return permutations_utils.seperate_permute(unpermuted_positional_embeddings, permutations,
-                                                       self.get_learnable_weights_shapes)
+                                                       self.get_learnable_weights_shapes())
         else:
             raise ValueError("Unsupported permutations mode")
 
@@ -164,6 +168,9 @@ class ReconstructedModel(OriginalModel):
 
     def forward(self, x):
         return self.reconstructed_model(x)
+
+    def _hash_str(self, s: str) -> int:
+        return int(hashlib.sha1(s.encode("utf-8")).hexdigest(), 16) % (10 ** 8)
 
     @property
     def output_size(self):

@@ -29,7 +29,7 @@ class EmbeddingsConfig:
     # Gaussian kernel scale for ffn (fourier feature network)
     gauss_scale: List[float] = field(default_factory=lambda: [1, 0.1, 0.1])
     # Permutations config
-    permutations_config: PermutationsConfig = field(default_factory=PermutationsConfig)
+    permutations: PermutationsConfig = field(default_factory=PermutationsConfig)
 
 @dataclass
 class HANDConfig:
