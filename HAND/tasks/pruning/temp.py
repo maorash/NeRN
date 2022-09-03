@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import torch
+import pickle
+import os
 
 n = 5
 
@@ -19,18 +21,36 @@ split_indeces = [all_sorted_idx[:n][torch.logical_and(lt, ge)] - c for lt, ge, c
 n_smallest = [t.view(-1)[idx] for t, idx in zip(tensor_list, split_indeces)]
 
 # x = np.linspace(0, 10, 10)
-# plt.plot(x, x**2)
-# plt.xlabel('x')
-# plt.ylabel('y')
-#
-# # displaying the title
-# plt.title("Linear graph")
-#
-# plt.show()
+# y = x**2
+# z = x**3
 
-a = torch.tensor([1, 1, 5])
-b = torch.tensor([0, 0, 5])
-d = torch.sum(a == 0)
-print(d)
-print(torch.numel(a))
+plt.plot(x, x, label = "x")
+plt.plot(x, y, label = "x^2")
+plt.plot(x, z, label = "x^3")
+plt.legend()
+plt.xlabel('x')
+# displaying the title
+plt.title("Linear graph")
+plt.show()
 
+def write_list(a_list):
+    here = os.path.dirname(os.path.abspath(__file__))
+    # store list in binary file so 'wb' mode
+    with open(os.path.join(here, "state.pickle"), "wb") as fp:
+        pickle.dump(names, fp)
+        print('Done writing list into a binary file')
+
+
+# Read list to memory
+def read_list():
+    # for reading also binary mode is important
+    with open('relative_recon_accuracies.txt', 'rb') as fp:
+        n_list = pickle.load(fp)
+        return n_list
+
+
+# list of names
+names = ['Jessa', 'Eric', 'Bob']
+write_list(names)
+# r_names = read_list()
+# print('List is', r_names)
