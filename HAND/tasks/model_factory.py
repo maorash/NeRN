@@ -1,5 +1,6 @@
 import torch
 
+from HAND.models.model import OriginalDataParallel, ReconstructedDataParallel
 from HAND.tasks.simple_net import SimpleNet, ReconstructedSimpleNet
 from HAND.tasks.vgg8 import VGG8, ReconstructedVGG8
 from HAND.tasks.resnet18 import ResNet18, ReconstructedResNet18
@@ -25,8 +26,11 @@ class ModelFactory:
             raise ValueError("Unsupported original model name")
 
         model = ModelFactory.models[cfg.task.original_model_name][0](**kwargs).to(device)
-        model.load_state_dict(torch.load(cfg.original_model_path, map_location=device))
+        model.load(cfg.original_model_path, device)
         reconstructed_model = ModelFactory.models[cfg.task.original_model_name][1](model, cfg.hand.embeddings,
                                                                                    sampling_mode=cfg.hand.sampling_mode).to(device)
+        if cfg.num_gpus > 1 and not cfg.no_cuda:
+            model = OriginalDataParallel(model, device_ids=list(range(cfg.num_gpus)))
+            reconstructed_model = ReconstructedDataParallel(reconstructed_model, device_ids=list(range(cfg.num_gpus)))
 
         return model, reconstructed_model

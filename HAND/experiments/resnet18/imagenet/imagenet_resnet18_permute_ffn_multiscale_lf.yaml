@@ -1,0 +1,31 @@
+logging:
+  exp_name: imagenet_resnet18_permute_ffn_multiscale_lf
+original_model_path: trained_models/original_tasks/imagenet/resnet18-5c106cde.pt
+hand:
+  distillation_loss_type: StableKLDivLoss
+  num_blocks: 5
+  hidden_layer_size: 1024
+  weights_batch_method: random_weighted_batch
+  embeddings:
+    enc_levels: 40
+    type: ffn
+    gauss_scale: [1, 0.05, 0.05]
+  task_loss_weight: 0
+  permute_mode: separate
+task:
+  task_name: imagenet
+  original_model_name: ResNet18
+  imagenet_path: /nfs/datasets/classification/imagenet/ILSVRC/Data/CLS-LOC/
+optim:
+  optimizer_type: ranger
+  lr: 5e-3
+  ranger_use_gc: False
+batch_size: 32
+loss_warmup_iterations: 0
+eval_loss_window_size: 100
+eval_loss_window_interval: 20
+num_gpus: 2
+num_workers: 12
+epochs: null
+num_iterations: 110000
+eval_iterations_interval: 4000

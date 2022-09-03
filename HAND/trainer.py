@@ -1,15 +1,18 @@
-from typing import Tuple, List
+from typing import Tuple, List, Union
 import os
 
 import torch
+from torch.utils.tensorboard import SummaryWriter
 from clearml import Logger
 from torch.utils.data import DataLoader
 
 from HAND.eval_func import EvalFunction
-from HAND.logger import log_scalar_dict
-from HAND.models.model import OriginalModel, ReconstructedModel
+from HAND.log_utils import log_scalar_dict
+from HAND.models.model import OriginalModel, OriginalDataParallel, ReconstructedModel, ReconstructedDataParallel
+from HAND.permutations import utils as permutations_utils
 from HAND.predictors.predictor import HANDPredictorBase
-from HAND.logger import create_experiment_dir, log_scalar_list, compute_grad_norms
+from HAND.predictors.factory import PredictorDataParallel
+from HAND.log_utils import create_experiment_dir, log_scalar_list, compute_grad_norms
 from HAND.loss.attention_loss import AttentionLossBase
 from HAND.loss.reconstruction_loss import ReconstructionLossBase
 from HAND.loss.distillation_loss import DistillationLossBase
@@ -21,15 +24,15 @@ from HAND.options import TrainConfig
 
 class Trainer:
     def __init__(self, config: TrainConfig,
-                 predictor: HANDPredictorBase,
+                 predictor: Union[HANDPredictorBase, PredictorDataParallel],
                  task_loss: TaskLossBase,
                  reconstruction_loss: ReconstructionLossBase,
                  attention_loss: AttentionLossBase,
                  distillation_loss: DistillationLossBase,
-                 original_model: OriginalModel,
-                 reconstructed_model: ReconstructedModel,
+                 original_model: Union[OriginalModel, OriginalDataParallel],
+                 reconstructed_model: Union[ReconstructedModel, ReconstructedDataParallel],
                  original_task_eval_fn: EvalFunction,
-                 logger: Logger,
+                 logger: Union[Logger, SummaryWriter],
                  task_dataloaders: Tuple[DataLoader, DataLoader],
                  device):
         self.config = config
@@ -62,6 +65,10 @@ class Trainer:
 
         original_weights = self.original_model.get_learnable_weights()
 
+        positional_embeddings = permutations_utils.permute(positional_embeddings,
+                                                           original_weights,
+                                                           self.config.hand.permute_mode)
+
         training_step = 0
         epoch = 0
 
@@ -70,9 +77,8 @@ class Trainer:
                 batch, ground_truth = batch.to(self.device), ground_truth.to(self.device)
                 optimizer.zero_grad()
 
-                reconstructed_weights = self.predictor.predict_all(positional_embeddings,
-                                                                   original_weights,
-                                                                   learnable_weights_shapes)
+                reconstructed_weights = HANDPredictorBase.predict_all(self.predictor, positional_embeddings,
+                                                                      original_weights, learnable_weights_shapes)
                 self.reconstructed_model.update_weights(reconstructed_weights)
 
                 original_outputs, original_feature_maps = self.original_model.get_feature_maps(batch)
@@ -86,15 +92,15 @@ class Trainer:
                     task_term, attention_term, distillation_term = 0, 0, 0
                 else:
                     # Compute task loss
-                    task_term = self.config.hand.task_loss_weight * self.task_loss(reconstructed_outputs, ground_truth)
+                    task_term = self.config.hand.task_loss_weight * self.task_loss(reconstructed_outputs, ground_truth) if self.config.hand.task_loss_weight > 0 else 0
 
                     # Compute attention loss
                     attention_term = self.config.hand.attention_loss_weight * self.attention_loss(
-                        reconstructed_feature_maps, original_feature_maps)
+                        reconstructed_feature_maps, original_feature_maps) if self.config.hand.attention_loss_weight > 0 else 0
 
                     # Compute distillation loss
                     distillation_term = self.config.hand.distillation_loss_weight * self.distillation_loss(
-                        reconstructed_outputs, original_outputs)
+                        reconstructed_outputs, original_outputs) if self.config.hand.distillation_loss_weight > 0 else 0
 
                 loss = reconstruction_term + task_term + attention_term + distillation_term
                 loss.backward()
@@ -107,16 +113,16 @@ class Trainer:
                                      distillation_loss=distillation_term)
                     self._log_training(training_step, reconstructed_weights, loss_dict, scheduler.get_last_lr(),
                                        self.config.logging.verbose)
+                if training_step % self.config.eval_loss_window_interval == 0:
+                    self._add_to_loss_window(loss.item())
+                    if len(self.loss_window) == self.config.eval_loss_window_size and loss <= min(self.loss_window):
+                        self._eval(training_step, "greedy")
 
                 self._clip_grad_norm()
                 optimizer.step()
                 scheduler.check_and_step(training_step)
                 training_step += 1
 
-                if training_step % self.config.eval_loss_window_interval == 0:
-                    self._add_to_loss_window(loss.item())
-                    if len(self.loss_window) == self.config.eval_loss_window_size and loss <= min(self.loss_window):
-                        self._eval(training_step, "greedy")
                 if self.config.eval_iterations_interval is not None \
                         and training_step % self.config.eval_iterations_interval == 0:
                     self._eval(training_step)
@@ -134,7 +140,7 @@ class Trainer:
             if self.config.save_epochs_interval is not None and epoch % self.config.save_epochs_interval == 0:
                 self._save_checkpoint(f"epoch_{epoch}")
 
-    def _eval(self, iteration, log_suffix=None):
+    def _eval(self, iteration, log_suffix=""):
         accuracy = self.original_task_eval_fn.eval(self.reconstructed_model, self.test_dataloader, iteration,
                                                    self.logger, log_suffix)
         if accuracy > self.max_eval_accuracy:
@@ -147,7 +153,7 @@ class Trainer:
         self.loss_window.append(loss)
 
     def _save_checkpoint(self, checkpoint_suffix: str):
-        torch.save(self.predictor, os.path.join(self.exp_dir_path,
+        self.predictor.save(os.path.join(self.exp_dir_path,
                                                 f"hand_{self.config.logging.exp_name}_{checkpoint_suffix}.pth"))
 
     def _clip_grad_norm(self):
@@ -218,7 +224,7 @@ class Trainer:
             parameters_for_optimizer.append(self.reconstructed_model.get_fully_connected_weights())
 
         optimizer = OptimizerFactory.get(parameters_for_optimizer, self.config)
-        scheduler = LRSchedulerFactory.get(optimizer, len(self.train_dataloader), self.config)
+        scheduler = LRSchedulerFactory.get(optimizer, self.config)
 
         return optimizer, scheduler
 

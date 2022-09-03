@@ -34,14 +34,30 @@ class StableKLDivLoss(DistillationLossBase):
                 reconstructed_outputs: torch.Tensor,
                 original_outputs: torch.Tensor) \
             -> torch.Tensor:
-        return nn.KLDivLoss(reduction="batchmean")(torch.log(F.softmax(reconstructed_outputs, dim=1) + 1e-3),
+        return nn.KLDivLoss(reduction="batchmean")(torch.log(F.softmax(reconstructed_outputs, dim=1) + 1e-4),
                                                    F.softmax(original_outputs, dim=1))
+
+
+class TempStableKLDivLoss(DistillationLossBase):
+    def __init__(self, temperature: float = 2):
+        super().__init__()
+        self.temperature = temperature
+
+    def forward(self,
+                reconstructed_outputs: torch.Tensor,
+                original_outputs: torch.Tensor) \
+            -> torch.Tensor:
+        reconstructed_outputs = reconstructed_outputs / self.temperature
+        original_outputs = original_outputs / self.temperature
+        return nn.KLDivLoss(reduction="batchmean")(torch.log(F.softmax(reconstructed_outputs, dim=1) + 1e-4),
+                                                   F.softmax(original_outputs, dim=1)) * (self.temperature ** 2)
 
 
 class DistillationLossFactory:
     losses = {
         "KLDivLoss": KLDivLoss,
-        "StableKLDivLoss": StableKLDivLoss
+        "StableKLDivLoss": StableKLDivLoss,
+        "TempStableKLDivLoss": TempStableKLDivLoss,
     }
 
     @staticmethod

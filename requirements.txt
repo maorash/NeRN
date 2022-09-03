@@ -4,3 +4,7 @@ pyrallis
 tqdm
 clearml
 einops
+tensorboard
+tensorboardX
+setuptools==59.5.0
+timm

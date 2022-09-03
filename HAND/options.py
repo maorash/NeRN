@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 
 @dataclass
 class EmbeddingsConfig:
+    # Type of positional embedding to use (basic/ffn)
+    type: str = field(default='basic')
     # Number of indices to encode
     num_idxs: int = field(default=3)
     # Encoding levels
@@ -16,6 +18,8 @@ class EmbeddingsConfig:
     fusion_mode: str = field(default='concat')
     # Indices normalization mode, if None don't normalize indices (None/local/global)
     normalization_mode: str = field(default='local')
+    # Gaussian kernel scale for ffn (fourier feature network)
+    gauss_scale: List[float] = field(default_factory=lambda: [1, 0.1, 0.1])
 
 
 @dataclass
@@ -53,13 +57,15 @@ class HANDConfig:
     # Task loss type, should be a member of `torch.nn.functional`, default is `nll_loss`
     task_loss_type: str = field(default='CELoss')
     # Reconstruction loss type, should be a member of `torch.nn`, default is `MSELoss`
-    reconstruction_loss_type: str = field(default='L2')
+    reconstruction_loss_type: str = field(default='L2Loss')
     # Feature maps distillation loss type, should be a member of `torch.nn`, default is `MSELoss`
-    attention_loss_type: str = field(default='L2')
+    attention_loss_type: str = field(default='L2BatchedAttentionLoss')
     # Output distillation loss type, should be a member of `torch.nn`, default is `KLDivLoss`
     distillation_loss_type: str = field(default='KLDivLoss')
     # The sampling mode for the reconstruction model (center/average/max)
     sampling_mode: str = field(default='center')
+    # The permutation smoothing mode (none/joint/separate)
+    permute_mode: str = field(default=None)
 
 
 @dataclass
@@ -74,12 +80,16 @@ class LogConfig:
     disable_logging: bool = field(default=False)
     # Log gradient norms and weight norms for all layers
     verbose: bool = field(default=False)
+    # Use tensorboardX for logging
+    use_tensorboard: bool = field(default=False)
 
 
 @dataclass
 class TaskConfig:
     # Task name
     task_name: str = field(default='mnist')
+    # ImageNet path
+    imagenet_path: str = field(default=None)
     # Original network type
     original_model_name: str = field(default='SimpleNet')
     # Whether to use random input data
@@ -122,7 +132,9 @@ class TrainConfig:
     # HAND config
     hand: HANDConfig = field(default_factory=HANDConfig)
     # Number of data loading workers
-    # workers: int = field(default=4)
+    num_workers: int = field(default=0)
+    # Number of available GPUs
+    num_gpus: int = field(default=1)
     # Input batch size
     batch_size: int = field(default=256)
     # Number of epochs to train for, mutually exclusive with num_iterations
@@ -132,7 +144,7 @@ class TrainConfig:
     # How often to test the reconstructed model on the original task (in epochs)
     eval_epochs_interval: Optional[int] = field(default=1)
     # How often to save the learned model (in epochs)
-    save_epochs_interval: Optional[int] = field(default=10)
+    save_epochs_interval: Optional[int] = field(default=100)
     # How often to test the reconstructed model on the original task, in iterations (batches)
     eval_iterations_interval: Optional[int] = field(default=None)
     # How often to save the learned model, in iterations (batches)

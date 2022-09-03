@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import numpy as np
 import torch
 from torch import nn
@@ -59,28 +60,48 @@ class PositionalEmbedding:
 class MyPositionalEncoding(nn.Module):
     def __init__(self, config: EmbeddingsConfig):
         super(MyPositionalEncoding, self).__init__()
+        self.type = config.type
         self.embedding_fusion_mode = config.fusion_mode
         self.normalization_mode = config.normalization_mode
         self.num_idxs = config.num_idxs
-        assert self.embedding_fusion_mode in ['concat', 'sum']
-        assert config.enc_levels >= 1
         self.base = config.base
         self.levels = config.enc_levels
+        self.gauss_scale = config.gauss_scale
         self.output_size = self._calculate_output_size()
+        with zero_seed():
+            self.ffn_B = nn.Parameter(torch.randn((self.levels * self.num_idxs, self.num_idxs))
+                                      * torch.Tensor(self.gauss_scale), requires_grad=False)
 
     def _calculate_output_size(self):
         if self.embedding_fusion_mode == 'concat':
             return self.levels * 2 * self.num_idxs
-        elif self.embedding_fusion_mode == 'sum':
+        elif self.embedding_fusion_mode == 'sum' and self.type == 'basic':
             return self.levels * 2
 
     def forward(self, pos):
-        pe_list = []
+        if self.type == 'basic':
+            return self._basic(pos)
+        elif self.type == 'ffn':
+            return self._ffn(pos)
+        else:
+            raise NotImplementedError(f'Unsupported positional embedding type {self.type}')
+
+    def _ffn(self, pos):
+        if self.embedding_fusion_mode == 'concat':
+            # Efficient implementation
+            x = (torch.tensor(pos) * 2 * np.pi) @ self.ffn_B.T
+            final_embeddings = torch.dstack([torch.sin(x), torch.cos(x)]).flatten()
+        else:
+            raise NotImplementedError(f'Unsupported embedding fusion mode {self.embedding_fusion_mode} for type {self.type}')
+        return final_embeddings
+
+    def _basic(self, pos):
         if self.embedding_fusion_mode == 'concat':
             # Efficient implementation
             x = (torch.tensor(pos).unsqueeze(-1) * (self.base ** torch.arange(self.levels)) * np.pi)
             final_embeddings = torch.dstack([torch.sin(x), torch.cos(x)]).flatten()
         elif self.embedding_fusion_mode == 'sum':
+            pe_list = []
             # Non-efficient implementation
             for p in pos:
                 pe_levels = p * (self.base ** torch.arange(self.levels)) * np.pi
@@ -88,8 +109,24 @@ class MyPositionalEncoding(nn.Module):
                 pe_list.append(torch.dstack([torch.sin(pe_levels), torch.cos(pe_levels)]).flatten())
             final_embeddings = torch.vstack(pe_list).sum(dim=0)
         else:
-            raise NotImplementedError(f'Unsupported embedding fusion mode {self.embedding_fusion_mode}.')
+            raise NotImplementedError(f'Unsupported embedding fusion mode {self.embedding_fusion_mode} for type {self.type}')
         return final_embeddings
 
     def __hash__(self):
-        return hash((self.base, self.levels, self.num_idxs, self.output_size))
+        pe_type = {
+            'basic': 0,
+            'ffn': 1
+        }
+        return hash((self.base, self.levels, self.num_idxs, self.output_size, pe_type[self.type],
+                     *tuple(self.gauss_scale)))
+
+
+@contextmanager
+def zero_seed():
+    seed = 0
+    try:
+        seed = torch.random.get_rng_state()
+        torch.manual_seed(0)
+        yield
+    finally:
+        torch.random.set_rng_state(seed)

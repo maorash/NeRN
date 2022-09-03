@@ -1,4 +1,3 @@
-import pickle
 from typing import List, Tuple
 
 import torch
@@ -6,7 +5,6 @@ import torchvision.models
 
 from HAND.models.model import OriginalModel, ReconstructedModel
 from HAND.options import EmbeddingsConfig
-from HAND.positional_embedding import MyPositionalEncoding
 
 
 class ResNet14(OriginalModel):
@@ -99,8 +97,6 @@ class ReconstructedResNet14(ReconstructedModel):
     def __init__(self, original_model: ResNet14, embeddings_cfg: EmbeddingsConfig, sampling_mode: str = None):
         super().__init__(original_model, embeddings_cfg, sampling_mode)
         self.normalized_indices = None
-        self.indices = self._get_tensor_indices()
-        self.positional_embeddings = self._calculate_position_embeddings()
 
     def _get_tensor_indices(self) -> List[List[Tuple]]:
         indices = []
@@ -137,3 +133,4 @@ class ReconstructedResNet14(ReconstructedModel):
 
     def __str__(self):
         return f"{type(self).__name__}"
+

@@ -19,7 +19,7 @@ from HAND.tasks.vgg8 import VGG8
 from HAND.models.regularization import CosineSmoothness, L2Smoothness
 
 
-def get_dataloaders(test_kwargs, train_kwargs):
+def get_dataloaders(train_kwargs, test_kwargs, **kwargs):
     transform = transforms.Compose(
         [transforms.ToTensor(),
          transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
@@ -119,10 +119,11 @@ def main():
                         help='For Saving the current Model')
     parser.add_argument('--smoothness-type', type=str, default=None,
                         help='Smoothness regularization, can be Cosine/L2')
-    parser.add_argument('--smoothness-factor', type=float, default=1e-2,
+    parser.add_argument('--smoothness-factor', type=float, default=1e-4,
                         help='Factor for the smoothness regularization term')
-    parser.add_argument('--model_arch', type=str, default="SimpleNet",
-                        help='The model architecture, can be SimpleNet/VGG8/ResNet18/ResNet14')
+    parser.add_argument('--model_arch', type=str, default="ResNet14",
+                        help='The model architecture, can be Simple/VGG8/ResNet18/ResNet14')
+
 
     args = parser.parse_args()
     if args.num_hidden is not None and len(args.num_hidden) != args.num_layers:
@@ -146,7 +147,7 @@ def main():
         train_kwargs.update(cuda_kwargs)
         test_kwargs.update(cuda_kwargs)
 
-    test_loader, train_loader = get_dataloaders(test_kwargs, train_kwargs)
+    train_loader, test_loader = get_dataloaders(test_kwargs, train_kwargs)
 
     if args.model_arch == "SimpleNet":
         model_kwargs = dict(input_size=32, num_hidden=args.num_hidden, input_channels=3, num_layers=args.num_layers,

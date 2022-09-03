@@ -13,7 +13,7 @@ task:
   original_model_name: ResNet56
   use_random_inputs: True
 optim:
-  optimizer: ranger
+  optimizer_type: ranger
   lr: 5e-3
   ranger_use_gc: False
 epochs: 350
