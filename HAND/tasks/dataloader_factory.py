@@ -5,6 +5,7 @@ from torch.utils.data.dataset import Dataset
 from HAND.tasks.mnist.mnist_train_main import get_dataloaders as mnist_dataloaders
 from HAND.tasks.cifar10.cifar10_basic_train import get_dataloaders as cifar10_dataloaders
 from HAND.tasks.cifar10.cifar10_akamaster_train import get_dataloaders as cifar10v2_dataloaders
+from HAND.tasks.cifar10.cifar10_akamaster_train import get_cifar100_dataloaders as cifar100v2_dataloaders
 from HAND.tasks.imagenet_helpers import get_dataloaders as imagenet_timm_dataloaders
 from HAND.options import TaskConfig
 
@@ -33,6 +34,10 @@ class DataloaderFactory:
         },
         "cifar10v2": {
             "loader": cifar10v2_dataloaders,
+            "input_shape": (3, 32, 32)
+        },
+        "cifar100v2": {
+            "loader": cifar100v2_dataloaders,
             "input_shape": (3, 32, 32)
         },
         "imagenet": {

@@ -20,7 +20,6 @@ model_names = sorted(name for name in cifar_resnet.__dict__
                      and name.startswith("resnet")
                      and callable(cifar_resnet.__dict__[name]))
 
-# print(model_names)
 
 parser = argparse.ArgumentParser(description='Proper ResNets for CIFAR10 in pytorch')
 parser.add_argument('--exp-name', type=str, required=True,
@@ -66,6 +65,8 @@ parser.add_argument('--l2-smoothness-factor', type=float, default=None,
                     help='Factor for the l2 smoothness regularization term. If none, taking the value of the cosine smoothness factor')
 parser.add_argument('--basic-block-option', type=str, default='A',
                     help='Basic block option, can be A/B')
+parser.add_argument('--cifar_100', action='store_true',
+                    help='Train CIFAR100 instead of CIFAR10')
 best_prec1 = 0
 
 
@@ -86,7 +87,9 @@ def main():
     # if not os.path.exists(args.save_dir):
     #     os.makedirs(args.save_dir)
 
-    model = MyDataParallel(cifar_resnet.__dict__[args.arch](basic_block_option=args.basic_block_option))
+    num_classes = 100 if args.cifar_100 else 10
+    model = MyDataParallel(cifar_resnet.__dict__[args.arch](basic_block_option=args.basic_block_option,
+                                                            num_classes=num_classes))
     # model = resnet.__dict__[args.arch](basic_block_option=args.basic_block_option)
     model.cuda()
 
@@ -115,7 +118,9 @@ def main():
 
     cudnn.benchmark = True
 
-    train_loader, val_loader = get_dataloaders({'workers': args.workers}, {'batch_size': args.batch_size, 'workers': args.workers}, use_workers=True)
+    get_dataloaders_fn = get_cifar100_dataloaders if args.cifar_100 else get_dataloaders
+    train_loader, val_loader = get_dataloaders_fn({'batch_size': args.batch_size, 'num_workers': args.workers}, {'num_workers': args.workers}, use_workers=True)
+
 
     # define loss function (criterion) and optimizer
     criterion = nn.CrossEntropyLoss().cuda()
@@ -170,7 +175,7 @@ def save(model, suffix=""):
         "basic_block_option": args.basic_block_option
     })
     if args.save_model:
-        save_dir = '../../trained_models/original_tasks/mnist'
+        save_dir = '../../trained_models/original_tasks/cifar'
         os.makedirs(save_dir, exist_ok=True)
         torch.save(model.module.state_dict(), save_dir + "/" + args.exp_name + ('.pt' if not suffix else f'_{suffix}.pt'))
         with open(save_dir + '/' + args.exp_name + ('.json' if not suffix else f'_{suffix}.json'), 'w') as model_save_path:
@@ -192,6 +197,29 @@ def get_dataloaders(train_kwargs, test_kwargs, use_workers=True, **kwargs):
 
     val_loader = torch.utils.data.DataLoader(
         datasets.CIFAR10(root='./data', train=False, transform=transforms.Compose([
+            transforms.ToTensor(),
+            normalize,
+        ])),
+        batch_size=128, shuffle=False,
+        num_workers=test_kwargs["num_workers"] if use_workers else 0, pin_memory=True)
+    return train_loader, val_loader
+
+
+def get_cifar100_dataloaders(train_kwargs, test_kwargs, use_workers=True, **kwargs):
+    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                     std=[0.229, 0.224, 0.225])
+    train_loader = torch.utils.data.DataLoader(
+        datasets.CIFAR100(root='./data', train=True, transform=transforms.Compose([
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomCrop(32, 4),
+            transforms.ToTensor(),
+            normalize,
+        ]), download=True),
+        batch_size=train_kwargs["batch_size"], shuffle=True,
+        num_workers=train_kwargs["num_workers"] if use_workers else 0, pin_memory=True)
+
+    val_loader = torch.utils.data.DataLoader(
+        datasets.CIFAR100(root='./data', train=False, transform=transforms.Compose([
             transforms.ToTensor(),
             normalize,
         ])),
