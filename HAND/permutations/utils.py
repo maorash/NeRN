@@ -16,13 +16,6 @@ def calculate_joint_permutations(weights: List[np.array], num_workers: int) -> L
     with Pool(num_workers) as p:
         permutations = p.map(calculate_layer_joint_permutation, weights)
 
-    # Do not remove this - currently used for debugging
-    permuted_weights = [
-        weights[i].reshape((-1, weights[i].shape[-1], weights[i].shape[-1]))[permutations[i]].reshape(weights[i].shape)
-        for i in range(len(weights))]
-    permuted_weights = [torch.Tensor(permuted_weights[i]).reshape(permuted_weights[i].shape) for i in
-                        range(len(permuted_weights))]
-    #
     return permutations
 
 
