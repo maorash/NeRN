@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 
 @dataclass
 class EmbeddingsConfig:
+    # Type of positional embedding to use (basic/ffn)
+    type: str = field(default='basic')
     # Number of indices to encode
     num_idxs: int = field(default=3)
     # Encoding levels
@@ -16,6 +18,8 @@ class EmbeddingsConfig:
     fusion_mode: str = field(default='concat')
     # Indices normalization mode, if None don't normalize indices (None/local/global)
     normalization_mode: str = field(default='local')
+    # Gaussian kernel scale for ffn (fourier feature network)
+    gauss_scale: List[float] = field(default_factory=lambda: [1, 0.1, 0.1])
 
 
 @dataclass
@@ -76,6 +80,8 @@ class LogConfig:
     disable_logging: bool = field(default=False)
     # Log gradient norms and weight norms for all layers
     verbose: bool = field(default=False)
+    # Use tensorboardX for logging
+    use_tensorboard: bool = field(default=False)
 
 
 @dataclass
@@ -138,7 +144,7 @@ class TrainConfig:
     # How often to test the reconstructed model on the original task (in epochs)
     eval_epochs_interval: Optional[int] = field(default=1)
     # How often to save the learned model (in epochs)
-    save_epochs_interval: Optional[int] = field(default=10)
+    save_epochs_interval: Optional[int] = field(default=100)
     # How often to test the reconstructed model on the original task, in iterations (batches)
     eval_iterations_interval: Optional[int] = field(default=None)
     # How often to save the learned model, in iterations (batches)

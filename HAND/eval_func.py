@@ -2,11 +2,13 @@ from typing import Union
 
 import torch
 from clearml import Logger
+from torch.utils.tensorboard import SummaryWriter
 from torch.nn.functional import nll_loss
 from torch.nn import CrossEntropyLoss
 from torch.utils.data import DataLoader
 
 from HAND.options import TrainConfig
+from HAND.log_utils import log_scalar
 from HAND.models.model import ReconstructedModel, ReconstructedDataParallel
 from HAND.tasks.imagenet_helpers import validate
 
@@ -18,29 +20,29 @@ class EvalFunction:
     def eval(self, reconstructed_model: Union[ReconstructedModel, ReconstructedDataParallel],
              dataloader: DataLoader,
              iteration: int,
-             clearml_logger: Logger,
+             logger: Union[Logger, SummaryWriter],
              suffix=""):
         if self.cfg.task.task_name == "imagenet":
-            return self._logged_imagenet_eval(reconstructed_model, dataloader, iteration, clearml_logger, suffix)
+            return self._logged_imagenet_eval(reconstructed_model, dataloader, iteration, logger, suffix)
         else:
-            return self._basic_eval(reconstructed_model, dataloader, iteration, clearml_logger, suffix)
+            return self._basic_eval(reconstructed_model, dataloader, iteration, logger, suffix)
 
     def _logged_imagenet_eval(self, reconstructed_model: Union[ReconstructedModel, ReconstructedDataParallel],
                               dataloader: DataLoader,
                               iteration: int,
-                              clearml_logger: Logger,
+                              logger: Union[Logger, SummaryWriter],
                               suffix=""):
         metrics = validate(reconstructed_model, dataloader, CrossEntropyLoss(), log_suffix=suffix)
-        if clearml_logger is not None:
+        if logger is not None:
             for m in metrics.keys():
-                clearml_logger.report_scalar(f'{m}{f"_{suffix}" if suffix else ""}', m, metrics[m], iteration)
+                log_scalar(metrics[m], f'{m}{f"_{suffix}" if suffix else ""}', m, iteration, logger)
 
         return metrics['top1_accuracy']
 
     def _basic_eval(self, reconstructed_model: Union[ReconstructedModel, ReconstructedDataParallel],
                     dataloader: DataLoader,
                     iteration: int,
-                    clearml_logger: Logger,
+                    logger: Union[Logger, SummaryWriter],
                     suffix="") -> float:
         print(f'\n Starting eval on test set{f" - {suffix}" if suffix else "."}')
         reconstructed_model.eval()
@@ -59,10 +61,9 @@ class EvalFunction:
         test_loss /= len(dataloader.dataset)
 
         accuracy = 100. * correct / len(dataloader.dataset)
-        if clearml_logger is not None:
-            clearml_logger.report_scalar(f'eval_loss{f"_{suffix}" if suffix else ""}', 'eval_loss', test_loss, iteration)
-            clearml_logger.report_scalar(f'eval_accuracy{f"_{suffix}" if suffix else ""}', 'eval_accuracy', accuracy,
-                                         iteration)
+        if logger is not None:
+            log_scalar(test_loss, f'eval_loss{f"_{suffix}" if suffix else ""}', 'eval_loss', iteration, logger)
+            log_scalar(accuracy, f'eval_accuracy{f"_{suffix}" if suffix else ""}', 'eval_accuracy', iteration, logger)
         print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
             test_loss, correct, len(dataloader.dataset),
             accuracy))

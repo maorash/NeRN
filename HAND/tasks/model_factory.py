@@ -29,7 +29,7 @@ class ModelFactory:
         model.load(cfg.original_model_path, device)
         reconstructed_model = ModelFactory.models[cfg.task.original_model_name][1](model, cfg.hand.embeddings,
                                                                                    sampling_mode=cfg.hand.sampling_mode).to(device)
-        if cfg.num_gpus > 1:
+        if cfg.num_gpus > 1 and not cfg.no_cuda:
             model = OriginalDataParallel(model, device_ids=list(range(cfg.num_gpus)))
             reconstructed_model = ReconstructedDataParallel(reconstructed_model, device_ids=list(range(cfg.num_gpus)))
 
