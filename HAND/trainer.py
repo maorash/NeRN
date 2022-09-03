@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from HAND.eval_func import EvalFunction
 from HAND.log_utils import log_scalar_dict
 from HAND.models.model import OriginalModel, OriginalDataParallel, ReconstructedModel, ReconstructedDataParallel
-from HAND.permutations import utils as permutations_utils
+from HAND.permutations import permutations as permutations_utils
 from HAND.predictors.predictor import HANDPredictorBase
 from HAND.predictors.factory import PredictorDataParallel
 from HAND.log_utils import create_experiment_dir, log_scalar_list, compute_grad_norms
