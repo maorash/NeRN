@@ -1,7 +1,5 @@
-from pathlib import Path
 import json
 import os
-import sys
 
 import pyrallis
 import torch
@@ -16,8 +14,6 @@ from HAND.options import TrainConfig
 from HAND.predictors.factory import HANDPredictorFactory
 from HAND.tasks.model_factory import ModelFactory
 import HAND.log_utils as log_utils
-
-sys.path.append(str(Path(__file__).parent / "tasks" / "imagenet_timm"))
 from HAND.trainer import Trainer
 from HAND.eval_func import EvalFunction
 from HAND.tasks.dataloader_factory import DataloaderFactory
