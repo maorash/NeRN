@@ -23,6 +23,12 @@ class HANDPredictorBase(nn.Module, ABC):
         self.permuted_positional_embeddings = None
         self.random_batch_idx = 0
 
+    def save(self, path: str):
+        torch.save(self.predictor, path)
+
+    def load(self, path: str):
+        self.load_state_dict(torch.load(path).state_dict())
+
     @abstractmethod
     def forward(self, positional_embedding: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError()

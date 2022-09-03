@@ -91,7 +91,7 @@ def init_predictor(cfg, predictor):
                 p.data = torch.fmod(p.data, 2)
     elif cfg.hand.init == "checkpoint":
         print(f"Loading pretrained weights from: {cfg.hand.checkpoint_path}")
-        predictor.load_state_dict(torch.load(cfg.hand.checkpoint_path).state_dict())
+        predictor.load(cfg.hand.checkpoint_path)
     elif cfg.hand.init == "default":
         print("Using default torch initialization")
     else:

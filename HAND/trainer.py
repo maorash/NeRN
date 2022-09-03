@@ -153,7 +153,7 @@ class Trainer:
         self.loss_window.append(loss)
 
     def _save_checkpoint(self, checkpoint_suffix: str):
-        torch.save(self.predictor, os.path.join(self.exp_dir_path,
+        self.predictor.save(os.path.join(self.exp_dir_path,
                                                 f"hand_{self.config.logging.exp_name}_{checkpoint_suffix}.pth"))
 
     def _clip_grad_norm(self):
