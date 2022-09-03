@@ -1,6 +1,5 @@
 from collections import OrderedDict
 import time
-import logging
 from contextlib import suppress
 
 import torch

@@ -14,7 +14,7 @@
 
 #SBATCH --gpus=rtx_3090:1				### number of GPUs, allocating more than 1 requires IT team's permission
 #SBATCH --mem=32G				### ammount of RAM memory, allocating more than 60G requires IT team's permission
-#SBATCH --cpus-per-task=6			### number of CPU cores, allocating more than 10G requires IT team's permission
+#SBATCH --cpus-per-task=10			### number of CPU cores, allocating more than 10G requires IT team's permission
 
 ### Print some data to output file ###
 echo `date`
@@ -24,6 +24,7 @@ echo -e "SLURM_JOB_NODELIST:\t" $SLURM_JOB_NODELIST "\n\n"
 ### Start your code below ####
 cd /home/maorash/HANDCompress/HAND/
 module load anaconda				### load anaconda module (must be present when working with conda environments)
-source activate myenv
-export LD_LIBRARY_PATH=/home/maorash/.conda/envs/myenv/lib/
-/home/maorash/.conda/envs/myenv/bin/python HAND_train.py --config_path experiments/resnet20/B/resnet20_1e-5_B_cifar10_larger_predictor_stochastic_ranger_lr_5e-3_weighted.yaml
+source activate hand_pytorch
+export LD_LIBRARY_PATH=/home/maorash/.conda/envs/hand_pytorch/lib/
+export PYTHONPATH="${PYTHONPATH}:/home/maorash/HANDCompress/"
+/home/maorash/.conda/envs/hand_pytorch/bin/python HAND_train.py --logging.exp_name imagenet_resnet18_2 --num_workers 10 --task.imagenet_path data/imagenet --num_gpus 1 --logging.use_tensorboard True --config_path experiments/resnet18/imagenet/imagenet_resnet18.yaml

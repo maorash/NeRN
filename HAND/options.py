@@ -88,6 +88,8 @@ class LogConfig:
     disable_logging: bool = field(default=False)
     # Log gradient norms and weight norms for all layers
     verbose: bool = field(default=False)
+    # Use tensorboardX for logging
+    use_tensorboard: bool = field(default=False)
 
 
 @dataclass
@@ -150,7 +152,7 @@ class TrainConfig:
     # How often to test the reconstructed model on the original task (in epochs)
     eval_epochs_interval: Optional[int] = field(default=1)
     # How often to save the learned model (in epochs)
-    save_epochs_interval: Optional[int] = field(default=10)
+    save_epochs_interval: Optional[int] = field(default=100)
     # How often to test the reconstructed model on the original task, in iterations (batches)
     eval_iterations_interval: Optional[int] = field(default=None)
     # How often to save the learned model, in iterations (batches)

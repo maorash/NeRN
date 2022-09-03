@@ -1,13 +1,11 @@
-from pathlib import Path
 import json
 import os
-import sys
 
 import pyrallis
 import torch
+from torch.utils.tensorboard import SummaryWriter
 from clearml import Task
 
-from HAND import logger
 from HAND.loss.attention_loss import AttentionLossFactory
 from HAND.loss.distillation_loss import DistillationLossFactory
 from HAND.loss.reconstruction_loss import ReconstructionLossFactory
@@ -15,8 +13,7 @@ from HAND.loss.task_loss import TaskLossFactory
 from HAND.options import TrainConfig
 from HAND.predictors.factory import HANDPredictorFactory
 from HAND.tasks.model_factory import ModelFactory
-
-sys.path.append(str(Path(__file__).parent / "tasks" / "imagenet_timm"))
+import HAND.log_utils as log_utils
 from HAND.trainer import Trainer
 from HAND.eval_func import EvalFunction
 from HAND.tasks.dataloader_factory import DataloaderFactory
@@ -46,11 +43,15 @@ def main(cfg: TrainConfig):
     init_predictor(cfg, predictor)
 
     if not cfg.logging.disable_logging:
-        clearml_task = Task.init(project_name='HAND_compression', task_name=cfg.logging.exp_name, deferred_init=True)
-        clearml_task.connect(logger.flatten(pyrallis.encode(cfg)))  # Flatten because of clearml bug
-        clearml_logger = clearml_task.get_logger()
+        if cfg.logging.use_tensorboard:
+            logger = SummaryWriter(log_dir=os.path.join(cfg.logging.log_dir, "tb_logs", cfg.logging.exp_name))
+            logger.add_text("TrainConfig", json.dumps(pyrallis.encode(cfg), indent=4))
+        else:
+            clearml_task = Task.init(project_name='HAND_compression', task_name=cfg.logging.exp_name, deferred_init=True)
+            clearml_task.connect(log_utils.flatten(pyrallis.encode(cfg)))  # Flatten because of clearml bug
+            logger = clearml_task.get_logger()
     else:
-        clearml_logger = None
+        logger = None
 
     num_predictor_params = sum([p.numel() for p in predictor.parameters()])
     print(f"Predictor:"
@@ -76,7 +77,7 @@ def main(cfg: TrainConfig):
                       original_model=original_model,
                       reconstructed_model=reconstructed_model,
                       original_task_eval_fn=EvalFunction(cfg),
-                      logger=clearml_logger,
+                      logger=logger,
                       task_dataloaders=dataloaders,
                       device=device)
     trainer.train()
@@ -90,7 +91,7 @@ def init_predictor(cfg, predictor):
                 p.data = torch.fmod(p.data, 2)
     elif cfg.hand.init == "checkpoint":
         print(f"Loading pretrained weights from: {cfg.hand.checkpoint_path}")
-        predictor.load_state_dict(torch.load(cfg.hand.checkpoint_path).state_dict())
+        predictor.load(cfg.hand.checkpoint_path)
     elif cfg.hand.init == "default":
         print("Using default torch initialization")
     else:

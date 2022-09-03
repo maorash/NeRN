@@ -34,8 +34,9 @@ class L2AttentionLoss(AttentionLossBase):
 
 
 class L2BatchedAttentionLoss(AttentionLossBase):
-    def __init__(self):
+    def __init__(self, eps=1e-8):
         super().__init__()
+        self.eps = eps
 
     def forward(self,
                 reconstructed_feature_maps: List[torch.Tensor],
@@ -49,16 +50,16 @@ class L2BatchedAttentionLoss(AttentionLossBase):
 
         return loss / batch_size
 
-    @staticmethod
-    def normalize(m):
+    def normalize(self, m):
         batch_size = m.size(0)
         norm = torch.norm(m.view(batch_size, -1), p=2, dim=1).view(batch_size, 1, 1, 1)
-        return m / (norm + 1e-8)
+        return m / (norm + self.eps)
 
 
 class SPAttentionLoss(AttentionLossBase):
-    def __init__(self):
+    def __init__(self, eps=1e-8):
         super().__init__()
+        self.eps = eps
 
     def forward(self,
                 reconstructed_feature_maps: List[torch.Tensor],
@@ -76,13 +77,12 @@ class SPAttentionLoss(AttentionLossBase):
 
         return loss
 
-    @staticmethod
-    def get_g(mat):
+    def get_g(self, mat):
         mat = mat.view(mat.size(0), -1)
         mat_t = torch.transpose(mat, 0, 1)
         g = torch.matmul(mat, mat_t)
         g_norm = torch.norm(g, dim=1).unsqueeze(1)
-        return g / (g_norm + 1e-8)
+        return g / (g_norm + self.eps)
 
 
 class AttentionLossFactory:

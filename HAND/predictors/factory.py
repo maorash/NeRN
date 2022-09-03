@@ -38,6 +38,12 @@ class PredictorDataParallel(DataParallel):
         DataParallel.__init__(self, module, *args, **kwargs)
         self.module = module
 
+    def save(self, path: str):
+        self.module.save(path)
+
+    def load(self, path: str):
+        self.module.load(path)
+
     @property
     def cfg(self):
         return self.module.cfg
