@@ -20,7 +20,6 @@ model_names = sorted(name for name in cifar_resnet.__dict__
                      and name.startswith("resnet")
                      and callable(cifar_resnet.__dict__[name]))
 
-# print(model_names)
 
 parser = argparse.ArgumentParser(description='Proper ResNets for CIFAR10 in pytorch')
 parser.add_argument('--exp-name', type=str, required=True,
