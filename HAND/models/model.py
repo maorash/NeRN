@@ -124,13 +124,13 @@ class ReconstructedModel(OriginalModel):
             print("Couldn't load precomputed permutations, computing permutations")
 
         if not loaded:
-            permuter.calculate(self.original_model.get_learnable_weights())
+            permutations = permuter.calculate(self.original_model.get_learnable_weights())
 
             for i in range(len(permutations)):
                 print(f"Saving permutations for layer {i + 1}/{len(permutations)}")
                 torch.save(permutations[i], permutations_cache_folder / f"layer_{i}.pt")
 
-        permuter.apply(unpermuted_positional_embeddings, permutations, self.get_learnable_weights_shapes())
+        return permuter.apply(unpermuted_positional_embeddings, permutations, self.get_learnable_weights_shapes())
 
     def get_indices_and_positional_embeddings(self) -> Tuple[List[List[Tuple]], List[torch.Tensor]]:
         return self.indices, self.positional_embeddings

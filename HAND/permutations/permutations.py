@@ -22,18 +22,19 @@ class JointPermutations:
     def __init__(self, num_workers: int = 1):
         self.num_workers = num_workers
 
-    def calculate(self, weights: List[np.array], *args, **kwargs) -> List[np.array]:
-        def _calculate_layer_joint_permutation(layer_weights: np.array) -> np.array:
-            return get_max_sim_order(layer_weights.reshape((-1, layer_weights.shape[-1] ** 2)), False)
+    def _calculate_layer_joint_permutation(self, layer_weights: np.array) -> np.array:
+        return get_max_sim_order(layer_weights.reshape((-1, layer_weights.shape[-1] ** 2)), False)
 
+    def calculate(self, weights: List[np.array], *args, **kwargs) -> List[np.array]:
         numpy_weights = [layer_weight.detach().cpu().numpy() for layer_weight in weights]
         from multiprocessing import Pool
         with Pool(self.num_workers) as p:
-            permutations = p.map(_calculate_layer_joint_permutation, numpy_weights)
+            permutations = p.map(self._calculate_layer_joint_permutation, numpy_weights)
 
         return permutations
 
-    def apply(self, embeddings: List[torch.Tensor], permutations: List[np.array], *args, **kwargs) -> List[torch.Tensor]:
+    def apply(self, embeddings: List[torch.Tensor], permutations: List[np.array], *args, **kwargs) -> List[
+        torch.Tensor]:
         return [embeddings[i][np.argsort(permutations[i])] for i in range(len(embeddings))]
 
 
@@ -41,17 +42,20 @@ class SeparatePermutations:
     def calculate(self, weights: List[np.array], *args, **kwargs) -> List[Tuple[List[int], List[List[int]]]]:
         numpy_weights = [layer_weight.detach().cpu().numpy() for layer_weight in weights]
         num_layers = len(numpy_weights)
-        in_filter_permutations = [[get_max_sim_order(filter_weights.reshape((-1, layer_weights.shape[-1] ** 2)), True) for
-                                   filter_weights in layer_weights] for layer_weights in numpy_weights]
-        in_filter_permuted_weights = [np.array([filter_weights[filter_permutation] for filter_weights, filter_permutation
-                                                in zip(numpy_weights[i], in_filter_permutations[i])]) for i in range(num_layers)]
+        in_filter_permutations = [
+            [get_max_sim_order(filter_weights.reshape((-1, layer_weights.shape[-1] ** 2)), True) for
+             filter_weights in layer_weights] for layer_weights in numpy_weights]
+        in_filter_permuted_weights = [
+            np.array([filter_weights[filter_permutation] for filter_weights, filter_permutation
+                      in zip(numpy_weights[i], in_filter_permutations[i])]) for i in range(num_layers)]
 
         filter_permutations = [
             get_max_sim_order(layer_weights.reshape((-1, layer_weights.shape[1], layer_weights.shape[-1] ** 2)), True)
             for layer_weights in in_filter_permuted_weights]
 
         return [(layer_filter_permutations, layer_in_filter_permutations) for
-                layer_filter_permutations, layer_in_filter_permutations in zip(filter_permutations, in_filter_permutations)]
+                layer_filter_permutations, layer_in_filter_permutations in
+                zip(filter_permutations, in_filter_permutations)]
 
     def apply(self, embeddings: List[torch.Tensor], permutations: List[Tuple[List[int], List[List[int]]]],
               weights_shapes: List[torch.Size], *args, **kwargs) -> List[torch.Tensor]:
