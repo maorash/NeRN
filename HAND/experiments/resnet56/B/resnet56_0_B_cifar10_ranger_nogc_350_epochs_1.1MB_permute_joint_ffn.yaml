@@ -9,10 +9,12 @@ hand:
     enc_levels: 20
     type: ffn
     gauss_scale: [10, 10, 10]
+    permutations:
+      permute_mode: joint
+      num_workers: 5
   weights_batch_method: random_weighted_batch
   weights_batch_size: 4096
   task_loss_weight: 0
-  permute_mode: joint
 task:
   task_name: cifar10v2
   original_model_name: ResNet56

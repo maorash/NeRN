@@ -8,8 +8,9 @@ hand:
   weights_batch_method: random_weighted_batch
   embeddings:
     enc_levels: 40
+    permutations:
+      permute_mode: separate
   task_loss_weight: 0
-  permute_mode: separate
 task:
   task_name: imagenet
   original_model_name: ResNet18

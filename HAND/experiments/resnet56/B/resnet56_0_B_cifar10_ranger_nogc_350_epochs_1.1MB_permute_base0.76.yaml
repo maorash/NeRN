@@ -8,10 +8,11 @@ hand:
   embeddings:
     enc_levels: 20
     base: 0.76
+    permutations:
+      permute_mode: separate
   weights_batch_method: random_weighted_batch
   weights_batch_size: 4096
   task_loss_weight: 0
-  permute_mode: separate
 task:
   task_name: cifar10v2
   original_model_name: ResNet56
