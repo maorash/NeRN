@@ -4,14 +4,15 @@ original_model_path: trained_models/original_tasks/imagenet/resnet18-5c106cde.pt
 hand:
   distillation_loss_type: StableKLDivLoss
   num_blocks: 5
-  hidden_layer_size: 1024
+  hidden_layer_size: 988
   weights_batch_method: random_weighted_batch
   embeddings:
     enc_levels: 80
     type: ffn
     gauss_scale: [1, 0.05, 0.05]
+    permutations:
+      permute_mode: separate
   task_loss_weight: 0
-  permute_mode: separate
 task:
   task_name: imagenet
   original_model_name: ResNet18

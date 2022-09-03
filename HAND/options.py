@@ -31,6 +31,7 @@ class EmbeddingsConfig:
     # Permutations config
     permutations: PermutationsConfig = field(default_factory=PermutationsConfig)
 
+
 @dataclass
 class HANDConfig:
     # Initialization method (fmod/default/checkpoint)
