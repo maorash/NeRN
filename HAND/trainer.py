@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from HAND.eval_func import EvalFunction
 from HAND.log_utils import log_scalar_dict
 from HAND.models.model import OriginalModel, OriginalDataParallel, ReconstructedModel, ReconstructedDataParallel
-from HAND.permutations import utils as permutations_utils
+from HAND.permutations import permutations as permutations_utils
 from HAND.predictors.predictor import HANDPredictorBase
 from HAND.predictors.factory import PredictorDataParallel
 from HAND.log_utils import create_experiment_dir, log_scalar_list, compute_grad_norms
@@ -59,15 +59,10 @@ class Trainer:
 
         learnable_weights_shapes = self.reconstructed_model.get_learnable_weights_shapes()
         indices, positional_embeddings = self.reconstructed_model.get_indices_and_positional_embeddings()
-        positional_embeddings = [torch.stack(layer_emb).to(self.device) for layer_emb in positional_embeddings]
 
         self.exp_dir_path = create_experiment_dir(self.config.logging.log_dir, self.config.logging.exp_name)
 
         original_weights = self.original_model.get_learnable_weights()
-
-        positional_embeddings = permutations_utils.permute(positional_embeddings,
-                                                           original_weights,
-                                                           self.config.hand.permute_mode)
 
         training_step = 0
         epoch = 0
@@ -92,11 +87,13 @@ class Trainer:
                     task_term, attention_term, distillation_term = 0, 0, 0
                 else:
                     # Compute task loss
-                    task_term = self.config.hand.task_loss_weight * self.task_loss(reconstructed_outputs, ground_truth) if self.config.hand.task_loss_weight > 0 else 0
+                    task_term = self.config.hand.task_loss_weight * self.task_loss(reconstructed_outputs,
+                                                                                   ground_truth) if self.config.hand.task_loss_weight > 0 else 0
 
                     # Compute attention loss
                     attention_term = self.config.hand.attention_loss_weight * self.attention_loss(
-                        reconstructed_feature_maps, original_feature_maps) if self.config.hand.attention_loss_weight > 0 else 0
+                        reconstructed_feature_maps,
+                        original_feature_maps) if self.config.hand.attention_loss_weight > 0 else 0
 
                     # Compute distillation loss
                     distillation_term = self.config.hand.distillation_loss_weight * self.distillation_loss(

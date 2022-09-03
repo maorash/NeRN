@@ -27,7 +27,7 @@ class ModelFactory:
 
         model = ModelFactory.models[cfg.task.original_model_name][0](**kwargs).to(device)
         model.load(cfg.original_model_path, device)
-        reconstructed_model = ModelFactory.models[cfg.task.original_model_name][1](model, cfg.hand.embeddings,
+        reconstructed_model = ModelFactory.models[cfg.task.original_model_name][1](model, cfg, device=device,
                                                                                    sampling_mode=cfg.hand.sampling_mode).to(device)
         if cfg.num_gpus > 1 and not cfg.no_cuda:
             model = OriginalDataParallel(model, device_ids=list(range(cfg.num_gpus)))

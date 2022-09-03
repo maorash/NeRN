@@ -1,5 +1,6 @@
 import collections
 import os
+import hashlib
 from datetime import datetime
 from typing import List, Union
 
@@ -53,3 +54,7 @@ def flatten(d, parent_key='', sep='.'):
         else:
             items.append((new_key, v))
     return dict(items)
+
+
+def hash_str(s: str) -> int:
+    return int(hashlib.sha1(s.encode("utf-8")).hexdigest(), 16) % (10 ** 8)

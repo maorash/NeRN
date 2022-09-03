@@ -5,6 +5,14 @@ from dataclasses import dataclass, field
 
 
 @dataclass
+class PermutationsConfig:
+    # The permutation smoothing mode (none/joint/separate)
+    permute_mode: str = field(default=None)
+    # Number of workers to use for joint permutations
+    num_workers: int = field(default=3)
+
+
+@dataclass
 class EmbeddingsConfig:
     # Type of positional embedding to use (basic/ffn)
     type: str = field(default='basic')
@@ -20,7 +28,8 @@ class EmbeddingsConfig:
     normalization_mode: str = field(default='local')
     # Gaussian kernel scale for ffn (fourier feature network)
     gauss_scale: List[float] = field(default_factory=lambda: [1, 0.1, 0.1])
-
+    # Permutations config
+    permutations: PermutationsConfig = field(default_factory=PermutationsConfig)
 
 @dataclass
 class HANDConfig:
@@ -64,8 +73,7 @@ class HANDConfig:
     distillation_loss_type: str = field(default='KLDivLoss')
     # The sampling mode for the reconstruction model (center/average/max)
     sampling_mode: str = field(default='center')
-    # The permutation smoothing mode (none/joint/separate)
-    permute_mode: str = field(default=None)
+
 
 
 @dataclass
