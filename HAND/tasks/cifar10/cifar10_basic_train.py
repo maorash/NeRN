@@ -147,7 +147,7 @@ def main():
         train_kwargs.update(cuda_kwargs)
         test_kwargs.update(cuda_kwargs)
 
-    train_loader, test_loader = get_dataloaders(test_kwargs, train_kwargs)
+    train_loader, test_loader = get_dataloaders(train_kwargs, test_kwargs)
 
     if args.model_arch == "SimpleNet":
         model_kwargs = dict(input_size=32, num_hidden=args.num_hidden, input_channels=3, num_layers=args.num_layers,
