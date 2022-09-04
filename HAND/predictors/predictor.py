@@ -24,7 +24,7 @@ class HANDPredictorBase(nn.Module, ABC):
         self.random_batch_idx = 0
 
     def save(self, path: str):
-        torch.save(self.predictor, path)
+        torch.save(self, path)
 
     def load(self, path: str):
         self.load_state_dict(torch.load(path).state_dict())
