@@ -81,7 +81,15 @@ class Pruner:
         self.pruned_model = pruned_model
         self.device = device
 
-    def prune(self, pruning_factor: float, error_metric: bool = False):
+    def prune(self):
+        if self.cfg.pruning_method == 'reconstruction':
+            self.reconstruction_prune(self.cfg.pruning_factor, self.cfg.reconstruction_error_metric)
+        elif self.cfg.pruning_method == 'magnitude':
+            self.magnitude_prune(self.cfg.pruning_factor)
+        elif self.cfg.pruning_method == 'random':
+            self.random_prune(self.cfg.pruning_factor)
+
+    def reconstruction_prune(self, pruning_factor: float, error_metric: str = 'relative'):
         original_weights = self.original_model.get_learnable_weights()
         reconstructed_weights = self.reconstructed_model.get_learnable_weights()
         # calculate reconstruction error

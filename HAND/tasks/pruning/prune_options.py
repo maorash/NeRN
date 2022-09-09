@@ -15,7 +15,8 @@ class PruneConfig:
     is_data_parallel: bool = field(default=True)
     # pruning method: 'reconstruction', 'magnitude' or 'random'
     pruning_method: str = field(default='reconstruction')
-
+    # reconstruction_error_metric: 'absolute', 'relative' or 'relative_squared'
+    reconstruction_error_metric: str = field(default='relative')
 
 @pyrallis.wrap()
 def get_prune_config(cfg: PruneConfig):

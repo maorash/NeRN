@@ -71,17 +71,21 @@ def main(cfg: PruneConfig):
                                                                                            sampling_mode=cfg.train_cfg.hand.sampling_mode).to(
             device)
 
+    # print('evaluating original model')
+    # eval_fn.eval(original_model, test_dataloader, 0, None, '')
+    # print('evaluating reconstructed model')
+    # eval_fn.eval(reconstructed_model, test_dataloader, 0, None, '')
+
     pruner = Pruner(cfg, predictor, original_model, reconstructed_model, pruned_model, device)
 
-    # absolute_nern_pruned_model = pruner.prune(0.6, absolute=True)
     # relative_nern_pruned_model
-    pruner.prune(0.5, errer_metric='relative')
+    pruner.reconstruction_prune(cfg.pruning_factor, error_metric='relative')
     eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
     # magnitude_pruned_model
-    pruner.magnitude_prune(0.5)
+    pruner.magnitude_prune(cfg.pruning_factor)
     eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
     # random_pruned_model
-    pruner.random_prune(0.5)
+    pruner.random_prune(cfg.pruning_factor)
     eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
 
     # print(f'total weight number: {get_num_weights(original_model.get_learnable_weights())}\n')
@@ -89,52 +93,31 @@ def main(cfg: PruneConfig):
 
     pruning_factors = np.linspace(0, 1, 10)
     relative_reconstruction_pruned_accuracies = list()
-    # relative_squared_reconstruction_pruned_accuracies = list()
     magnitude_pruned_accuracies = list()
     random_pruned_accuracies = list()
 
-    # for pruning_factor in pruning_factors:
-    #     pruner.prune(pruning_factor, error_metric='relative')
-    #     relative_reconstruction_accuracy = eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
-    #
-    #     # pruner.prune(pruning_factor, error_metric='relative_squared')
-    #     # relative_squared_reconstruction_accuracy = eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
-    #
-    #     pruner.magnitude_prune(pruning_factor)
-    #     magnitude_accuracy = eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
-    #
-    #     pruner.random_prune(pruning_factor)
-    #     random_accuracy = eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
-    #
-    #     relative_reconstruction_pruned_accuracies.append(relative_reconstruction_accuracy)
-    #     # relative_squared_reconstruction_pruned_accuracies.append(relative_squared_reconstruction_accuracy)
-    #     magnitude_pruned_accuracies.append(magnitude_accuracy)
-    #     random_pruned_accuracies.append(random_accuracy)
-    #
-    # plt.plot(pruning_factors, relative_reconstruction_pruned_accuracies, label='relative_recon_error')
-    # plt.plot(pruning_factors, relative_squared_reconstruction_pruned_accuracies, label='relative_squared_recon_error')
-    # plt.plot(pruning_factors, magnitude_pruned_accuracies, label='magnitude')
-    # # plt.plot(pruning_factors, random_pruned_accuracies, label='random')
-    # plt.legend()
-    # plt.xlabel('Pruning Factors')
-    # plt.ylabel('Pruned Models Accuracies')
-    # plt.title('93% Reconstruction')
-    # plt.show()
+    for pruning_factor in pruning_factors:
+        pruner.reconstruction_prune(pruning_factor, error_metric='relative')
+        relative_reconstruction_accuracy = eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
 
-    #evaluate pruned model without fine-tuning
-    # print('evaluating absolute nern pruned model')
-    # eval_fn.eval(absolute_nern_pruned_model, test_dataloader, 0, None, '')
-    # print(f'evaluating relative nern pruned model: {get_num_zero_weights(relative_nern_pruned_model.get_learnable_weights())} zeros')
-    # eval_fn.eval(relative_nern_pruned_model, test_dataloader, 0, None, '')
-    # print(f'evaluating magnitude pruned model: {get_num_zero_weights(magnitude_pruned_model.get_learnable_weights())} zeros')
-    # eval_fn.eval(magnitude_pruned_model, test_dataloader, 0, None, '')
-    # print('evaluating random pruned model')
-    # eval_fn.eval(random_pruned_model, test_dataloader, 0, None, '')
-    # print('evaluating original model')
-    # eval_fn.eval(original_model, test_dataloader, 0, None, '')
-    # print('evaluating reconstructed model')
-    # eval_fn.eval(reconstructed_model, test_dataloader, 0, None, '')
-    #
+        pruner.magnitude_prune(pruning_factor)
+        magnitude_accuracy = eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
+
+        pruner.random_prune(pruning_factor)
+        random_accuracy = eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
+
+        relative_reconstruction_pruned_accuracies.append(relative_reconstruction_accuracy)
+        magnitude_pruned_accuracies.append(magnitude_accuracy)
+        random_pruned_accuracies.append(random_accuracy)
+
+    plt.plot(pruning_factors, relative_reconstruction_pruned_accuracies, label='relative_recon_error')
+    plt.plot(pruning_factors, magnitude_pruned_accuracies, label='magnitude')
+    plt.plot(pruning_factors, random_pruned_accuracies, label='random')
+    plt.legend()
+    plt.xlabel('Pruning Factors')
+    plt.ylabel('Pruned Models Accuracies')
+    plt.title('93% Reconstruction')
+    plt.show()
 
 if __name__ == '__main__':
     main()
