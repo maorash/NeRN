@@ -138,23 +138,34 @@ class ReconstructedModel(OriginalModel):
     def update_weights(self, reconstructed_weights: List[torch.Tensor]):
         learnable_weights = self.get_learnable_weights()
         for curr_layer_weights, curr_predicted_weights in zip(learnable_weights, reconstructed_weights):
+            curr_layer_weights.data = curr_layer_weights.data * 0. + curr_predicted_weights
+
+    def postprocess_weights(self, reconstructed_weights: List[torch.Tensor]) -> List[torch.Tensor]:
+        learnable_weights = self.get_learnable_weights()
+        processed_weights = list()
+        for curr_layer_weights, curr_predicted_weights in zip(learnable_weights, reconstructed_weights):
             # Assuming a square filter
             curr_learnable_kernel_size = curr_layer_weights.shape[-1]
             curr_predicted_kernel_size = curr_predicted_weights.shape[-1]
-            if self.sampling_mode == "center":
-                min_coord = int(curr_predicted_kernel_size / 2 - curr_learnable_kernel_size / 2)
-                max_coord = int(curr_predicted_kernel_size / 2 + curr_learnable_kernel_size / 2)
-                sampled_predicted_weights = curr_predicted_weights[:, :, min_coord:max_coord, min_coord:max_coord]
-            elif self.sampling_mode == "average":
-                sampled_predicted_weights = F.avg_pool2d(curr_predicted_weights,
-                                                         curr_predicted_kernel_size - curr_learnable_kernel_size + 1, 1)
-            elif self.sampling_mode == "max":
-                sampled_predicted_weights = F.max_pool2d(curr_predicted_weights,
-                                                         curr_predicted_kernel_size - curr_learnable_kernel_size + 1, 1)
+            if curr_predicted_kernel_size != curr_predicted_kernel_size:
+                if self.sampling_mode == "center":
+                    min_coord = int(curr_predicted_kernel_size / 2 - curr_learnable_kernel_size / 2)
+                    max_coord = int(curr_predicted_kernel_size / 2 + curr_learnable_kernel_size / 2)
+                    sampled_predicted_weights = curr_predicted_weights[:, :, min_coord:max_coord, min_coord:max_coord]
+                elif self.sampling_mode == "average":
+                    sampled_predicted_weights = F.avg_pool2d(curr_predicted_weights,
+                                                             curr_predicted_kernel_size - curr_learnable_kernel_size + 1,
+                                                             1)
+                elif self.sampling_mode == "max":
+                    sampled_predicted_weights = F.max_pool2d(curr_predicted_weights,
+                                                             curr_predicted_kernel_size - curr_learnable_kernel_size + 1,
+                                                             1)
+                else:
+                    raise ValueError(f"Unsupported sampling mode {self.sampling_mode}")
+                processed_weights.append(sampled_predicted_weights)
             else:
-                raise ValueError(f"Unsupported sampling mode {self.sampling_mode}")
-
-            curr_layer_weights.data = curr_layer_weights.data * 0. + sampled_predicted_weights
+                processed_weights.append(curr_predicted_weights)
+            return processed_weights
 
     def forward(self, x):
         return self.reconstructed_model(x)
