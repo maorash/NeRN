@@ -1,5 +1,6 @@
 import copy
 import os
+from multiprocessing import Pool
 from pathlib import Path
 
 import torch
@@ -71,31 +72,44 @@ class ReconstructedModel(OriginalModel):
         for weight in self.reconstructed_model.get_learnable_weights():
             nn.init.xavier_normal_(weight)
 
+    def _load_layer_positional_embeddings(self, embeddings_cache_folder: Path, layer_idx: int) -> List[torch.Tensor]:
+        print(f"Loading positional embeddings for layer {layer_idx + 1}/{len(self.indices)}")
+        return torch.load(embeddings_cache_folder / f"layer_{layer_idx}.pt")
+
+    def _save_layer_positional_embeddings(self, layer_positional_embeddings: List[List[torch.Tensor]],
+                                          embeddings_cache_folder: Path, layer_idx: int):
+        print(f"Saving positional embeddings for layer {layer_idx + 1}/{len(self.indices)}")
+        torch.save(layer_positional_embeddings, embeddings_cache_folder / f"layer_{layer_idx}.pt")
+
+    def _calculate_layer_positional_embeddings(self, layer_idx: int) -> List[torch.Tensor]:
+        print(f"Calculating layer {layer_idx + 1}/{len(self.indices)} embeddings")
+        layer_embeddings = []
+        for idx in self.indices[layer_idx]:
+            layer_embeddings.append(self.positional_encoder(idx))
+        return layer_embeddings
+
     def _calculate_unpermuted_positional_embeddings(self) -> List[List[torch.Tensor]]:
         embeddings_cache_folder = Path(__file__).parent / f"{str(self)}_embeddings_{hash(self.positional_encoder)}"
         os.makedirs(embeddings_cache_folder, exist_ok=True)
         try:
             print("Trying to load precomputed embeddings")
-            positional_embeddings = []
-            for i in range(len(self.indices)):
-                positional_embeddings.append(torch.load(embeddings_cache_folder / f"layer_{i}.pt"))
-                print(f"Loaded positional embeddings for layer {i + 1}/{len(self.indices)}")
+            with Pool(self.embeddings_cfg.num_workers) as p:
+                positional_embeddings = p.starmap(self._load_layer_positional_embeddings,
+                                                  zip([embeddings_cache_folder] * len(self.indices),
+                                                      range(len(self.indices))))
             print("Finished loading precomputed embeddings")
             return positional_embeddings
         except IOError:
             print("Couldn't load precomputed embeddings, computing embeddings")
 
-        positional_embeddings = []
-        for i, layer_indices in enumerate(self.indices):
-            print(f"Calculating layer {i + 1}/{len(self.indices)} embeddings")
-            layer_embeddings = []
-            for idx in layer_indices:
-                layer_embeddings.append(self.positional_encoder(idx))
-            positional_embeddings.append(layer_embeddings)
+        with Pool(self.embeddings_cfg.num_workers) as p:
+            positional_embeddings = p.map(self._calculate_layer_positional_embeddings,
+                                          range(len(self.indices)))
 
-        for i in range(len(self.indices)):
-            print(f"Saving positional embeddings for layer {i + 1}/{len(self.indices)}")
-            torch.save(positional_embeddings[i], embeddings_cache_folder / f"layer_{i}.pt")
+        with Pool(self.embeddings_cfg.num_workers) as p:
+            p.starmap(self._save_layer_positional_embeddings,
+                      zip(positional_embeddings, [embeddings_cache_folder] * len(self.indices),
+                          range(len(self.indices))))
 
         return positional_embeddings
 

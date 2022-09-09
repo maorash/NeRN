@@ -30,6 +30,8 @@ class EmbeddingsConfig:
     gauss_scale: List[float] = field(default_factory=lambda: [1, 0.1, 0.1])
     # Permutations config
     permutations: PermutationsConfig = field(default_factory=PermutationsConfig)
+    # Number of workers for calculating/loading/saving embeddings
+    num_workers: int = field(default=5)
 
 
 @dataclass
@@ -74,7 +76,6 @@ class HANDConfig:
     distillation_loss_type: str = field(default='KLDivLoss')
     # The sampling mode for the reconstruction model (center/average/max)
     sampling_mode: str = field(default='center')
-
 
 
 @dataclass
