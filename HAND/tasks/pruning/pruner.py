@@ -36,6 +36,16 @@ def get_relative_squared_reconstruction_errors(reconstructed_weights, original_w
     return reconstruction_errors
 
 
+def get_filter_reconstruction_errors(reconstructed_weights, original_weights):
+    filter_reconstruction_errors = list()
+    for original_weight, reconstructed_weight in zip(original_weights, reconstructed_weights):
+        weight_error = (original_weight - reconstructed_weight).abs()
+        weight_error = weight_error / (original_weight.abs())
+        filter_error = weight_error.sum(dim=[2, 3])
+        filter_reconstruction_errors.append(filter_error)
+    return filter_reconstruction_errors
+
+
 def get_prune_indices(tensor_list: List[torch.Tensor], pruning_method: str, pruning_factor: float):
     if pruning_method == 'reconstruction':
         # the function finds n_smallest so for *largest* errors multiply by -1
@@ -53,7 +63,7 @@ def get_prune_indices(tensor_list: List[torch.Tensor], pruning_method: str, prun
     split_indices_lt = [all_sorted_idx[:n] < cum_num_elements[i + 1] for i, _ in enumerate(cum_num_elements[1:])]
     split_indices_ge = [all_sorted_idx[:n] >= cum_num_elements[i] for i, _ in enumerate(cum_num_elements[:-1])]
     prune_indices = [all_sorted_idx[:n][torch.logical_and(lt, ge)] - c for lt, ge, c in
-                             zip(split_indices_lt, split_indices_ge, cum_num_elements[:-1])]
+                     zip(split_indices_lt, split_indices_ge, cum_num_elements[:-1])]
 
     # returns list of tensors with linear indices in each tensor
     return prune_indices
@@ -64,6 +74,14 @@ def prune_weights(original_weights: List[torch.Tensor], indices_to_prune: List[t
         pruned_weights = copy.deepcopy(original_weights)
         for original_layer, layer_indices_to_prune in zip(pruned_weights, indices_to_prune):
             original_layer.view(-1)[layer_indices_to_prune] = 0
+    return pruned_weights
+
+
+def prune_filters(original_weights: List[torch.Tensor], filter_indices_to_prune: List[torch.Tensor]):
+    with torch.no_grad():
+        pruned_weights = copy.deepcopy(original_weights)
+        for original_layer, layer_indices_to_prune in zip(pruned_weights, filter_indices_to_prune):
+            original_layer.view(-1, 3, 3)[layer_indices_to_prune, :, :] = 0
     return pruned_weights
 
 
@@ -132,4 +150,19 @@ class Pruner:
                                           in range(len(split_indices) - 1)]
         pruned_weights = [w.reshape(s) for w, s in zip(split_flattened_pruned_weights, previous_shapes)]
         self.pruned_model.update_weights(pruned_weights)
+        return
+
+    def reconstruction_filter_prune(self, pruning_factor: float):
+        original_weights = self.original_model.get_learnable_weights()
+        reconstructed_weights = self.reconstructed_model.get_learnable_weights()
+        # calculate reconstruction error
+        filter_reconstruction_errors = get_filter_reconstruction_errors(reconstructed_weights, original_weights)
+
+        # get indices of weights to prune - those with the largest reconstruction  errors
+        #TODO the number of pruned filters should be smaller than the n cllaculated in the function... divided by 3*3..
+        largest_error_filter_indices = get_prune_indices(filter_reconstruction_errors, 'reconstruction', pruning_factor)
+
+        # prune original weights
+        pruned_original_weights = prune_filters(original_weights, largest_error_filter_indices)
+        self.pruned_model.update_weights(pruned_original_weights)
         return

@@ -32,27 +32,3 @@ import os
 # # displaying the title
 # plt.title("Linear graph")
 # plt.show()
-
-import json
-
-
-def write_list(a_list):
-    print("Started writing list data into a json file")
-    with open("names.json", "w") as fp:
-        json.dump(a_list, fp)
-        print("Done writing JSON data into .json file")
-
-
-# Read list to memory
-def read_list():
-    # for reading also binary mode is important
-    with open('names.json', 'rb') as fp:
-        n_list = json.load(fp)
-        return n_list
-
-
-# assume you have the following list
-names = ['Jessa', 'Eric', 'Bob']
-write_list(names)
-r_names = read_list()
-print('List is', r_names)
