@@ -9,7 +9,7 @@ class ResNet20(ResNet):
     def __init__(self, basic_block_option='A', **kwargs):
         self.basic_block_option = basic_block_option
         basic_block = BasicBlockA if self.basic_block_option == 'A' else BasicBlockB
-        super(ResNet20, self).__init__(basic_block, [3, 3, 3])
+        super(ResNet20, self).__init__(basic_block, [3, 3, 3], **kwargs)
 
 
 class ReconstructedResNet20(ReconstructedModel):

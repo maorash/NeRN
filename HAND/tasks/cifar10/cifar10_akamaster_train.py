@@ -64,7 +64,7 @@ parser.add_argument('--cosine-smoothness-factor', type=float, default=1e-4,
 parser.add_argument('--l2-smoothness-factor', type=float, default=None,
                     help='Factor for the l2 smoothness regularization term. If none, taking the value of the cosine smoothness factor')
 parser.add_argument('--basic-block-option', type=str, default='A',
-                    help='Basic block option, can be A/B')
+                    help='Basic block option, can be A/cifar10')
 parser.add_argument('--cifar_100', action='store_true',
                     help='Train CIFAR100 instead of CIFAR10')
 best_prec1 = 0
@@ -172,7 +172,8 @@ def save(model, suffix=""):
         "smoothness_type": args.smoothness_type,
         "cosine_smoothness_factor": args.cosine_smoothness_factor,
         "l2_smoothness_factor": args.l2_smoothness_factor,
-        "basic_block_option": args.basic_block_option
+        "basic_block_option": args.basic_block_option,
+        "num_classes": 100 if args.cifar_100 else 10
     })
     if args.save_model:
         save_dir = '../../trained_models/original_tasks/cifar'
