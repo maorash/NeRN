@@ -1,11 +1,11 @@
 logging:
-  exp_name: resnet56_0_B_cifar10_ranger_nogc_350_epochs_0.9MB_joint_permute_2
+  exp_name: resnet56_0_B_cifar10_ranger_nogc_350_epochs_0.9MB_joint_permute
 original_model_path: trained_models/original_tasks/mnist/resnet56_0_B.pt
 hand:
   num_blocks: 5
   hidden_layer_size: 260
   embeddings:
-    enc_levels: 20
+    enc_levels: 40
     permutations:
       permute_mode: joint
       num_workers: 5

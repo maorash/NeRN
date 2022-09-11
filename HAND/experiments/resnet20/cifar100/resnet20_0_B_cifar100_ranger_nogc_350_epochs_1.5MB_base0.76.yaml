@@ -6,7 +6,7 @@ hand:
   num_blocks: 5
   hidden_layer_size: 340
   embeddings:
-    enc_levels: 20
+    enc_levels: 40
     base: 0.76
   weights_batch_method: random_weighted_batch
   weights_batch_size: 4096

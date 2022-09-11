@@ -1,12 +1,12 @@
 logging:
-  exp_name: resnet20_0_B_cifar10_ranger_nogc_350_epochs_0.46MB_permute_4
+  exp_name: resnet20_0_B_cifar10_ranger_nogc_350_epochs_0.46MB_permute
 original_model_path: trained_models/original_tasks/mnist/resnet20_0_B.pt
 hand:
   distillation_loss_type: StableKLDivLoss
   num_blocks: 5
   hidden_layer_size: 180
   embeddings:
-    enc_levels: 20
+    enc_levels: 40
   weights_batch_method: random_weighted_batch
   weights_batch_size: 4096
   task_loss_weight: 0

@@ -1,5 +1,5 @@
 logging:
-  exp_name: resnet56_0_B_cifar10_ranger_nogc_350_epochs_1.1MB_permute_ffn_multiscale_4
+  exp_name: resnet56_0_B_cifar10_ranger_nogc_350_epochs_1.1MB_permute_ffn_multiscale
 original_model_path: trained_models/original_tasks/mnist/resnet56_0_B.pt
 hand:
   distillation_loss_type: StableKLDivLoss

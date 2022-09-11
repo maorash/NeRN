@@ -6,7 +6,7 @@ hand:
   num_blocks: 5
   hidden_layer_size: 410
   embeddings:
-    enc_levels: 20
+    enc_levels: 40
     base: 0.76
     permutations:
       permute_mode: joint
