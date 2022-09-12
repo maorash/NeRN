@@ -36,18 +36,23 @@ def get_relative_squared_reconstruction_errors(reconstructed_weights, original_w
     return reconstruction_errors
 
 
-def get_filter_reconstruction_errors(reconstructed_weights, original_weights):
+def get_filter_reconstruction_errors(reconstructed_weights, original_weights, filter_type: str):
     filter_reconstruction_errors = list()
     for original_weight, reconstructed_weight in zip(original_weights, reconstructed_weights):
         weight_error = (original_weight - reconstructed_weight).abs()
         weight_error = weight_error / (original_weight.abs())
-        filter_error = weight_error.sum(dim=[2, 3])
+        if filter_type == '3x3':
+            filter_error = weight_error.mean(dim=[2, 3])
+        elif filter_type == '3x3xCin':
+            filter_error = weight_error.mean(dim=[1, 2, 3])  # TODO check if cin is dim 1/0
+        else:
+            raise ValueError(f"Unsupported filter_type: {filter_type}")
         filter_reconstruction_errors.append(filter_error)
     return filter_reconstruction_errors
 
 
 def get_prune_indices(tensor_list: List[torch.Tensor], pruning_method: str, pruning_factor: float):
-    if pruning_method == 'reconstruction':
+    if pruning_method in ['reconstruction', 'filter_reconstruction']:
         # the function finds n_smallest so for *largest* errors multiply by -1
         all_sorted, all_sorted_idx = torch.sort(torch.cat([-1 * t.view(-1) for t in tensor_list]))
     elif pruning_method == 'magnitude':
@@ -60,6 +65,7 @@ def get_prune_indices(tensor_list: List[torch.Tensor], pruning_method: str, prun
     cum_num_elements = torch.cat([torch.tensor([0]), cum_num_elements])
 
     n = int(cum_num_elements[-1].item() * pruning_factor)
+
     split_indices_lt = [all_sorted_idx[:n] < cum_num_elements[i + 1] for i, _ in enumerate(cum_num_elements[1:])]
     split_indices_ge = [all_sorted_idx[:n] >= cum_num_elements[i] for i, _ in enumerate(cum_num_elements[:-1])]
     prune_indices = [all_sorted_idx[:n][torch.logical_and(lt, ge)] - c for lt, ge, c in
@@ -68,6 +74,33 @@ def get_prune_indices(tensor_list: List[torch.Tensor], pruning_method: str, prun
     # returns list of tensors with linear indices in each tensor
     return prune_indices
 
+
+# def get_filter_prune_indices(tensor_list: List[torch.Tensor], pruning_factor: float):
+#     for layer_filter_errors in tensor_list:
+#
+#
+#
+#     if pruning_method in ['reconstruction', 'filter_reconstruction']:
+#         # the function finds n_smallest so for *largest* errors multiply by -1
+#         all_sorted, all_sorted_idx = torch.sort(torch.cat([-1 * t.view(-1) for t in tensor_list]))
+#     elif pruning_method == 'magnitude':
+#         # the function finds n_smallest so for smallest magnitudes use abs values of the weights
+#         all_sorted, all_sorted_idx = torch.sort(torch.cat([torch.abs(t.view(-1)) for t in tensor_list]))
+#     else:
+#         raise ValueError(f"Unsupported pruning method: {pruning_method}")
+#
+#     cum_num_elements = torch.cumsum(torch.tensor([t.numel() for t in tensor_list]), dim=0)
+#     cum_num_elements = torch.cat([torch.tensor([0]), cum_num_elements])
+#
+#     n = int(cum_num_elements[-1].item() * pruning_factor)
+#
+#     split_indices_lt = [all_sorted_idx[:n] < cum_num_elements[i + 1] for i, _ in enumerate(cum_num_elements[1:])]
+#     split_indices_ge = [all_sorted_idx[:n] >= cum_num_elements[i] for i, _ in enumerate(cum_num_elements[:-1])]
+#     prune_indices = [all_sorted_idx[:n][torch.logical_and(lt, ge)] - c for lt, ge, c in
+#                      zip(split_indices_lt, split_indices_ge, cum_num_elements[:-1])]
+#
+#     # returns list of tensors with linear indices in each tensor
+#     return prune_indices
 
 def prune_weights(original_weights: List[torch.Tensor], indices_to_prune: List[torch.Tensor]):
     with torch.no_grad():
@@ -152,17 +185,41 @@ class Pruner:
         self.pruned_model.update_weights(pruned_weights)
         return
 
-    def reconstruction_filter_prune(self, pruning_factor: float):
+    def reconstruction_filter_prune(self, pruning_factor: float, filter_type: str = '3x3'):
         original_weights = self.original_model.get_learnable_weights()
         reconstructed_weights = self.reconstructed_model.get_learnable_weights()
         # calculate reconstruction error
-        filter_reconstruction_errors = get_filter_reconstruction_errors(reconstructed_weights, original_weights)
+        filter_reconstruction_errors = get_filter_reconstruction_errors(reconstructed_weights, original_weights,
+                                                                        filter_type)
 
         # get indices of weights to prune - those with the largest reconstruction  errors
-        #TODO the number of pruned filters should be smaller than the n cllaculated in the function... divided by 3*3..
-        largest_error_filter_indices = get_prune_indices(filter_reconstruction_errors, 'reconstruction', pruning_factor)
+        largest_error_filter_indices = get_prune_indices(filter_reconstruction_errors, 'filter_reconstruction',
+                                                         pruning_factor)
 
         # prune original weights
         pruned_original_weights = prune_filters(original_weights, largest_error_filter_indices)
+        self.pruned_model.update_weights(pruned_original_weights)
+        return
+
+    def magnitude_filter_prune(self, pruning_factor: float, filter_type: str = '3x3'):
+        original_weights = self.original_model.get_learnable_weights()
+        filter_magnitudes = list()
+        for layer in original_weights:
+            weight_magnitudes = layer.abs()
+            if filter_type == '3x3':
+                filter_magnitude = weight_magnitudes.mean(dim=[2, 3])
+            elif filter_type == '3x3xCin':
+                filter_magnitude = weight_magnitudes.mean(dim=[1, 2, 3])  # TODO check if cin is dim 1/0
+            else:
+                raise ValueError(f"Unsupported filter_type: {filter_type}")
+            filter_magnitudes.append(filter_magnitude)
+
+        # get indices of weights to prune - those with the largest reconstruction  errors
+
+        smallest_magnitude_filter_indices = get_prune_indices(filter_magnitudes, 'magnitude',
+                                                              pruning_factor)
+
+        # prune original weights
+        pruned_original_weights = prune_filters(original_weights, smallest_magnitude_filter_indices)
         self.pruned_model.update_weights(pruned_original_weights)
         return

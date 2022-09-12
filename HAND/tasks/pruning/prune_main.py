@@ -1,3 +1,5 @@
+import copy
+
 import numpy as np
 import pyrallis
 import torch
@@ -66,10 +68,11 @@ def main(cfg: PruneConfig):
                                                           learnable_weights_shapes)
     reconstructed_model.update_weights(reconstructed_weights)
 
-    pruned_model = ModelFactory.models[cfg.train_cfg.task.original_model_name][1](original_model,
-                                                                                           cfg.train_cfg.hand.embeddings,
-                                                                                           sampling_mode=cfg.train_cfg.hand.sampling_mode).to(
-            device)
+    pruned_model = copy.deepcopy(reconstructed_model)
+    # pruned_model = ModelFactory.models[cfg.train_cfg.task.original_model_name][1](original_model,
+    #                                                                                        cfg.train_cfg.hand.embeddings,
+    #                                                                                        sampling_mode=cfg.train_cfg.hand.sampling_mode).to(
+    #         device)
 
     # print('evaluating original model')
     # eval_fn.eval(original_model, test_dataloader, 0, None, '')
@@ -78,10 +81,11 @@ def main(cfg: PruneConfig):
 
     pruner = Pruner(cfg, predictor, original_model, reconstructed_model, pruned_model, device)
 
-    get_filter_reconstruction_errors(reconstructed_model.get_learnable_weights(), original_model.get_learnable_weights())
-
     # filter_nern_pruned_model
     pruner.reconstruction_filter_prune(cfg.pruning_factor)
+    eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
+    # magnitude_filter_pruned_model
+    pruner.magnitude_filter_prune(cfg.pruning_factor)
     eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
     # relative_nern_pruned_model
     pruner.reconstruction_prune(cfg.pruning_factor, error_metric='relative')
