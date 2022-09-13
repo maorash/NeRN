@@ -69,10 +69,6 @@ def main(cfg: PruneConfig):
     reconstructed_model.update_weights(reconstructed_weights)
 
     pruned_model = copy.deepcopy(reconstructed_model)
-    # pruned_model = ModelFactory.models[cfg.train_cfg.task.original_model_name][1](original_model,
-    #                                                                                        cfg.train_cfg.hand.embeddings,
-    #                                                                                        sampling_mode=cfg.train_cfg.hand.sampling_mode).to(
-    #         device)
 
     # print('evaluating original model')
     # eval_fn.eval(original_model, test_dataloader, 0, None, '')
@@ -81,18 +77,36 @@ def main(cfg: PruneConfig):
 
     pruner = Pruner(cfg, predictor, original_model, reconstructed_model, pruned_model, device)
 
-    # filter_nern_pruned_model
+    # full_filter_nern_pruned_model
+    print('reconstruction_filter_prune - 3x3xCin')
+    pruner.reconstruction_filter_prune(cfg.pruning_factor, filter_type='3x3xCin')
+    eval_fn.eval(pruned_model, test_dataloader, 0, None, '') # filter_nern_pruned_model
+
+    # full_filter_magnitude_pruned_model
+    print('magnitude_filter_prune - 3x3xCin')
+    pruner.magnitude_filter_prune(cfg.pruning_factor, filter_type='3x3xCin')
+    eval_fn.eval(pruned_model, test_dataloader, 0, None, '')  # filter_nern_pruned_model
+
+    # 3*3_filter_nern_pruned_model
+    print('reconstruction_filter_prune - 3x3')
     pruner.reconstruction_filter_prune(cfg.pruning_factor)
     eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
+
     # magnitude_filter_pruned_model
+    print('magnitude_filter_prune - 3x3')
     pruner.magnitude_filter_prune(cfg.pruning_factor)
     eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
+
     # relative_nern_pruned_model
+    print('unstructured_reconstruction_prune')
     pruner.reconstruction_prune(cfg.pruning_factor, error_metric='relative')
     eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
+
     # magnitude_pruned_model
+    print('unstructured_magnitude_prune')
     pruner.magnitude_prune(cfg.pruning_factor)
     eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
+
     # # random_pruned_model
     # pruner.random_prune(cfg.pruning_factor)
     # eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
