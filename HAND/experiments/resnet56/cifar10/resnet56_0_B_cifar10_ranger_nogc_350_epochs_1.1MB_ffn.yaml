@@ -1,0 +1,24 @@
+logging:
+  exp_name: resnet56_0_B_cifar10_ranger_nogc_350_epochs_1.1MB_ffn_0.5
+original_model_path: trained_models/original_tasks/mnist/resnet56_0_B.pt
+hand:
+  distillation_loss_type: StableKLDivLoss
+  num_blocks: 5
+  hidden_layer_size: 288
+  embeddings:
+    enc_levels: 40
+    type: ffn
+    gauss_scale: [0.5, 0.5, 0.5]
+  weights_batch_method: random_weighted_batch
+  weights_batch_size: 4096
+  task_loss_weight: 0
+task:
+  task_name: cifar10v2
+  original_model_name: ResNet56
+optim:
+  optimizer_type: ranger
+  lr: 5e-3
+  ranger_use_gc: False
+epochs: 350
+num_gpus: 2
+num_workers: 4

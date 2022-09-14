@@ -68,7 +68,7 @@ class BasicBlock(nn.Module):
                 self.shortcut = LambdaLayer(lambda x:
                                             F.pad(x[:, :, ::2, ::2], (0, 0, 0, 0, planes // 4, planes // 4), "constant",
                                                   0))
-            elif option == 'B':
+            elif option == 'cifar10':
                 self.shortcut = nn.Sequential(
                     nn.Conv2d(in_planes, self.expansion * planes, kernel_size=(1, 1), stride=(stride, stride),
                               bias=False),
@@ -103,12 +103,12 @@ class BasicBlockA(BasicBlock):
 
 class BasicBlockB(BasicBlock):
     def __init__(self, in_planes, planes, stride=1):
-        super(BasicBlockB, self).__init__(in_planes, planes, stride, option='B')
+        super(BasicBlockB, self).__init__(in_planes, planes, stride, option='cifar10')
 
 
 class ResNet(OriginalModel):
 
-    def __init__(self, block, num_blocks, num_classes=10):
+    def __init__(self, block, num_blocks, num_classes=10, **kwargs):
         super(ResNet, self).__init__()
         self.in_planes = 16
 
@@ -175,32 +175,32 @@ class ResNet(OriginalModel):
 
 def resnet20(basic_block_option='A', **kwargs):
     basic_block = BasicBlockA if basic_block_option == 'A' else BasicBlockB
-    return ResNet(basic_block, [3, 3, 3])
+    return ResNet(basic_block, [3, 3, 3], **kwargs)
 
 
-def resnet32(basic_block_option='A'):
+def resnet32(basic_block_option='A', **kwargs):
     basic_block = BasicBlockA if basic_block_option == 'A' else BasicBlockB
-    return ResNet(basic_block, [5, 5, 5])
+    return ResNet(basic_block, [5, 5, 5], **kwargs)
 
 
-def resnet44(basic_block_option='A'):
+def resnet44(basic_block_option='A', **kwargs):
     basic_block = BasicBlockA if basic_block_option == 'A' else BasicBlockB
-    return ResNet(basic_block, [7, 7, 7])
+    return ResNet(basic_block, [7, 7, 7], **kwargs)
 
 
-def resnet56(basic_block_option='A'):
+def resnet56(basic_block_option='A', **kwargs):
     basic_block = BasicBlockA if basic_block_option == 'A' else BasicBlockB
-    return ResNet(basic_block, [9, 9, 9])
+    return ResNet(basic_block, [9, 9, 9], **kwargs)
 
 
-def resnet110(basic_block_option='A'):
+def resnet110(basic_block_option='A', **kwargs):
     basic_block = BasicBlockA if basic_block_option == 'A' else BasicBlockB
-    return ResNet(basic_block, [18, 18, 18])
+    return ResNet(basic_block, [18, 18, 18], **kwargs)
 
 
-def resnet1202(basic_block_option='A'):
+def resnet1202(basic_block_option='A', **kwargs):
     basic_block = BasicBlockA if basic_block_option == 'A' else BasicBlockB
-    return ResNet(basic_block, [200, 200, 200])
+    return ResNet(basic_block, [200, 200, 200], **kwargs)
 
 
 def test(net):

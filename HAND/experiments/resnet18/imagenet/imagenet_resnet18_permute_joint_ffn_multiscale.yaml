@@ -10,8 +10,10 @@ hand:
     enc_levels: 40
     type: ffn
     gauss_scale: [1, 0.1, 0.1]
+    permutations:
+      permute_mode: joint
+      num_workers: 5
   task_loss_weight: 0
-  permute_mode: joint
 task:
   task_name: imagenet
   original_model_name: ResNet18

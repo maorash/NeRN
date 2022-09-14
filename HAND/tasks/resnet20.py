@@ -1,7 +1,7 @@
 from typing import List, Tuple
 
 from HAND.models.model import ReconstructedModel
-from HAND.options import EmbeddingsConfig
+from HAND.options import TrainConfig
 from HAND.tasks.cifar_resnet import ResNet, BasicBlockA, BasicBlockB
 
 
@@ -9,13 +9,13 @@ class ResNet20(ResNet):
     def __init__(self, basic_block_option='A', **kwargs):
         self.basic_block_option = basic_block_option
         basic_block = BasicBlockA if self.basic_block_option == 'A' else BasicBlockB
-        super(ResNet20, self).__init__(basic_block, [3, 3, 3])
+        super(ResNet20, self).__init__(basic_block, [3, 3, 3], **kwargs)
 
 
 class ReconstructedResNet20(ReconstructedModel):
-    def __init__(self, original_model: ResNet20, embeddings_cfg: EmbeddingsConfig,
+    def __init__(self, original_model: ResNet20, train_cfg: TrainConfig, device: str,
                  sampling_mode: str = None):
-        super(ReconstructedResNet20, self).__init__(original_model, embeddings_cfg, sampling_mode)
+        super(ReconstructedResNet20, self).__init__(original_model, train_cfg, device,  sampling_mode)
 
     def _get_tensor_indices(self) -> List[List[Tuple]]:
         indices = []

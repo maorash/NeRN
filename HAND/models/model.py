@@ -10,8 +10,10 @@ from torch.nn import functional as F
 
 from abc import abstractmethod
 
-from HAND.options import EmbeddingsConfig
+from HAND.log_utils import hash_str
+from HAND.options import TrainConfig
 from HAND.positional_embedding import MyPositionalEncoding
+from HAND.permutations.permutations import PermutationsFactory
 
 
 class OriginalModel(nn.Module):
@@ -37,16 +39,20 @@ class OriginalModel(nn.Module):
 
 
 class ReconstructedModel(OriginalModel):
-    def __init__(self, original_model: OriginalModel, embeddings_cfg: EmbeddingsConfig, sampling_mode: str = "center"):
+    def __init__(self, original_model: OriginalModel, train_cfg: TrainConfig, device: str,
+                 sampling_mode: str = "center"):
         super().__init__()
+        self.device = device
         self.original_model = original_model
         self.reconstructed_model = copy.deepcopy(original_model)
         self.reinitialize_learnable_weights()
-        self.embeddings_cfg = embeddings_cfg
-        self.positional_encoder = MyPositionalEncoding(embeddings_cfg)
+        self.embeddings_cfg = train_cfg.hand.embeddings
+        self.permutations_cfg = train_cfg.hand.embeddings.permutations
+        self.original_model_path = train_cfg.original_model_path
+        self.positional_encoder = MyPositionalEncoding(train_cfg.hand.embeddings)
         self.sampling_mode = sampling_mode
         self.indices = self._get_tensor_indices()
-        self.positional_embeddings = self._calculate_position_embeddings()
+        self.positional_embeddings = self._calculate_positional_embeddings()
 
     def get_feature_maps(self, batch: torch.Tensor) -> Tuple[torch.Tensor, List[torch.Tensor]]:
         return self.reconstructed_model.get_feature_maps(batch)
@@ -65,7 +71,7 @@ class ReconstructedModel(OriginalModel):
         for weight in self.reconstructed_model.get_learnable_weights():
             nn.init.xavier_normal_(weight)
 
-    def _calculate_position_embeddings(self) -> List[List[torch.Tensor]]:
+    def _calculate_unpermuted_positional_embeddings(self) -> List[List[torch.Tensor]]:
         embeddings_cache_folder = Path(__file__).parent / f"{str(self)}_embeddings_{hash(self.positional_encoder)}"
         os.makedirs(embeddings_cache_folder, exist_ok=True)
         try:
@@ -93,7 +99,40 @@ class ReconstructedModel(OriginalModel):
 
         return positional_embeddings
 
-    def get_indices_and_positional_embeddings(self) -> Tuple[List[List[Tuple]], List[List[torch.Tensor]]]:
+    def _calculate_positional_embeddings(self) -> List[torch.Tensor]:
+        unpermuted_positional_embeddings = self._calculate_unpermuted_positional_embeddings()
+        unpermuted_positional_embeddings = [torch.stack(layer_emb).to(self.device) for layer_emb in
+                                            unpermuted_positional_embeddings]
+        if self.permutations_cfg.permute_mode is None:
+            return unpermuted_positional_embeddings
+
+        permutations_folder_name = f"{str(self)}_permutations_{hash((hash_str(self.original_model_path), hash_str(self.permutations_cfg.permute_mode)))}"
+        permutations_cache_folder = Path(__file__).parent / permutations_folder_name
+        os.makedirs(permutations_cache_folder, exist_ok=True)
+
+        permuter = PermutationsFactory.get(self.permutations_cfg)
+        permutations = []
+        loaded = False
+        try:
+            print("Trying to load precomputed permutations")
+            for i in range(len(self.indices)):
+                permutations.append(torch.load(permutations_cache_folder / f"layer_{i}.pt"))
+                print(f"Loaded permutations for layer {i + 1}/{len(self.indices)}")
+            loaded = True
+            print("Finished loading precomputed permutations")
+        except IOError:
+            print("Couldn't load precomputed permutations, computing permutations")
+
+        if not loaded:
+            permutations = permuter.calculate(self.original_model.get_learnable_weights())
+
+            for i in range(len(permutations)):
+                print(f"Saving permutations for layer {i + 1}/{len(permutations)}")
+                torch.save(permutations[i], permutations_cache_folder / f"layer_{i}.pt")
+
+        return permuter.apply(unpermuted_positional_embeddings, permutations, self.get_learnable_weights_shapes())
+
+    def get_indices_and_positional_embeddings(self) -> Tuple[List[List[Tuple]], List[torch.Tensor]]:
         return self.indices, self.positional_embeddings
 
     def update_weights(self, reconstructed_weights: List[torch.Tensor]):

@@ -9,8 +9,9 @@ hand:
   embeddings:
     enc_levels: 40
     base: 0.76
+    permutations:
+      permute_mode: separate
   task_loss_weight: 0
-  permute_mode: separate
 task:
   task_name: imagenet
   original_model_name: ResNet18
