@@ -7,6 +7,7 @@ from HAND.tasks.resnet18 import ResNet18, ReconstructedResNet18
 from HAND.tasks.resnet14 import ResNet14, ReconstructedResNet14
 from HAND.tasks.resnet20 import ResNet20, ReconstructedResNet20
 from HAND.tasks.resnet56 import ResNet56, ReconstructedResNet56
+from HAND.tasks.resnet56 import ResNet56X2, ReconstructedResNet56X2
 from HAND.options import TrainConfig
 
 
@@ -17,7 +18,8 @@ class ModelFactory:
         "ResNet18": (ResNet18, ReconstructedResNet18),
         "ResNet14": (ResNet14, ReconstructedResNet14),
         "ResNet20": (ResNet20, ReconstructedResNet20),
-        "ResNet56": (ResNet56, ReconstructedResNet56)
+        "ResNet56": (ResNet56, ReconstructedResNet56),
+        "ResNet56X2": (ResNet56X2, ReconstructedResNet56X2),
     }
 
     @staticmethod
@@ -28,7 +30,8 @@ class ModelFactory:
         model = ModelFactory.models[cfg.task.original_model_name][0](**kwargs).to(device)
         model.load(cfg.original_model_path, device)
         reconstructed_model = ModelFactory.models[cfg.task.original_model_name][1](model, cfg, device=device,
-                                                                                   sampling_mode=cfg.hand.sampling_mode).to(device)
+                                                                                   sampling_mode=cfg.hand.sampling_mode).to(
+            device)
         if cfg.num_gpus > 1 and not cfg.no_cuda:
             model = OriginalDataParallel(model, device_ids=list(range(cfg.num_gpus)))
             reconstructed_model = ReconstructedDataParallel(reconstructed_model, device_ids=list(range(cfg.num_gpus)))
