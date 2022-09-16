@@ -1,3 +1,4 @@
+import os
 from typing import List, Union, Tuple
 
 import copy
@@ -109,6 +110,12 @@ def prune_filters(original_weights: List[torch.Tensor], filter_indices_to_prune:
     return pruned_weights
 
 
+def save_pruned_indices(indices: List[torch.Tensor], exp_name="", suffix=""):
+    save_dir = '../pruned_models/indices'
+    os.makedirs(save_dir, exist_ok=True)
+    torch.save(indices, save_dir + "/" + exp_name + suffix + ".pt")
+
+
 class Pruner:
     def __init__(self, config: PruneConfig,
                  predictor: Union[HANDPredictorBase, PredictorDataParallel],
@@ -146,7 +153,9 @@ class Pruner:
 
         # get indices of weights to prune - those with the largest reconstruction  errors
         largest_error_indices = get_prune_indices(reconstruction_errors, 'reconstruction', pruning_factor)
-
+        if self.cfg.save_pruned_indices:
+            suffix = f"_recon_{self.cfg.pruning_factor}prune_indices"
+            save_pruned_indices(largest_error_indices, self.cfg.train_cfg.logging.exp_name, suffix)
         # prune original weights
         pruned_original_weights = prune_weights(original_weights, largest_error_indices)
         self.pruned_model.update_weights(pruned_original_weights)
@@ -163,6 +172,9 @@ class Pruner:
     def magnitude_prune(self, pruning_factor: float):
         original_weights = self.original_model.get_learnable_weights()
         smallest_magnitude_weight_indices = get_prune_indices(original_weights, 'magnitude', pruning_factor)
+        if self.cfg.save_pruned_indices:
+            suffix = f"_mag_{self.cfg.pruning_factor}prune_indices"
+            save_pruned_indices(smallest_magnitude_weight_indices, self.cfg.train_cfg.logging.exp_name, suffix)
         pruned_original_weights = prune_weights(original_weights, smallest_magnitude_weight_indices)
         self.pruned_model.update_weights(pruned_original_weights)
         return

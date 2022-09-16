@@ -1,4 +1,6 @@
 import copy
+import json
+import os
 
 import numpy as np
 import pyrallis
@@ -11,10 +13,9 @@ from HAND.eval_func import EvalFunction
 from HAND.predictors.factory import HANDPredictorFactory, PredictorDataParallel
 from HAND.predictors.predictor import HANDPredictorBase
 from HAND.tasks.dataloader_factory import DataloaderFactory
-from HAND.tasks.model_factory import ModelFactory
 from HAND.tasks.pruning.prune_options import PruneConfig
 from HAND.tasks.pruning.pruner import Pruner, get_filter_reconstruction_errors
-from HAND.permutations import utils as permutations_utils
+# from HAND.permutations import utils as permutations_utils
 
 
 def get_num_zero_weights(weight_list):
@@ -29,6 +30,12 @@ def get_num_weights(weight_list):
     for layer in weight_list:
         num_weights += torch.numel(layer)
     return num_weights
+
+
+def save_model(model, exp_name="", suffix=""):
+    save_dir = '../pruned_models'
+    os.makedirs(save_dir, exist_ok=True)
+    torch.save(model.state_dict(), save_dir + "/" + exp_name + suffix + ".pt")
 
 
 @pyrallis.wrap()
@@ -56,13 +63,9 @@ def main(cfg: PruneConfig):
 
     learnable_weights_shapes = reconstructed_model.get_learnable_weights_shapes()
     indices, positional_embeddings = reconstructed_model.get_indices_and_positional_embeddings()
-    positional_embeddings = [torch.stack(layer_emb).to(device) for layer_emb in positional_embeddings]
 
     # get original weights and predict reconstructed weights
     original_weights = original_model.get_learnable_weights()
-    positional_embeddings = permutations_utils.permute(positional_embeddings,
-                                                       original_weights,
-                                                       cfg.train_cfg.hand.permute_mode)
     reconstructed_weights = HANDPredictorBase.predict_all(predictor, positional_embeddings,
                                                           original_weights,
                                                           learnable_weights_shapes)
@@ -70,42 +73,44 @@ def main(cfg: PruneConfig):
 
     pruned_model = copy.deepcopy(reconstructed_model)
 
-    # print('evaluating original model')
-    # eval_fn.eval(original_model, test_dataloader, 0, None, '')
-    # print('evaluating reconstructed model')
-    # eval_fn.eval(reconstructed_model, test_dataloader, 0, None, '')
+    print('evaluating original model')
+    eval_fn.eval(original_model, test_dataloader, 0, None, '')
+    print('evaluating reconstructed model')
+    eval_fn.eval(reconstructed_model, test_dataloader, 0, None, '')
 
     pruner = Pruner(cfg, predictor, original_model, reconstructed_model, pruned_model, device)
 
-    # full_filter_nern_pruned_model
-    print('reconstruction_filter_prune - 3x3xCin')
-    pruner.reconstruction_filter_prune(cfg.pruning_factor, filter_type='3x3xCin')
-    eval_fn.eval(pruned_model, test_dataloader, 0, None, '') # filter_nern_pruned_model
-
-    # full_filter_magnitude_pruned_model
-    print('magnitude_filter_prune - 3x3xCin')
-    pruner.magnitude_filter_prune(cfg.pruning_factor, filter_type='3x3xCin')
-    eval_fn.eval(pruned_model, test_dataloader, 0, None, '')  # filter_nern_pruned_model
-
-    # 3*3_filter_nern_pruned_model
-    print('reconstruction_filter_prune - 3x3')
-    pruner.reconstruction_filter_prune(cfg.pruning_factor)
-    eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
-
-    # magnitude_filter_pruned_model
-    print('magnitude_filter_prune - 3x3')
-    pruner.magnitude_filter_prune(cfg.pruning_factor)
-    eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
+    # # full_filter_nern_pruned_model
+    # print('reconstruction_filter_prune - 3x3xCin')
+    # pruner.reconstruction_filter_prune(cfg.pruning_factor, filter_type='3x3xCin')
+    # eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
+    #
+    # # full_filter_magnitude_pruned_model
+    # print('magnitude_filter_prune - 3x3xCin')
+    # pruner.magnitude_filter_prune(cfg.pruning_factor, filter_type='3x3xCin')
+    # eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
+    #
+    # # 3*3_filter_nern_pruned_model
+    # print('reconstruction_filter_prune - 3x3')
+    # pruner.reconstruction_filter_prune(cfg.pruning_factor)
+    # eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
+    #
+    # # magnitude_filter_pruned_model
+    # print('magnitude_filter_prune - 3x3')
+    # pruner.magnitude_filter_prune(cfg.pruning_factor)
+    # eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
 
     # relative_nern_pruned_model
     print('unstructured_reconstruction_prune')
     pruner.reconstruction_prune(cfg.pruning_factor, error_metric='relative')
     eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
+    save_model(pruned_model, cfg.train_cfg.logging.exp_name, f"_recon_{cfg.pruning_factor}prune")
 
     # magnitude_pruned_model
     print('unstructured_magnitude_prune')
     pruner.magnitude_prune(cfg.pruning_factor)
     eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
+    save_model(pruned_model, cfg.train_cfg.logging.exp_name, f"_mag_{cfg.pruning_factor}prune")
 
     # # random_pruned_model
     # pruner.random_prune(cfg.pruning_factor)
@@ -114,33 +119,33 @@ def main(cfg: PruneConfig):
     # print(f'total weight number: {get_num_weights(original_model.get_learnable_weights())}\n')
     # print(f'tzero weights: {get_num_zero_weights(magnitude_pruned_model.get_learnable_weights())}\n')
 
-    pruning_factors = np.linspace(0, 1, 10)
-    relative_reconstruction_pruned_accuracies = list()
-    magnitude_pruned_accuracies = list()
-    random_pruned_accuracies = list()
-
-    for pruning_factor in pruning_factors:
-        pruner.reconstruction_prune(pruning_factor, error_metric='relative')
-        relative_reconstruction_accuracy = eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
-
-        pruner.magnitude_prune(pruning_factor)
-        magnitude_accuracy = eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
-
-        pruner.random_prune(pruning_factor)
-        random_accuracy = eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
-
-        relative_reconstruction_pruned_accuracies.append(relative_reconstruction_accuracy)
-        magnitude_pruned_accuracies.append(magnitude_accuracy)
-        random_pruned_accuracies.append(random_accuracy)
-
-    plt.plot(pruning_factors, relative_reconstruction_pruned_accuracies, label='relative_recon_error')
-    plt.plot(pruning_factors, magnitude_pruned_accuracies, label='magnitude')
-    plt.plot(pruning_factors, random_pruned_accuracies, label='random')
-    plt.legend()
-    plt.xlabel('Pruning Factors')
-    plt.ylabel('Pruned Models Accuracies')
-    plt.title('93% Reconstruction')
-    plt.show()
+    # pruning_factors = np.linspace(0, 1, 10)
+    # relative_reconstruction_pruned_accuracies = list()
+    # magnitude_pruned_accuracies = list()
+    # random_pruned_accuracies = list()
+    #
+    # for pruning_factor in pruning_factors:
+    #     pruner.reconstruction_prune(pruning_factor, error_metric='relative')
+    #     relative_reconstruction_accuracy = eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
+    #
+    #     pruner.magnitude_prune(pruning_factor)
+    #     magnitude_accuracy = eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
+    #
+    #     pruner.random_prune(pruning_factor)
+    #     random_accuracy = eval_fn.eval(pruned_model, test_dataloader, 0, None, '')
+    #
+    #     relative_reconstruction_pruned_accuracies.append(relative_reconstruction_accuracy)
+    #     magnitude_pruned_accuracies.append(magnitude_accuracy)
+    #     random_pruned_accuracies.append(random_accuracy)
+    #
+    # plt.plot(pruning_factors, relative_reconstruction_pruned_accuracies, label='relative_recon_error')
+    # plt.plot(pruning_factors, magnitude_pruned_accuracies, label='magnitude')
+    # plt.plot(pruning_factors, random_pruned_accuracies, label='random')
+    # plt.legend()
+    # plt.xlabel('Pruning Factors')
+    # plt.ylabel('Pruned Models Accuracies')
+    # plt.title('93% Reconstruction')
+    # plt.show()
 
 if __name__ == '__main__':
     main()

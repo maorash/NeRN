@@ -17,6 +17,9 @@ class PruneConfig:
     pruning_method: str = field(default='reconstruction')
     # reconstruction_error_metric: 'absolute', 'relative' or 'relative_squared'
     reconstruction_error_metric: str = field(default='relative')
+    # save pruned weights indices
+    save_pruned_indices: bool = field(default=False)
+
 
 @pyrallis.wrap()
 def get_prune_config(cfg: PruneConfig):

@@ -1,10 +1,10 @@
 pruning_factor: 0.1
 is_data_parallel: True
-predictor_path: ../../imagenet_resnet18_19.27MB_option2/hand_imagenet_resnet18_h1024_improved_scheme_19.27MB_best.pth
+predictor_path: ../imagenet_resnet18_19.27MB_option2/hand_imagenet_resnet18_h1024_improved_scheme_19.27MB_best.pth
 train_cfg:
   logging:
     exp_name: imagenet_resnet18_19.27MB
-  original_model_path: ../../resnet18-5c106cde.pt
+  original_model_path: ../resnet18-5c106cde.pt
   hand:
     distillation_loss_type: StableKLDivLoss
     num_blocks: 5
