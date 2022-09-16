@@ -152,6 +152,14 @@ class Pruner:
         self.pruned_model.update_weights(pruned_original_weights)
         return
 
+    def reconstruction_magnitude_prune(self, pruning_factor: float):
+        recon_weights = self.reconstructed_model.get_learnable_weights()
+        original_weights = self.original_model.get_learnable_weights()
+        smallest_magnitude_weight_indices = get_prune_indices(recon_weights, 'magnitude', pruning_factor)
+        pruned_original_weights = prune_weights(original_weights, smallest_magnitude_weight_indices)
+        self.pruned_model.update_weights(pruned_original_weights)
+        return
+
     def magnitude_prune(self, pruning_factor: float):
         original_weights = self.original_model.get_learnable_weights()
         smallest_magnitude_weight_indices = get_prune_indices(original_weights, 'magnitude', pruning_factor)
