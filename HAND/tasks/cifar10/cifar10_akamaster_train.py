@@ -119,6 +119,7 @@ def main():
     cudnn.benchmark = True
 
     get_dataloaders_fn = get_cifar100_dataloaders if args.cifar_100 else get_dataloaders
+    print(f"Loading {'cifar10' if not args.cifar_100 else 'cifar100'} data")
     train_loader, val_loader = get_dataloaders_fn({'batch_size': args.batch_size, 'num_workers': args.workers}, {'num_workers': args.workers}, use_workers=True)
 
 
