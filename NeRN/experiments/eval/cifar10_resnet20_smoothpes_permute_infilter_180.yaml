@@ -1,0 +1,28 @@
+logging:
+  exp_name: cifar10_resnet20_smoothpes_permute_infilter_180
+  log_dir: outputs/resnet20/cifar10
+original_model_path: trained_models/original_tasks/cifar10/resnet20_0_B.pt
+nern:
+  distillation_loss_type: StableKLDivLoss
+  num_blocks: 5
+  hidden_layer_size: 180
+  weights_batch_method: random_weighted_batch
+  embeddings:
+    enc_levels: 40
+    base: 0.76
+    permutations:
+      permute_mode: infilter
+  weights_batch_size: 4096
+  task_loss_weight: 0
+  init: checkpoint
+  checkpoint_path: outputs/resnet20/cifar10/checkpoints_debug_27_09_2022_013639/nern_debug_best.pth
+task:
+  task_name: cifar10
+  original_model_name: ResNet20
+optim:
+  optimizer_type: ranger
+  lr: 5e-3
+  ranger_use_gc: False
+epochs: 350
+num_gpus: 1
+num_workers: 12

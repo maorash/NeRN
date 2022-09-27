@@ -1,0 +1,26 @@
+logging:
+  exp_name: cifar100_resnet56_smoothpes_permute_infilter_320
+  log_dir: outputs/resnet56/cifar100
+original_model_path: trained_models/original_tasks/cifar/resnet56_cifar100.pt
+nern:
+  distillation_loss_type: StableKLDivLoss
+  num_blocks: 5
+  hidden_layer_size: 320
+  weights_batch_method: random_weighted_batch
+  embeddings:
+    enc_levels: 40
+    base: 0.76
+    permutations:
+      permute_mode: infilter
+  weights_batch_size: 4096
+  task_loss_weight: 0
+task:
+  task_name: cifar100
+  original_model_name: ResNet56
+optim:
+  optimizer_type: ranger
+  lr: 5e-3
+  ranger_use_gc: False
+epochs: 450
+num_gpus: 2
+num_workers: 12
