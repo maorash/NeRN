@@ -71,6 +71,39 @@ class ReconstructedModel(OriginalModel):
         for weight in self.reconstructed_model.get_learnable_weights():
             nn.init.xavier_normal_(weight)
 
+    def _get_tensor_indices(self) -> List[List[Tuple]]:
+        indices = []
+        normalize_indices = []
+
+        max_index = max([max(weights_shape) for weights_shape in self.get_learnable_weights_shapes()])
+
+        num_layers = len(self.original_model.get_learnable_weights())
+        for layer_idx in range(0, num_layers):
+            curr_layer_indices = []
+            curr_normalized_layer_indices = []
+            curr_num_filters = self.original_model.num_hidden[layer_idx][0]
+            for filter_idx in range(curr_num_filters):
+                curr_num_channels = self.original_model.num_hidden[layer_idx][1]
+                for channel_idx in range(curr_num_channels):
+                    curr_layer_indices.append((layer_idx, filter_idx, channel_idx))
+                    if self.embeddings_cfg.normalization_mode == "None":
+                        curr_normalized_layer_indices.append((layer_idx, filter_idx, channel_idx))
+                    elif self.embeddings_cfg.normalization_mode == "global":
+                        curr_normalized_layer_indices.append(
+                            (layer_idx / max_index, filter_idx / max_index, channel_idx / max_index))
+                    elif self.embeddings_cfg.normalization_mode == "local":
+                        curr_normalized_layer_indices.append(
+                            (layer_idx / num_layers, filter_idx / curr_num_filters, channel_idx / curr_num_channels))
+                    else:
+                        raise ValueError(f"Unsupported normalization mode {self.embeddings_cfg.normalization_mode}")
+
+            indices.append(curr_layer_indices)
+            normalize_indices.append(curr_normalized_layer_indices)
+
+        self.normalized_indices = normalize_indices
+
+        return indices
+
     def _calculate_unpermuted_positional_embeddings(self) -> List[List[torch.Tensor]]:
         embeddings_cache_folder = Path(__file__).parent / f"{str(self)}_embeddings_{hash(self.positional_encoder)}"
         os.makedirs(embeddings_cache_folder, exist_ok=True)
