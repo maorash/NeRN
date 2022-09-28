@@ -6,21 +6,10 @@ import torch
 
 from NeRN.options import Config
 from NeRN.predictors.factory import NeRNPredictorFactory
-from NeRN.tasks.model_factory import ModelFactory
+from NeRN.tasks.model_factory import load_original_model
 from NeRN.predictors.predictor import NeRNPredictorBase
 from NeRN.eval_func import EvalFunction
 from NeRN.tasks.dataloader_factory import DataloaderFactory
-
-
-def load_original_model(cfg: Config, device: torch.device):
-    model_kwargs_path = cfg.original_model_path.replace('pt', 'json')
-    if os.path.exists(model_kwargs_path):
-        with open(model_kwargs_path) as f:
-            model_kwargs = json.load(f)
-    else:
-        model_kwargs = dict()
-    original_model, reconstructed_model = ModelFactory.get(cfg, device, **model_kwargs)
-    return original_model, reconstructed_model
 
 
 @pyrallis.wrap()
