@@ -14,7 +14,7 @@ class PermutationsConfig:
 
 @dataclass
 class EmbeddingsConfig:
-    # Type of positional embedding to use (basic/ffn)
+    # Type of positional embedding to use (basic/ffn/coords). If using coords then normalization_mode and fusion_mode are ignored.
     type: str = field(default='basic')
     # Number of indices to encode
     num_idxs: int = field(default=3)
@@ -30,6 +30,12 @@ class EmbeddingsConfig:
     gauss_scale: List[float] = field(default_factory=lambda: [1, 0.1, 0.1])
     # Permutations config
     permutations: PermutationsConfig = field(default_factory=PermutationsConfig)
+
+    def __post_init__(self):
+        if self.type == 'coords':
+            print('Using `coords` positional embedding, ignoring normalization_mode and fusion_mode.')
+            self.fusion_mode = 'concat'
+            self.normalization_mode = 'global'
 
 
 @dataclass

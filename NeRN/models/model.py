@@ -101,8 +101,10 @@ class ReconstructedModel(OriginalModel):
             normalize_indices.append(curr_normalized_layer_indices)
 
         self.normalized_indices = normalize_indices
-
-        return indices
+        if self.embeddings_cfg.type == 'coords':
+            return self.normalized_indices
+        else:
+            return indices
 
     def _calculate_unpermuted_positional_embeddings(self) -> List[List[torch.Tensor]]:
         embeddings_cache_folder = Path(__file__).parent / f"{str(self)}_embeddings_{hash(self.positional_encoder)}"

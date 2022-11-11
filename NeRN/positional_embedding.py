@@ -57,6 +57,23 @@ class PositionalEmbedding:
         return torch.cat([fn(inputs) for fn in self.embedding_funcs], -1)
 
 
+class SirenEmbedding(nn.Module):
+    def __init__(self, config: EmbeddingsConfig):
+        super().__init__()
+        self.config = config
+        self.num_idxs = config.num_idxs
+        self.output_size = self._calculate_output_size()
+
+    def _calculate_output_size(self):
+        if self.embedding_fusion_mode == 'concat':
+            return self.levels * 2 * self.num_idxs
+        elif self.embedding_fusion_mode == 'sum' and self.type == 'basic':
+            return self.levels * 2
+
+    def forward(self, inputs):
+        return self.embedder.embed(inputs)
+
+
 class MyPositionalEncoding(nn.Module):
     def __init__(self, config: EmbeddingsConfig):
         super(MyPositionalEncoding, self).__init__()
@@ -73,6 +90,8 @@ class MyPositionalEncoding(nn.Module):
                                       * torch.Tensor(self.gauss_scale), requires_grad=False)
 
     def _calculate_output_size(self):
+        if self.type == 'coords':
+            return self.num_idxs
         if self.embedding_fusion_mode == 'concat':
             return self.levels * 2 * self.num_idxs
         elif self.embedding_fusion_mode == 'sum' and self.type == 'basic':
@@ -83,8 +102,13 @@ class MyPositionalEncoding(nn.Module):
             return self._basic(pos)
         elif self.type == 'ffn':
             return self._ffn(pos)
+        elif self.type == 'coords':
+            return self._coords(pos)
         else:
             raise NotImplementedError(f'Unsupported positional embedding type {self.type}')
+
+    def _coords(self, pos):
+        return torch.tensor(pos) * 2 - 1  # [0, 1] -> [-1, 1]
 
     def _ffn(self, pos):
         if self.embedding_fusion_mode == 'concat':
@@ -92,7 +116,8 @@ class MyPositionalEncoding(nn.Module):
             x = (torch.tensor(pos) * 2 * np.pi) @ self.ffn_B.T
             final_embeddings = torch.dstack([torch.sin(x), torch.cos(x)]).flatten()
         else:
-            raise NotImplementedError(f'Unsupported embedding fusion mode {self.embedding_fusion_mode} for type {self.type}')
+            raise NotImplementedError(
+                f'Unsupported embedding fusion mode {self.embedding_fusion_mode} for type {self.type}')
         return final_embeddings
 
     def _basic(self, pos):
@@ -109,13 +134,15 @@ class MyPositionalEncoding(nn.Module):
                 pe_list.append(torch.dstack([torch.sin(pe_levels), torch.cos(pe_levels)]).flatten())
             final_embeddings = torch.vstack(pe_list).sum(dim=0)
         else:
-            raise NotImplementedError(f'Unsupported embedding fusion mode {self.embedding_fusion_mode} for type {self.type}')
+            raise NotImplementedError(
+                f'Unsupported embedding fusion mode {self.embedding_fusion_mode} for type {self.type}')
         return final_embeddings
 
     def __hash__(self):
         pe_type = {
             'basic': 0,
-            'ffn': 1
+            'ffn': 1,
+            'coords': 2
         }
         return hash((self.base, self.levels, self.num_idxs, self.output_size, pe_type[self.type],
                      *tuple(self.gauss_scale)))
