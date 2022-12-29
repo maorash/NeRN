@@ -171,3 +171,21 @@ class ModelFactory:
 ## 📃 Final Note
 Under `experiments`, you will find all the relevant configuration files, used to generate the results for sections `4.1`-`4.3` in the paper.
 The NeRN framework is still under active development, we hope you have fun using it and welcome any feedbacks.
+
+
+## Citation
+If you use this code or paper for your research, please cite the following:
+
+
+```
+@misc{https://doi.org/10.48550/arxiv.2212.13554,
+  doi = {10.48550/ARXIV.2212.13554},
+  url = {https://arxiv.org/abs/2212.13554},
+  author = {Ashkenazi, Maor and Rimon, Zohar and Vainshtein, Ron and Levi, Shir and Richardson, Elad and Mintz, Pinchas and Treister, Eran},
+  keywords = {Machine Learning (cs.LG), Computer Vision and Pattern Recognition (cs.CV), FOS: Computer and information sciences, FOS: Computer and information sciences},
+  title = {NeRN -- Learning Neural Representations for Neural Networks},
+  publisher = {arXiv},
+  year = {2022},
+  copyright = {arXiv.org perpetual, non-exclusive license}
+}
+```
