@@ -1,6 +1,8 @@
 # NeRN 
 ### LEARNING NEURAL REPRESENTATIONS FOR NEURAL NETWORKS
 
+Link to paper: https://arxiv.org/abs/2212.13554
+
 This is the official framework for "NeRN - Learning Neural Representations for Neural Networks". 
 This framework can be used to recreate the experiments detailed in the paper, or be extended to support additional networks and tasks.
 
