@@ -6,6 +6,7 @@ from NeRN.models.model import OriginalDataParallel, ReconstructedDataParallel
 from NeRN.tasks.resnet18 import ResNet18, ReconstructedResNet18
 from NeRN.tasks.resnet20 import ResNet20, ReconstructedResNet20
 from NeRN.tasks.resnet56 import ResNet56, ReconstructedResNet56
+from NeRN.tasks.squeezenet import SqueezeNet, ReconstructedSqueezeNet
 from NeRN.options import Config
 
 
@@ -24,7 +25,8 @@ class ModelFactory:
     models = {
         "ResNet18": (ResNet18, ReconstructedResNet18),
         "ResNet20": (ResNet20, ReconstructedResNet20),
-        "ResNet56": (ResNet56, ReconstructedResNet56)
+        "ResNet56": (ResNet56, ReconstructedResNet56),
+        "SqueezeNet": (SqueezeNet, ReconstructedSqueezeNet)
     }
 
     @staticmethod
