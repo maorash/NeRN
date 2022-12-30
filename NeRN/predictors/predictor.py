@@ -24,10 +24,10 @@ class NeRNPredictorBase(nn.Module, ABC):
         self.random_batch_idx = 0
 
     def save(self, path: str):
-        torch.save(self, path)
+        torch.save(self.state_dict(), path)
 
     def load(self, path: str):
-        self.load_state_dict(torch.load(path).state_dict())
+        self.load_state_dict(torch.load(path))
 
     @abstractmethod
     def forward(self, positional_embedding: torch.Tensor) -> torch.Tensor:

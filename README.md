@@ -144,16 +144,12 @@ class MyNewModel(OriginalModel):
         pass
 ```
 #### Step 2:
-Create a `ReconstructedModel` wrapper, and implement the following methods:
+Create a `ReconstructedModel` wrapper, and implement the `__str__` method:
 ```
 class ReconstructedMyNewModel(ReconstructedModel):
     def __init__(self, original_model: ResNet20, train_cfg: Config, device: str,
                  sampling_mode: str = None):
         super(ReconstructedResNet20, self).__init__(original_model, train_cfg, device,  sampling_mode)
-
-    def _get_tensor_indices(self) -> List[List[Tuple]]:
-        # Returns a list containing the coordinates of each layer. Each layer's coordinates is a list containing integer 3-tuples (layer, filter, channel)
-        pass
 
     def __str__(self):
         # Returns the name of the model in a unique way. Will be used for caching purposes

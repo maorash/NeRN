@@ -68,7 +68,7 @@ def get_dataloaders(train_kwargs, test_kwargs, task_cfg):
         class_map='', download=False,
         batch_size=test_kwargs['batch_size'])
 
-    if task_cfg.original_model_name in ['ResNet18', 'ResNet14']:
+    if task_cfg.original_model_name in ['ResNet18', 'ResNet14', 'SqueezeNet']:
         data_config = {
             'num_classes': 1000, 'input_size': (3, 224, 224), 'pool_size': (7, 7),
             'crop_pct': 0.875, 'interpolation': 'bilinear',

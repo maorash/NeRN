@@ -75,15 +75,15 @@ class ReconstructedModel(OriginalModel):
         indices = []
         normalize_indices = []
 
-        max_index = max([max(weights_shape) for weights_shape in self.get_learnable_weights_shapes()])
-
+        learnable_weights_shapes = self.get_learnable_weights_shapes()
+        max_index = max([max(weights_shape) for weights_shape in learnable_weights_shapes])
         num_layers = len(self.original_model.get_learnable_weights())
         for layer_idx in range(0, num_layers):
             curr_layer_indices = []
             curr_normalized_layer_indices = []
-            curr_num_filters = self.original_model.num_hidden[layer_idx][0]
+            curr_num_filters = learnable_weights_shapes[layer_idx][0]
             for filter_idx in range(curr_num_filters):
-                curr_num_channels = self.original_model.num_hidden[layer_idx][1]
+                curr_num_channels = learnable_weights_shapes[layer_idx][1]
                 for channel_idx in range(curr_num_channels):
                     curr_layer_indices.append((layer_idx, filter_idx, channel_idx))
                     if self.embeddings_cfg.normalization_mode == "None":
