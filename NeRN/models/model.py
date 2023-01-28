@@ -187,7 +187,7 @@ class ReconstructedModel(OriginalModel):
             else:
                 raise ValueError(f"Unsupported sampling mode {self.sampling_mode}")
 
-            curr_layer_weights.data = curr_layer_weights.data * 0. + sampled_predicted_weights
+            curr_layer_weights.data = sampled_predicted_weights
 
     def forward(self, x):
         return self.reconstructed_model(x)
