@@ -12,7 +12,9 @@ nern:
     base: 0.76
     permutations:
       permute_mode: infilter
-  task_loss_weight: 0
+  reconstruction_loss_weight: 1
+  attention_loss_weight: 0.000001
+  distillation_loss_weight: 0.000001
 task:
   task_name: imagenet
   original_model_name: ResNet18
@@ -22,7 +24,7 @@ optim:
   lr: 5e-3
   ranger_use_gc: False
 batch_size: 32
-loss_warmup_iterations: 0
+loss_warmup_iterations: 20000
 eval_loss_window_size: 100
 eval_loss_window_interval: 20
 num_gpus: 2

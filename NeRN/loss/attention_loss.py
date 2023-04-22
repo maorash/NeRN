@@ -26,14 +26,14 @@ class L2AttentionLoss(AttentionLossBase):
 
         for original_fmap, reconstructed_fmap in zip(original_feature_maps, reconstructed_feature_maps):
             normalized_original_fmap = original_fmap / torch.linalg.norm(original_fmap)
-            normalized_reconstructed_fmap = reconstructed_fmap / (torch.linalg.norm(reconstructed_fmap) + 1e-8)
+            normalized_reconstructed_fmap = reconstructed_fmap / (torch.linalg.norm(reconstructed_fmap) + 1e-3)
             loss += torch.sum((normalized_original_fmap - normalized_reconstructed_fmap) ** 2)
 
         return loss
 
 
 class L2BatchedAttentionLoss(AttentionLossBase):
-    def __init__(self, eps=1e-8):
+    def __init__(self, eps=1e-3):
         super().__init__()
         self.eps = eps
 
@@ -56,7 +56,7 @@ class L2BatchedAttentionLoss(AttentionLossBase):
 
 
 class SPAttentionLoss(AttentionLossBase):
-    def __init__(self, eps=1e-8):
+    def __init__(self, eps=1e-3):
         super().__init__()
         self.eps = eps
 

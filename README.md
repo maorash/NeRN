@@ -11,7 +11,7 @@ This framework can be used to recreate the experiments detailed in the paper, or
 The requirements for NeRN are listed in `requirements.txt`.
 To create a new _conda_ environment with the required packages, run the following:
 ```sh
-conda create -name nern python=3.7
+conda create --name nern python=3.7
 conda activate nern
 pip install -r requirements.txt
 ```

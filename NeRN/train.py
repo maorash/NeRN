@@ -6,18 +6,16 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 from clearml import Task
 
+import NeRN.log_utils as log_utils
 from NeRN.loss.attention_loss import AttentionLossFactory
 from NeRN.loss.distillation_loss import DistillationLossFactory
 from NeRN.loss.reconstruction_loss import ReconstructionLossFactory
-from NeRN.loss.task_loss import TaskLossFactory
 from NeRN.options import Config
 from NeRN.predictors.factory import NeRNPredictorFactory
 from NeRN.tasks.model_factory import load_original_model
-import NeRN.log_utils as log_utils
 from NeRN.trainer import Trainer
 from NeRN.eval_func import EvalFunction
 from NeRN.tasks.dataloader_factory import DataloaderFactory
-
 
 
 @pyrallis.wrap()
@@ -60,7 +58,6 @@ def main(cfg: Config):
 
     trainer = Trainer(config=cfg,
                       predictor=predictor,
-                      task_loss=TaskLossFactory.get(cfg.nern, cfg.task),
                       reconstruction_loss=ReconstructionLossFactory.get(cfg.nern),
                       attention_loss=AttentionLossFactory.get(cfg.nern),
                       distillation_loss=DistillationLossFactory.get(cfg.nern),

@@ -14,7 +14,7 @@ class RandomDataset(Dataset):
         self.num_samples = int(num_samples)
 
     def __getitem__(self, item):
-        return torch.randn(self.input_shape), -1  # no labels for random inputs
+        return (torch.rand(self.input_shape) * 4) - 2, -1  # No labels for random inputs
 
     def __len__(self):
         return self.num_samples

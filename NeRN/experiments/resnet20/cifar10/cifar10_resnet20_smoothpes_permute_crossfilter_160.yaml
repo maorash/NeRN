@@ -13,7 +13,9 @@ nern:
     permutations:
       permute_mode: crossfilter
   weights_batch_size: 4096
-  task_loss_weight: 0
+  reconstruction_loss_weight: 1
+  attention_loss_weight: 0.0001
+  distillation_loss_weight: 0.0001
 task:
   task_name: cifar10
   original_model_name: ResNet20
@@ -24,3 +26,4 @@ optim:
 epochs: 350
 num_gpus: 2
 num_workers: 12
+loss_warmup_iterations: 0

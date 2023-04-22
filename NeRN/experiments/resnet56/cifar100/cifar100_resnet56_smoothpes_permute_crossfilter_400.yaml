@@ -13,7 +13,6 @@ nern:
     permutations:
       permute_mode: crossfilter
   weights_batch_size: 4096
-  task_loss_weight: 0
 task:
   task_name: cifar100
   original_model_name: ResNet56

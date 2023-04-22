@@ -56,21 +56,19 @@ class NeRNConfig:
     weights_batch_method: str = field(default='all')
     # Positional embeddings config
     embeddings: EmbeddingsConfig = field(default_factory=EmbeddingsConfig)
-    # Task loss weight
-    task_loss_weight: float = field(default=1)
     # Reconstruction loss weight
     reconstruction_loss_weight: float = field(default=1)
     # Feature maps distillation loss weight
-    attention_loss_weight: float = field(default=1)
+    attention_loss_weight: float = field(default=0.00001)
     # Output distillation loss weight
-    distillation_loss_weight: float = field(default=1)
-    # Task loss type, should be a member of `torch.nn.functional`, default is `nll_loss`
+    distillation_loss_weight: float = field(default=0.00001)
+    # Task loss type
     task_loss_type: str = field(default='CELoss')
-    # Reconstruction loss type, should be a member of `torch.nn`, default is `MSELoss`
+    # Reconstruction loss type
     reconstruction_loss_type: str = field(default='L2Loss')
-    # Feature maps distillation loss type, should be a member of `torch.nn`, default is `MSELoss`
+    # Feature maps distillation loss type
     attention_loss_type: str = field(default='L2BatchedAttentionLoss')
-    # Output distillation loss type, should be a member of `torch.nn`, default is `KLDivLoss`
+    # Output distillation loss type
     distillation_loss_type: str = field(default='KLDivLoss')
     # The sampling mode for the reconstruction model (center/average/max)
     sampling_mode: str = field(default='center')
@@ -162,7 +160,7 @@ class Config:
     # How often to add the loss to the window, number of iterations (batches)
     eval_loss_window_interval: int = field(default=10)
     # Number of iterations to optimize only using reconstruction loss at the beginning of training
-    loss_warmup_iterations: int = field(default=100)
+    loss_warmup_iterations: int = field(default=10000)
     # Use cpu instead of cuda
     no_cuda: bool = field(default=False)
     # Learn the fully connected layer of the reconstructed model

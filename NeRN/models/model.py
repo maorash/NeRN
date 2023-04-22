@@ -168,7 +168,8 @@ class ReconstructedModel(OriginalModel):
     def get_indices_and_positional_embeddings(self) -> Tuple[List[List[Tuple]], List[torch.Tensor]]:
         return self.indices, self.positional_embeddings
 
-    def update_weights(self, reconstructed_weights: List[torch.Tensor]):
+    def sample_weights_by_shapes(self, reconstructed_weights: List[torch.Tensor]):
+        result = []
         learnable_weights = self.get_learnable_weights()
         for curr_layer_weights, curr_predicted_weights in zip(learnable_weights, reconstructed_weights):
             # Assuming a square filter
@@ -187,7 +188,14 @@ class ReconstructedModel(OriginalModel):
             else:
                 raise ValueError(f"Unsupported sampling mode {self.sampling_mode}")
 
-            curr_layer_weights.data = sampled_predicted_weights
+            result.append(sampled_predicted_weights)
+
+        return result
+
+    def update_weights(self, reconstructed_weights: List[torch.Tensor]):
+        learnable_weights = self.get_learnable_weights()
+        for curr_layer_weights, curr_predicted_weights in zip(learnable_weights, reconstructed_weights):
+            curr_layer_weights.data = curr_predicted_weights.data
 
     def forward(self, x):
         return self.reconstructed_model(x)

@@ -15,7 +15,6 @@ from NeRN.log_utils import create_experiment_dir, log_scalar_list, compute_grad_
 from NeRN.loss.attention_loss import AttentionLossBase
 from NeRN.loss.reconstruction_loss import ReconstructionLossBase
 from NeRN.loss.distillation_loss import DistillationLossBase
-from NeRN.loss.task_loss import TaskLossBase
 from NeRN.optimization.optimizer import OptimizerFactory
 from NeRN.optimization.scheduler import GenericScheduler, LRSchedulerFactory
 from NeRN.options import Config
@@ -24,7 +23,6 @@ from NeRN.options import Config
 class Trainer:
     def __init__(self, config: Config,
                  predictor: Union[NeRNPredictorBase, PredictorDataParallel],
-                 task_loss: TaskLossBase,
                  reconstruction_loss: ReconstructionLossBase,
                  attention_loss: AttentionLossBase,
                  distillation_loss: DistillationLossBase,
@@ -36,7 +34,6 @@ class Trainer:
                  device):
         self.config = config
         self.predictor = predictor
-        self.task_loss = task_loss
         self.reconstruction_loss = reconstruction_loss
         self.attention_loss = attention_loss
         self.distillation_loss = distillation_loss
@@ -73,45 +70,50 @@ class Trainer:
 
                 reconstructed_weights = NeRNPredictorBase.predict_all(self.predictor, positional_embeddings,
                                                                       original_weights, learnable_weights_shapes)
+                reconstructed_weights = self.reconstructed_model.sample_weights_by_shapes(reconstructed_weights)
                 self.reconstructed_model.update_weights(reconstructed_weights)
+
+                updated_weights = self.reconstructed_model.get_learnable_weights()
 
                 original_outputs, original_feature_maps = self.original_model.get_feature_maps(batch)
                 reconstructed_outputs, reconstructed_feature_maps = self.reconstructed_model.get_feature_maps(batch)
 
-                # Compute reconstruction loss
-                reconstruction_term = self.config.nern.reconstruction_loss_weight * self.reconstruction_loss(
-                    reconstructed_weights, original_weights)
+                reconstruction_loss = self.reconstruction_loss(updated_weights, original_weights)
+                reconstruction_term = self.config.nern.reconstruction_loss_weight * reconstruction_loss
+
+                attention_loss = self.attention_loss(reconstructed_feature_maps, original_feature_maps)
+                distillation_loss = self.distillation_loss(reconstructed_outputs, original_outputs)
 
                 if self._loss_warmup(training_step):
-                    task_term, attention_term, distillation_term = 0, 0, 0
+                    attention_term, distillation_term = torch.tensor(0), torch.tensor(0)
                 else:
-                    # Compute task loss
-                    task_term = self.config.nern.task_loss_weight * self.task_loss(reconstructed_outputs,
-                                                                                   ground_truth) if self.config.nern.task_loss_weight > 0 else 0
+                    attention_term = self.config.nern.attention_loss_weight * attention_loss \
+                        if self.config.nern.attention_loss_weight > 0 else torch.tensor(0)
+                    distillation_term = self.config.nern.distillation_loss_weight * distillation_loss \
+                        if self.config.nern.distillation_loss_weight > 0 else torch.tensor(0)
 
-                    # Compute attention loss
-                    attention_term = self.config.nern.attention_loss_weight * self.attention_loss(
-                        reconstructed_feature_maps,
-                        original_feature_maps) if self.config.nern.attention_loss_weight > 0 else 0
+                loss = reconstruction_term + attention_term + distillation_term
+                if loss.isnan().item() is True and self.config.task.use_random_data is True:
+                    # This can result in an infinite loop, be careful
+                    print("Loss is NaN when using random data. Skipping this batch.")
+                    continue
 
-                    # Compute distillation loss
-                    distillation_term = self.config.nern.distillation_loss_weight * self.distillation_loss(
-                        reconstructed_outputs, original_outputs) if self.config.nern.distillation_loss_weight > 0 else 0
+                for updated_weight in updated_weights:
+                    updated_weight.grad = None
 
-                loss = reconstruction_term + task_term + attention_term + distillation_term
                 loss.backward()
+                torch.autograd.backward(reconstructed_weights, [w.grad for w in updated_weights])
 
                 if training_step % self.config.logging.log_interval == 0 and not self.config.logging.disable_logging:
                     loss_dict = dict(loss=loss,
-                                     original_task_loss=task_term,
                                      reconstruction_loss=reconstruction_term,
                                      attention_loss=attention_term,
                                      distillation_loss=distillation_term)
-                    self._log_training(training_step, reconstructed_weights, loss_dict, scheduler.get_last_lr(),
+                    self._log_training(training_step, updated_weights, loss_dict, scheduler.get_last_lr(),
                                        self.config.logging.verbose)
                 if training_step % self.config.eval_loss_window_interval == 0:
-                    self._add_to_loss_window(loss.item())
-                    if len(self.loss_window) == self.config.eval_loss_window_size and loss <= min(self.loss_window):
+                    self._add_to_loss_window((attention_loss + distillation_loss).item())
+                    if len(self.loss_window) == self.config.eval_loss_window_size and (attention_loss + distillation_loss).item() <= min(self.loss_window):
                         self._eval(training_step, "greedy")
 
                 self._clip_grad_norm()
@@ -176,9 +178,8 @@ class Trainer:
                         title="learning_rate",
                         iteration=training_step,
                         logger=self.logger)
-        print(f'\nTraining loss is: {loss_dict["loss"]}')
 
-        # logging norms
+        print(f"[{training_step}/{self.config.num_iterations}] Loss = {loss_dict['loss'].item():.8f} ({''.join(f'{k} = {v.item():.8f}, ' for k, v in loss_dict.items() if k != 'loss')})")
         if verbose is True:
             self._log_training_verbose(reconstructed_weights, training_step)
 
@@ -201,6 +202,12 @@ class Trainer:
                         series_name='layer',
                         iteration=training_step,
                         logger=self.logger)
+        predictor_grad_norms = compute_grad_norms(list(self.predictor.parameters()))
+        log_scalar_list(predictor_grad_norms,
+                        title='predictor_grad_norms',
+                        series_name='layer',
+                        iteration=training_step,
+                        logger=self.logger)
 
     def _set_grads_for_training(self):
         self.original_model.eval()
@@ -208,7 +215,7 @@ class Trainer:
         for param in self.original_model.parameters():
             param.requires_grad = False
         for param in self.reconstructed_model.parameters():
-            param.requires_grad = False
+            param.requires_grad = True
 
         self.predictor.train()
         for param in self.predictor.parameters():
