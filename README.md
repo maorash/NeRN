@@ -42,7 +42,6 @@ nern:
     permutations:
       permute_mode: crossfilter
   weights_batch_size: 4096
-  task_loss_weight: 0  # We do not need the task loss to train NeRN
   distillation_loss_type: StableKLDivLoss
 task:
   task_name: cifar10
