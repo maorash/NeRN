@@ -71,17 +71,28 @@ python train.py --logging.use_tensorboard True --epochs 400 --nern.weights_batch
 ```
 
 ## 📊 Evaluating a NeRN
-Create a copy of the configure used to train NeRN, and add the following fields
+Requirements:
+* A working python environment
+* Pretrained CNN weights (see section *'Training a NeRN'*)
+* Pretrained NeRN weights
+* The _pyrallis_ configuration file (_.yaml_) used to train NeRN
+* (Hopefully) A GPU
+* (Optional) Precomputed permutations
+
+Create a copy of the training configuration file, and add the following fields:
 ```
 nern:
   init: checkpoint
   checkpoint_path: <PATH_TO_NERN_CHECKPOINT>
 ```
 These will initialize the NeRN using pretrained weights (by the way, this can also be used for finetuning/transfer learning)
+
 Then, run:
 ```
 python evaluate.py --config_path <PATH_TO_EVAL_CONFIG_YAML_FILE>
 ```
+
+Tip: the `nern.embeddings.permutations.path` parameter is used to load precomputed permutations, and can save some time during training/evaluation
 
 ## 🔧 Extending the Framework
 ### Adding new benchmarks
@@ -165,6 +176,23 @@ class ModelFactory:
     }
 ```
 
+## 📦 Pretrained Models 
+
+The models (both original networks and pretrained NeRNs) can be found [here](https://drive.google.com/drive/folders/1rQxmMXfLNKh39At_ww9V5a-OhKhT-7es?usp=sharing) (*)
+
+We provide pretrained models for the following tasks:
+
+|   Task   |          Original Network          |                                                                                                               NeRN Configuration                                                                                                               |
+|:--------:|:----------------------------------:|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
+|  CIFAR10 |    ResNet20<br>(Accuracy 91.69%)   | Infilter Permutations, Hidden Size 160, Accuracy 90.85%<br>Infilter Permutations, Hidden Size 180, Accuracy 91.30%<br>Crossfilter Permutations, Hidden Size 160, Accuracy 91.16%<br>Crossfilter Permutations, Hidden Size 180, Accuracy 91.50% |
+|  CIFAR10 |    ResNet56<br>(Accuracy 93.52%)   | Infilter Permutations, Hidden Size 280, Accuracy 92.48%<br>Infilter Permutations, Hidden Size 320, Accuracy 92.75%<br>Crossfilter Permutations, Hidden Size 280, Accuracy 92.54%<br>Crossfilter Permutations, Hidden Size 320, Accuracy 92.96% |
+| CIFAR100 |    ResNet56<br>(Accuracy 71.35%)   |                                                            Crossfilter Permutations, Hidden Size 360, Accuracy 70.51%<br>Crossfilter Permutations, Hidden Size 400, Accuracy 71.70%                                                            |
+| ImageNet | ResNet18<br>(Top-1 Accuracy 69.76%) |                                                                                        Crossfilter Permutations, Hidden Size 1256, Top-1 Accuracy 68.77%                                                                                       |
+
+(*) Pretrained ResNet18 on ImageNet is taken from [torchvision](https://download.pytorch.org/models/resnet18-5c106cde.pth)
+
+Since computing the Crossfilter permutations on ResNet18 takes a few hours, we have also uploaded the precomputed permutations. Load the precomputed permutations using `nern.embeddings.permutations.path`
+
 ## 📃 Final Note
 Under `experiments`, you will find all the relevant configuration files, used to generate the results for sections `4.1`-`4.3` in the paper.
 The NeRN framework is still under active development, we hope you have fun using it and welcome any feedbacks.
@@ -175,14 +203,12 @@ If you use this code or paper for your research, please cite the following:
 
 
 ```
-@misc{https://doi.org/10.48550/arxiv.2212.13554,
-  doi = {10.48550/ARXIV.2212.13554},
-  url = {https://arxiv.org/abs/2212.13554},
-  author = {Ashkenazi, Maor and Rimon, Zohar and Vainshtein, Ron and Levi, Shir and Richardson, Elad and Mintz, Pinchas and Treister, Eran},
-  keywords = {Machine Learning (cs.LG), Computer Vision and Pattern Recognition (cs.CV), FOS: Computer and information sciences, FOS: Computer and information sciences},
-  title = {NeRN -- Learning Neural Representations for Neural Networks},
-  publisher = {arXiv},
-  year = {2022},
-  copyright = {arXiv.org perpetual, non-exclusive license}
+@inproceedings{
+ashkenazi2023nern,
+title={Ne{RN}: Learning Neural Representations for Neural Networks},
+author={Maor Ashkenazi and Zohar Rimon and Ron Vainshtein and Shir Levi and Elad Richardson and Pinchas Mintz and Eran Treister},
+booktitle={The Eleventh International Conference on Learning Representations },
+year={2023},
+url={https://openreview.net/forum?id=9gfir3fSy3J}
 }
 ```

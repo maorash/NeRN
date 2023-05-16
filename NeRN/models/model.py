@@ -139,8 +139,11 @@ class ReconstructedModel(OriginalModel):
         if self.permutations_cfg.permute_mode is None:
             return unpermuted_positional_embeddings
 
-        permutations_folder_name = f"{str(self)}_permutations_{hash((hash_str(self.original_model_path), hash_str(self.permutations_cfg.permute_mode)))}"
-        permutations_cache_folder = Path(__file__).parent / permutations_folder_name
+        if self.permutations_cfg.path is None:
+            permutations_folder_name = f"{str(self)}_permutations_{hash((hash_str(self.original_model_path), hash_str(self.permutations_cfg.permute_mode)))}"
+            permutations_cache_folder = Path(__file__).parent / permutations_folder_name
+        else:
+            permutations_cache_folder = Path(self.permutations_cfg.path)
         os.makedirs(permutations_cache_folder, exist_ok=True)
 
         permuter = PermutationsFactory.get(self.permutations_cfg)

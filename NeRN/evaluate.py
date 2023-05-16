@@ -1,6 +1,3 @@
-import json
-import os
-
 import pyrallis
 import torch
 
@@ -19,12 +16,9 @@ def main(cfg: Config):
 
     original_model, reconstructed_model = load_original_model(cfg, device)
 
-    pos_embedding = reconstructed_model.output_size
-    predictor = NeRNPredictorFactory(cfg, input_size=pos_embedding).get_predictor().to(device)
+    predictor = NeRNPredictorFactory(cfg, input_size=reconstructed_model.output_size).get_predictor().to(device)
 
     init_predictor(cfg, predictor)
-
-    _, test_dataloader = DataloaderFactory.get(cfg.task, **{'batch_size': cfg.batch_size, 'num_workers': cfg.num_workers})
 
     learnable_weights_shapes = reconstructed_model.get_learnable_weights_shapes()
     indices, positional_embeddings = reconstructed_model.get_indices_and_positional_embeddings()
@@ -32,8 +26,12 @@ def main(cfg: Config):
                                                           positional_embeddings,
                                                           original_model.get_learnable_weights(),
                                                           learnable_weights_shapes)
-
+    reconstructed_weights = reconstructed_model.sample_weights_by_shapes(reconstructed_weights)
     reconstructed_model.update_weights(reconstructed_weights)
+
+    _, test_dataloader = DataloaderFactory.get(cfg.task, **{'batch_size': cfg.batch_size,
+                                                            'num_workers': cfg.num_workers,
+                                                            'only_test': True})
 
     eval_func = EvalFunction(cfg)
     eval_func.eval(reconstructed_model, test_dataloader, iteration=0, logger=None)

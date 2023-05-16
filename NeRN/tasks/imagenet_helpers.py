@@ -56,11 +56,15 @@ mixup_args = dict(
 
 
 def get_dataloaders(train_kwargs, test_kwargs, task_cfg):
-    print("Creating ImageNet train dataloader")
-    dataset_train = create_dataset(
-        '', root=task_cfg.imagenet_path, split='train', is_training=True,
-        class_map='', download=False,
-        batch_size=train_kwargs['batch_size'], repeats=0)
+    if train_kwargs.get('only_test') is True:
+        print("Skipping ImageNet train dataloader")
+        dataset_train = None
+    else:
+        print("Creating ImageNet train dataloader")
+        dataset_train = create_dataset(
+            '', root=task_cfg.imagenet_path, split='train', is_training=True,
+            class_map='', download=False,
+            batch_size=train_kwargs['batch_size'], repeats=0)
 
     print("Creating ImageNet val dataloader")
     dataset_eval = create_dataset(
@@ -100,35 +104,38 @@ def get_dataloaders(train_kwargs, test_kwargs, task_cfg):
         pin_memory=eval_args["pin_mem"],
     )
 
-    loader_train = create_loader(
-        dataset_train,
-        input_size=data_config["input_size"],
-        batch_size=train_args["batch_size"],
-        is_training=True,
-        use_prefetcher=train_args["prefetcher"],
-        no_aug=train_args["no_aug"],
-        re_prob=train_args["reprob"],
-        re_mode=train_args["remode"],
-        re_count=train_args["recount"],
-        re_split=train_args["resplit"],
-        scale=train_args["scale"],
-        ratio=train_args["ratio"],
-        hflip=train_args["hflip"],
-        vflip=train_args["vflip"],
-        color_jitter=train_args["color_jitter"],
-        auto_augment=train_args["aa"],
-        num_aug_repeats=train_args["aug_repeats"],
-        num_aug_splits=train_args["num_aug_splits"],
-        interpolation="random",
-        mean=data_config["mean"],
-        std=data_config["std"],
-        num_workers=train_args["num_workers"],
-        distributed=train_args["distributed"],
-        collate_fn=collate_fn,
-        pin_memory=train_args["pin_mem"],
-        use_multi_epochs_loader=train_args["use_multi_epochs_loader"],
-        worker_seeding=train_args["worker_seeding"],
-    )
+    if dataset_train is None:
+        loader_train = None
+    else:
+        loader_train = create_loader(
+            dataset_train,
+            input_size=data_config["input_size"],
+            batch_size=train_args["batch_size"],
+            is_training=True,
+            use_prefetcher=train_args["prefetcher"],
+            no_aug=train_args["no_aug"],
+            re_prob=train_args["reprob"],
+            re_mode=train_args["remode"],
+            re_count=train_args["recount"],
+            re_split=train_args["resplit"],
+            scale=train_args["scale"],
+            ratio=train_args["ratio"],
+            hflip=train_args["hflip"],
+            vflip=train_args["vflip"],
+            color_jitter=train_args["color_jitter"],
+            auto_augment=train_args["aa"],
+            num_aug_repeats=train_args["aug_repeats"],
+            num_aug_splits=train_args["num_aug_splits"],
+            interpolation="random",
+            mean=data_config["mean"],
+            std=data_config["std"],
+            num_workers=train_args["num_workers"],
+            distributed=train_args["distributed"],
+            collate_fn=collate_fn,
+            pin_memory=train_args["pin_mem"],
+            use_multi_epochs_loader=train_args["use_multi_epochs_loader"],
+            worker_seeding=train_args["worker_seeding"],
+        )
     return loader_train, loader_eval
 
 

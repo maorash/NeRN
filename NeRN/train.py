@@ -25,8 +25,7 @@ def main(cfg: Config):
 
     original_model, reconstructed_model = load_original_model(cfg, device)
 
-    pos_embedding = reconstructed_model.output_size
-    predictor = NeRNPredictorFactory(cfg, input_size=pos_embedding).get_predictor().to(device)
+    predictor = NeRNPredictorFactory(cfg, input_size=reconstructed_model.output_size).get_predictor().to(device)
 
     init_predictor(cfg, predictor)
 

@@ -10,6 +10,8 @@ class PermutationsConfig:
     permute_mode: str = field(default=None)
     # Number of workers to use for crossfilter permutations
     num_workers: int = field(default=3)
+    # Permutations cache folder path (if empty, a default path will be chosen based on the configuration)
+    path: Optional[str] = field(default=None)
 
 
 @dataclass
@@ -134,7 +136,7 @@ class OptimizationConfig:
 @dataclass
 class Config:
     # Path to the original model file
-    original_model_path: str = field(default='trained_models/original_tasks/mnist/mnist_cnn.pt')
+    original_model_path: Optional[str] = field(default=None)
     # NeRN config
     nern: NeRNConfig = field(default_factory=NeRNConfig)
     # Number of data loading workers
